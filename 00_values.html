@@ -1,0 +1,201 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DSI Data Viz</title>
+<style type="text/css">
+body {
+  font-family: 'Helvetica', sans-serif;
+  margin: 1em;
+}
+
+h2.section {
+  font-size: 350%;
+  border-bottom: 1px solid #DDDDDD;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+}
+
+#charts {
+  margin-top: 2em;
+}
+
+#charts svg {
+  margin-right: 1em;
+  margin-bottom: 2em;
+}
+
+text.label {
+  font-size: 70%;
+  text-anchor: end;
+}
+
+text.value {
+  font-size: 90%;
+  text-anchor: start;
+}
+
+text.title {
+  font-size: 180%;
+  text-anchor: start;
+}
+
+</style>
+<script type="text/javascript" src="lib/d3.v3.min.js"></script>
+<script type="text/javascript" src="lib/q.min.js"></script>
+<script type="text/javascript">
+
+function buildDummyChart(title, data) {
+  var maxValue = data[0].count;
+  var barRatio = 0.5;
+  var w = 400;
+  var h = 610;
+  var svg = d3.select("#charts")
+              .append("svg")
+              .attr("width", w)
+              .attr("height", h);
+  svg.append("text")
+    .attr("fill", "#000000")
+    .attr("class", "title")
+    .attr("x", 0)
+    .attr("y", 30)
+    .text(title + ' /' + data.length);
+}
+
+function buildBarChart(title, data, maxCount) {
+  maxValue = maxCount || data[0].count;
+  var barRatio = 0.5;
+  var w = 400;
+  var h = 610;
+  var svg = d3.select("#charts")
+              .append("svg")
+              .attr("width", w)
+              .attr("height", h);
+
+  svg.append("text")
+    .attr("fill", "#000000")
+    .attr("class", "title")
+    .attr("x", 0)
+    .attr("y", 30)
+    .text(title + ' /' + data.length);
+
+  if (data.length > 30) {
+    data = data.slice(0, 30);
+    data.push({ name : '...' })
+  }
+
+  svg.selectAll("rect")
+    .data(data)
+    .enter()
+    .append("rect")
+    .attr("fill", "#00EDBA")
+    .attr("x", w*(1-barRatio) - 20)
+    .attr("y", function(d, i) { return 50 + i * 17; })
+    .attr("width", function(d, i) { return d.count ? (d.count / maxValue * w*barRatio) : 0; })
+    .attr("height", 16);
+
+  svg.selectAll("text.label")
+    .data(data)
+    .enter()
+    .append("text")
+    .attr("fill", "#000000")
+    .attr("class", "label")
+    .attr("x", w*(1-barRatio) - 25)
+    .attr("y", function(d, i) { return 64 + i * 17; })
+    .text(function(d) { return d.name; })
+
+  svg.selectAll("text.value")
+    .data(data)
+    .enter()
+    .append("text")
+    .attr("class", "value")
+    .attr("fill", "#000000")
+    .attr("x", function(d) { return w*(1-barRatio) - 17 + d.count / maxValue * w*barRatio })
+    .attr("y", function(d, i) { return 64 + i * 17; })
+    .text(function(d) { return d.count; })
+
+  svg.append("line")
+    .attr("stroke", "#DDD")
+    .attr("x1", 0).attr("x2", w)
+    .attr("y1", 40.5).attr("y2", 40.5)
+}
+
+function buildNumberChart(title, data) {
+  var sum = 0;
+  var count = 0;
+  var min = 0;
+  var max = 0;
+  data.forEach(function(value) {
+    var val = Number(value.name);
+
+    if (isNaN(val)) return;
+
+    sum += val * value.count;
+    count += value.count;
+    if (val > max || !max) max = val;
+    if (val < min || !min) min = val;
+  });
+
+  if (min < 0) min = 0;
+
+  var values = [
+    { name : Math.floor(max) + ' max', count : max },
+    { name : Math.floor(min) + ' min', count : min },
+    { name : Math.floor(sum/count) + ' avg', count : Math.floor(sum/count) }
+  ];
+  buildBarChart(title, values)
+}
+/*
+d3.csv('../data/TSB-data-public.csv', function(error, rows) {
+  var fieldNames = [];
+  console.log('Loaded ', rows.length, 'rows');
+  for(var fieldName in TSB.Fields) {
+    fieldNames.push(fieldName);
+  }
+  fieldNames.forEach(function(fieldName) {
+    var field = TSB.Fields[fieldName];
+    if (!field) {
+      throw 'Field ' + fieldName + ' not found in TSB.Fields!';
+    }
+    var values;
+    var countedValues;
+    var maxCount;
+    if (field.type == 'Date') {
+      values = rows.map(function(row) { return row[fieldName].split('/')[2] || 'Unknown' });
+      countedValues = countValues(values);
+      maxCount = countedValues[0].count
+      countedValues.sort(function(a, b) {
+        return -Number(a.name) + Number(b.name);
+      })
+    }
+    else {
+      values = rows.map(function(row) { return row[fieldName] || 'Unknown' });
+      countedValues = countValues(values);
+    }
+    if ((field.type == 'Date' || field.type == 'Text' || field.type == 'Enum' || !field.type || field.format == 'YYYY')) {
+      buildBarChart(fieldName, countedValues, maxCount);
+    }
+    else if (field.type == 'Number' && (field.unique || countedValues.length == 1)) {
+      buildBarChart(fieldName, countedValues);
+    }
+    else if (field.type == 'Number') {
+      buildNumberChart(fieldName, countedValues);
+    }
+    else {
+      buildDummyChart(fieldName, countedValues);
+    }
+  });
+}).on("progress", function(event){
+  if (event.lengthComputable) {
+    var percentComplete = Math.round(event.loaded * 100 / event.total);
+    console.log(percentComplete);
+  }
+});
+*/
+</script>
+<script type="text/javascript" src="00_values.js"></script>
+</head>
+<body>
+  <div id="charts"></div>
+</body>
+</html>

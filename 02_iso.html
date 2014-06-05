@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DSI Data Viz</title>
+<style type="text/css">
+body {
+  font-family: 'Helvetica', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+h2.section {
+  font-size: 350%;
+  border-bottom: 1px solid #DDDDDD;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+}
+
+#charts {
+  margin: 0;
+}
+
+#charts svg {
+}
+
+text.label {
+  font-size: 70%;
+  text-anchor: end;
+}
+
+text.value {
+  font-size: 90%;
+  text-anchor: start;
+}
+
+text.title {
+  font-size: 5%;
+  text-anchor: start;
+}
+
+</style>
+<script type='text/javascript' src='lib/d3.v3.min.js'></script>
+<script type='text/javascript' src='lib/q.min.js'></script>
+<script type='text/javascript' src="js/SPARQL.js"></script>
+<script type="text/javascript">
+
+var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
+var ds = new SPARQLDataSource(SPARQL_URL);
+
+function init() {
+  ds.query()
+    .prefix('o:', '<http://www.w3.org/ns/org#>')
+    .prefix('rdfs:', '<http://www.w3.org/2000/01/rdf-schema#>')
+    .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
+    .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
+    .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
+    .select('?org ?label ?long ?lat ?country ?city ?org_type')
+    .where('?org', 'a', 'o:Organization')
+    .where('?org', 'ds:organizationType', '?org_type')
+    .where('?org', 'rdfs:label', '?label')
+    .where('?org', 'o:hasPrimarySite', '?org_site')
+    .where('?org_site', 'geo:long', '?long')
+    .where('?org_site', 'geo:lat', '?lat')
+    .where('?org_site', 'o:siteAddress', '?org_address')
+    .where('?org_address', 'vcard:country-name', '?country')
+    .where('?org_address', 'vcard:locality', '?city')
+    .execute().then(function(results) {
+      setTimeout(function() {
+        buildViz(results);
+      }, 1);
+    }
+  );
+}
+
+window.onload = init;
+
+function buildViz(results) {
+  var w = window.innerWidth;
+  var h = window.innerHeight;
+
+  var longitude = d3.scale.linear().domain([-20, 30]).range([0, w]);
+  var latitude = d3.scale.linear().domain([65, 30]).range([0, h]);
+
+  var svg = d3.select('#charts')
+              .append('svg')
+              .attr('width', w)
+              .attr('height', h);
+
+  svg.append('rect')
+    .attr('fill', 'hsl(200, 20%, 40%)')
+    .attr('class', 'bg')
+    .attr('x', 0)
+    .attr('y', 0)
+    .attr('width', w)
+    .attr('height', h);
+
+  var cities = [];
+  var cityInfo = {};
+  var orgTypes = [];
+
+  results.forEach(function(org) {
+    var type = org.org_type.value;
+    var city = org.city.value;
+    if (orgTypes.indexOf(type) == -1) orgTypes.push(type);
+    if (!cityInfo[city]) {
+      cityInfo[city] = { name: city, lat: 0, long:0, organizations: [] };
+      cities.push(cityInfo[city]);
+    }
+    cityInfo[city].organizations.push(org);
+    cityInfo[city].lat += Number(org.lat.value);
+    cityInfo[city].long += Number(org.long.value);
+  });
+
+  cities.forEach(function(city) {
+    city.lat /= city.organizations.length;
+    city.long /= city.organizations.length;
+    if (city.name == 'London') {
+
+    }
+    else {
+      //city.lat = 9999;
+    }
+  });
+
+  svg.selectAll('rect.org').data(results)
+    .enter()
+      .append('rect')
+      .attr('class', 'org')
+      .attr('x', function(org) {
+        var city = cityInfo[org.city.value];
+        return longitude(city.long);
+      })
+      .attr('y', function(org) {
+        var city = cityInfo[org.city.value];
+        return latitude(city.lat);
+      })
+      .attr('width', function(org) {
+        var city = cityInfo[org.city.value];
+        return 5 + Math.pow(city.organizations.length, 0.8);
+      })
+      .attr('height', function(org) {
+        var city = cityInfo[org.city.value];
+        return 5 + Math.pow(city.organizations.length, 0.8);
+      })
+      .attr('fill', function(org) {
+        var typeIndex = orgTypes.indexOf(org.org_type.value);
+        return d3.hsl(typeIndex/orgTypes.length*360 + 50, 0.8, 0.6)
+      })
+
+  svg.selectAll('text.title').data(results)
+    .enter()
+      .append('text')
+      .attr('class', 'title')
+      .attr('x', function(org) {
+        var city = cityInfo[org.city.value];
+        return longitude(city.long);
+      })
+      .attr('y', function(org) {
+        var city = cityInfo[org.city.value];
+        return latitude(city.lat);
+      })
+      .text(function(org) {
+        var city = cityInfo[org.city.value];
+        if (city.organizations.length > 5)
+          return city.name;
+        else
+          return '';
+      })
+      .attr('fill', '#FFF')
+}
+
+</script>
+</head>
+<body>
+  <div id="charts"></div>
+</body>
+</html>

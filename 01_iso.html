@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DSI Data Viz</title>
+<style type="text/css">
+body {
+  font-family: 'Helvetica', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+h2.section {
+  font-size: 350%;
+  border-bottom: 1px solid #DDDDDD;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+}
+
+#charts {
+  margin: 0;
+}
+
+#charts svg {
+}
+
+text.label {
+  font-size: 70%;
+  text-anchor: end;
+}
+
+text.value {
+  font-size: 90%;
+  text-anchor: start;
+}
+
+text.title {
+  font-size: 180%;
+  text-anchor: start;
+}
+
+</style>
+<script type='text/javascript' src='lib/d3.v3.min.js'></script>
+<script type='text/javascript' src='lib/q.min.js'></script>
+<script type='text/javascript' src="js/SPARQL.js"></script>
+<script type="text/javascript">
+
+var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
+var ds = new SPARQLDataSource(SPARQL_URL);
+
+function init() {
+  ds.query()
+    .prefix('o:', '<http://www.w3.org/ns/org#>')
+    .prefix('rdfs:', '<http://www.w3.org/2000/01/rdf-schema#>')
+    .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
+    .select('?org ?label ?long ?lat')
+    .where('?org', 'a', 'o:Organization')
+    .where('?org', 'rdfs:label', '?label')
+    .where('?org', 'o:hasPrimarySite', '?org_site')
+    .where('?org_site', 'geo:long', '?long')
+    .where('?org_site', 'geo:lat', '?lat')
+    .execute().then(function(results) {
+      setTimeout(function() {
+        buildViz(results);
+      }, 1);
+    }
+  );
+}
+
+window.onload = init;
+
+function buildViz(results) {
+  var w = window.innerWidth;
+  var h = window.innerHeight;
+
+  var longitude = d3.scale.linear().domain([-180, 180]).range([0, w]);
+  var latitude = d3.scale.linear().domain([-90, 90]).range([h, 0]);
+
+  var svg = d3.select('#charts')
+              .append('svg')
+              .attr('width', w)
+              .attr('height', h);
+
+  svg.append('rect')
+    .attr('fill', 'hsl(170, 50%, 50%)')
+    .attr('class', 'bg')
+    .attr('x', 0)
+    .attr('y', 0)
+    .attr('width', w)
+    .attr('height', h)
+
+  svg.selectAll('rect.org').data(results)
+    .enter()
+      .append('rect')
+      .attr('class', 'org')
+      .attr('x', function(d) { return longitude(Number(d.long.value))})
+      .attr('y', function(d) { return latitude(Number(d.lat.value))})
+      .attr('width', 10)
+      .attr('height', 10)
+      .attr('fill', function(d) { return d3.hsl(Math.random()*360, 0.8, 0.5) } )
+
+  //svg.selectAll('rect')
+  //  .data(data)
+  //  .enter()
+  //  .append('rect')
+  //  .attr('fill', '#00EDBA')
+  //  .attr('x', w*(1-barRatio) - 20)
+  //  .attr('y', function(d, i) { return 50 + i * 17; })
+  //  .attr('width', function(d, i) { return d.count ? (d.count / maxValue * w*barRatio) : 0; })
+  //  .attr('height', 16);
+}
+
+</script>
+</head>
+<body>
+  <div id="charts"></div>
+</body>
+</html>

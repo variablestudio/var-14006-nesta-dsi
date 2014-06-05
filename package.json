@@ -1,0 +1,15 @@
+{
+  "name": "dsi",
+  "version": "0.0.0",
+  "description": "",
+  "main": "tripple.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "n3": "^0.2.7",
+   "request": "2.36.0"
+  }
+}
