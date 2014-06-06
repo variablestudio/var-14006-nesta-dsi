@@ -3,10 +3,89 @@
 // run query on sparql (true) or use local copy (false)?
 var RUN_QUERY = false;
 
+// grouping reducer
+var groupByField = function(data, field) {
+	return data.reduce(function(memo, object) {
+		if (memo[object[field]] !== undefined) {
+			memo[object[field]].push(object);
+		}
+		else {
+			memo[object[field]] = [ object ];
+		}
+		return memo;
+	}, {});
+};
+
 var drawMap = function(data, name) {
 	console.log("drawing: " + name);
 
-	console.log(data);
+	var width = 600;
+	var height = 400;
+	var scale = 200.0;
+	var center = [0.0, 0.0];
+
+	var projection = d3.geo.mercator()
+		.center(center)
+		.scale(scale)
+		.translate([width / 2, height / 2]);
+
+	data = data.map(function(object) {
+		var position = projection([object.lat, object.long]);
+
+		if (!isNaN(position[0]) && !isNaN(position[1])) {
+			object.position = position;
+		}
+
+		return object;
+	}).filter(function(object) {
+		return (object.position !== undefined)
+	});
+
+	var tmpLabelGroups = groupByField(data, "activity_label");
+	// var tmpLabelGroups = groupByField(data, "tech_method");
+	var labelGroups = []
+	var group, objects;
+
+	for (group in tmpLabelGroups) {
+		if (tmpLabelGroups.hasOwnProperty(group)) {
+			objects = tmpLabelGroups[group];
+			if (objects.length > 1) {
+				labelGroups.push(objects);
+			}
+		}
+	}
+
+	var svg = d3.select("body").append("svg")
+		.attr("width", width)
+		.attr("height", height);
+
+	svg.selectAll(".point")
+		.data(data)
+		.enter()
+		.append("circle")
+		.attr("transform", function(d) {
+			return "translate(" + d.position + ")";
+		})
+		.attr("r", 4)
+		.attr("fill", "#777777");
+
+	var line = d3.svg.line()
+		.x(function(d) { return d.position[0]; })
+		.y(function(d) { return d.position[1]; });
+
+	labelGroups.forEach(function(group) {
+		svg.append("path")
+			.datum(group)
+			.attr("class", "line")
+			.attr("d", line);
+	});
+
+  svg.append("text")
+    .attr("fill", "#000000")
+    .attr("class", "title")
+    .attr("x", 20)
+    .attr("y", 30)
+    .text(name);
 };
 
 var buildChart = function(data) {
@@ -40,22 +119,9 @@ var buildChart = function(data) {
 	// "tech_method": "big data",
 	// "tech_focus": "Open Networks"
 
-	// grouping reducer
-	var groupByField = function(data, field) {
-		return data.reduce(function(memo, object) {
-			if (memo[object[field]] !== undefined) {
-				memo[object[field]].push(object);
-			}
-			else {
-				memo[object[field]] = [ object ];
-			}
-			return memo;
-		}, {});
-	};
-
 	var grouped = groupByField(data, "tech_focus");
 	var group;
-	
+
 	for (group in grouped) {
 		if (grouped.hasOwnProperty(group)) {
 			drawMap(grouped[group], group);
