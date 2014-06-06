@@ -38,12 +38,12 @@ var drawMap = function(data, name) {
 
 		return object;
 	}).filter(function(object) {
-		return (object.position !== undefined)
+		return (object.position !== undefined);
 	});
 
 	var tmpLabelGroups = groupByField(data, "activity_label");
 	// var tmpLabelGroups = groupByField(data, "tech_method");
-	var labelGroups = []
+	var labelGroups = [];
 	var group, objects;
 
 	for (group in tmpLabelGroups) {
