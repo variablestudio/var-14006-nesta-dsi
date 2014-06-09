@@ -16,11 +16,13 @@ var drawChart = function(data, xData, yData) {
 		.attr("width", width)
 		.attr("height", height);
 
-	data = data.reduce(function(memo, object) {
+	var localData = data.reduce(function(memo, object) {
 		var index = indexOfProp(memo, yData, object[yData]);
 
 		if (index < 0) {
-			object[xData] = [ object[xData] ];
+			if (!(object[xData] instanceof Array)) {
+				object[xData] = [ object[xData] ];
+			}
 
 			memo.push(object);
 		}
@@ -33,14 +35,14 @@ var drawChart = function(data, xData, yData) {
 		return memo;
 	}, []);
 
-	var counts = data.reduce(function(memo, object) {
+	var counts = localData.reduce(function(memo, object) {
 		if (object[xData].length > memo.max) { memo.max = object[xData].length; }
 		if (object[xData].length < memo.min) { memo.min = object[xData].length; }
 
 		return memo;
 	}, { "min": Infinity, "max": -Infinity });
 
-	var labels = data
+	var labels = localData
 		.map(function(object) {
 			return object[yData];
 		})
@@ -58,16 +60,19 @@ var drawChart = function(data, xData, yData) {
 		.domain([counts.min, counts.max]);
 
 	svg.selectAll(".point")
-		.data(data)
+		.data(localData)
 		.enter()
 		.append("circle")
 		.attr("class", "point")
-		.attr("r", 2)
+		.attr("r", 3)
 		.attr("cx", function(d) {
 			return scaleX(d[yData]) + 20;
 		})
 		.attr("cy", function(d) {
 			return scaleY(d[xData].length);
+		})
+		.on("mouseover", function(d) {
+			console.log(JSON.stringify(d, null, 2));
 		});
 
 	var axisX = d3.svg.axis()
@@ -117,12 +122,12 @@ var buildChart = function(data) {
 			return newObject;
 		});
 
-	var fieldsX = [ "country", "city" ];
-	var fieldsY = [ "activity_label", "tech_method" ];
+	var fieldsY = [ "country", "city", "label" ];
+	var fieldsX = [ "activity_label", "tech_method" ];
 
 	fieldsX.forEach(function(fieldX) {
 		fieldsY.forEach(function(fieldY) {
-			drawChart(data, fieldY, fieldX);
+			drawChart(data, fieldX, fieldY);
 		});
 	});
 
