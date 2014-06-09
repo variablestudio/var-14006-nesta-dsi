@@ -3,19 +3,6 @@
 // run query on sparql (true) or use local copy (false)?
 var RUN_QUERY = false;
 
-// grouping reducer
-var groupByField = function(data, field) {
-	return data.reduce(function(memo, object) {
-		if (memo[object[field]] !== undefined) {
-			memo[object[field]].push(object);
-		}
-		else {
-			memo[object[field]] = [ object ];
-		}
-		return memo;
-	}, {});
-};
-
 var fieldsProgression = [ "tech_focus", "tech_method", "activity_label" ];
 
 var buildChooser = function(data, prop) {
