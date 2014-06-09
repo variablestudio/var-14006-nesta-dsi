@@ -16,6 +16,55 @@ var groupByField = function(data, field) {
 	}, {});
 };
 
+var buildChooser = function(data, prop) {
+	var div = d3.select("body").append("div").attr("class", "chooser");
+
+	var values = data.reduce(function(memo, object) {
+		object[prop].forEach(function(key) {
+			if (memo[key] !== undefined) {
+				memo[key]++;
+			}
+			else {
+				memo[key] = 1;
+			}
+		});
+
+		return memo;
+	}, {});
+
+	var min = Infinity, max = -Infinity;
+	var key;
+
+	for (key in values) {
+		if (values.hasOwnProperty(key)) {
+			if (values[key] < min) { min = values[key]; }
+			if (values[key] > max) { max = values[key]; }
+		}
+	}
+
+	var scale = d3.scale.linear()
+		.domain([min, max])
+		.range([10, 30]);
+
+	var createDiv = function(key, value) {
+		div.append("div")
+			.attr("class", "grouping")
+			.style("font-size", function() {
+				return scale(value) + "px";
+			})
+			.text(key)
+			.on("click", function() {
+				console.log(key);
+			});
+	};
+
+	for (key in values) {
+		if (values.hasOwnProperty(key)) {
+			createDiv(key, values[key]);
+		}
+	}
+};
+
 var buildChart = function(data) {
 	var indexOfProp = function(data, prop, val) {
 		return data.map(function(o) { return o[prop]; }).indexOf(val);
@@ -64,6 +113,8 @@ var buildChart = function(data) {
 
 			return memo;
 		}, []);
+
+	buildChooser(data, "tech_focus");
 
 	// sample data
 	//
