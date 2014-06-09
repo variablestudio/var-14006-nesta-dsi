@@ -19,8 +19,6 @@ var groupByField = function(data, field) {
 var fieldsProgression = [ "tech_focus", "tech_method", "activity_label" ];
 
 var buildChooser = function(data, prop) {
-	console.log("chooser", prop, data);
-
 	var div = d3.select("body").append("div").attr("class", "chooser");
 
 	var values = data.reduce(function(memo, object) {
@@ -58,7 +56,7 @@ var buildChooser = function(data, prop) {
 			})
 			.text(key)
 			.on("click", function() {
-				console.log(key);
+				d3.select(this).attr("class", "grouping selected");
 
 				var filteredData = data.filter(function(object) {
 					return (object[prop].indexOf(key) > 0);
