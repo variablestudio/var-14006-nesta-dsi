@@ -16,7 +16,11 @@ var groupByField = function(data, field) {
 	}, {});
 };
 
+var fieldsProgression = [ "tech_focus", "tech_method", "activity_label" ];
+
 var buildChooser = function(data, prop) {
+	console.log("chooser", prop, data);
+
 	var div = d3.select("body").append("div").attr("class", "chooser");
 
 	var values = data.reduce(function(memo, object) {
@@ -55,6 +59,16 @@ var buildChooser = function(data, prop) {
 			.text(key)
 			.on("click", function() {
 				console.log(key);
+
+				var filteredData = data.filter(function(object) {
+					return (object[prop].indexOf(key) > 0);
+				});
+
+				var fieldIndex = fieldsProgression.indexOf(prop);
+				if (fieldIndex < fieldsProgression.length) {
+					fieldIndex++;
+					buildChooser(filteredData, fieldsProgression[fieldIndex]);
+				}
 			});
 	};
 
@@ -114,7 +128,7 @@ var buildChart = function(data) {
 			return memo;
 		}, []);
 
-	buildChooser(data, "tech_focus");
+	buildChooser(data, fieldsProgression[0]);
 
 	// sample data
 	//
