@@ -54,17 +54,18 @@ var buildChooser = function(data, prop) {
 			.style("font-size", function() {
 				return scale(value) + "px";
 			})
-			.text(key)
+			.text(key + " [" + value + "]")
 			.on("click", function() {
 				d3.select(this).attr("class", "grouping selected");
-
-				var filteredData = data.filter(function(object) {
-					return (object[prop].indexOf(key) > 0);
-				});
 
 				var fieldIndex = fieldsProgression.indexOf(prop);
 				if (fieldIndex < fieldsProgression.length) {
 					fieldIndex++;
+
+					var filteredData = data.filter(function(object) {
+						return (object[prop].indexOf(key) > 0);
+					});
+
 					buildChooser(filteredData, fieldsProgression[fieldIndex]);
 				}
 			});
