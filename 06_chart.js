@@ -7,7 +7,7 @@ var indexOfProp = function(data, prop, val) {
 	return data.map(function(o) { return o[prop]; }).indexOf(val);
 };
 
-var drawChart = function(data) {
+var drawChart = function(data, xData, yData) {
 	var width = 1200;
 	var height = 700;
 	var margin = 140;
@@ -17,16 +17,16 @@ var drawChart = function(data) {
 		.attr("height", height);
 
 	data = data.reduce(function(memo, object) {
-		var index = indexOfProp(memo, "country", object.country);
+		var index = indexOfProp(memo, yData, object[yData]);
 
 		if (index < 0) {
-			object.activity_label = [ object.activity_label ];
+			object[xData] = [ object[xData] ];
 
 			memo.push(object);
 		}
 		else {
-			if (memo[index].activity_label.indexOf(object.activity_label) < 0) {
-				memo[index].activity_label.push(object.activity_label);
+			if (memo[index][xData].indexOf(object[xData]) < 0) {
+				memo[index][xData].push(object[xData]);
 			}
 		}
 
@@ -34,15 +34,15 @@ var drawChart = function(data) {
 	}, []);
 
 	var counts = data.reduce(function(memo, object) {
-		if (object.activity_label.length > memo.max) { memo.max = object.activity_label.length; }
-		if (object.activity_label.length < memo.min) { memo.min = object.activity_label.length; }
+		if (object[xData].length > memo.max) { memo.max = object[xData].length; }
+		if (object[xData].length < memo.min) { memo.min = object[xData].length; }
 
 		return memo;
 	}, { "min": Infinity, "max": -Infinity });
 
-	var countryNames = data
+	var labels = data
 		.map(function(object) {
-			return object.country;
+			return object[yData];
 		})
 		.reduce(function(memo, object) {
 			if (memo.indexOf(object) < 0) { memo.push(object); }
@@ -51,7 +51,7 @@ var drawChart = function(data) {
 
 	var scaleX = d3.scale.ordinal()
 		.rangeBands([margin, width - margin])
-		.domain(countryNames);
+		.domain(labels);
 
 	var scaleY = d3.scale.linear()
 		.range([height - margin, margin])
@@ -64,10 +64,10 @@ var drawChart = function(data) {
 		.attr("class", "point")
 		.attr("r", 2)
 		.attr("cx", function(d) {
-			return scaleX(d.country) + 20;
+			return scaleX(d[yData]) + 20;
 		})
 		.attr("cy", function(d) {
-			return scaleY(d.activity_label.length);
+			return scaleY(d[xData].length);
 		});
 
 	var axisX = d3.svg.axis()
@@ -90,6 +90,12 @@ var drawChart = function(data) {
 		.attr("dx", "-0.8em")
 		.attr("dy", "0.1em")
 		.attr("transform", "rotate(-90)");
+
+	svg.append("text")
+		.attr("class", "title")
+		.attr("x", margin - 20)
+		.attr("y", margin - 20)
+		.text("count(" + xData + ") / " + yData);
 };
 
 var buildChart = function(data) {
@@ -111,7 +117,15 @@ var buildChart = function(data) {
 			return newObject;
 		});
 
-	drawChart(data);
+	var fieldsX = [ "country", "city" ];
+	var fieldsY = [ "activity_label", "tech_method" ];
+
+	fieldsX.forEach(function(fieldX) {
+		fieldsY.forEach(function(fieldY) {
+			drawChart(data, fieldY, fieldX);
+		});
+	});
+
 
 	// sample data
 	//
