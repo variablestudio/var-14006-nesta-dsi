@@ -15,13 +15,13 @@ var techColors = {
 	"Open Hardware": "#87BDB1"
 };
 
-var buildVis = function(organization) {
-	var width = 840;
+var buildVis = function(organization, globalSum) {
+	var width = 440;
 	var height = 20;
 	var margin = 200;
 
 	var svg = d3.select("body").append("svg")
-		.attr("width", width)
+		.attr("width", width * 2 + margin)
 		.attr("height", height);
 
 	var maxCount = 0;
@@ -33,14 +33,18 @@ var buildVis = function(organization) {
 		}
 	}
 
-	var scale = d3.scale.linear()
+	var scaleLocal = d3.scale.linear()
 		.domain([0, maxCount])
-		.range([margin, width]);
+		.range([0, width]);
 
-	var buildChart = function(num, currentSum) {
+	var scaleGlobal = d3.scale.linear()
+		.domain([0, globalSum])
+		.range([0, width]);
+
+	var buildChart = function(num, currentSum, scale, offset) {
 		svg.append("rect")
 			.attr("x", function() {
-				return scale(currentSum);
+				return scale(currentSum) + offset + margin;
 			})
 			.attr("y", 0)
 			.attr("width", function() {
@@ -61,7 +65,8 @@ var buildVis = function(organization) {
 		if (organization.focus_count.hasOwnProperty(key)) {
 			num = organization.focus_count[key];
 
-			buildChart(num, currentSum);
+			buildChart(num, currentSum, scaleLocal, 0);
+			buildChart(num, currentSum, scaleGlobal, width + 20);
 
 			currentSum += num;
 		}
@@ -116,7 +121,20 @@ var buildChart = function(data) {
 			return memo;
 		}, []);
 
-	data.forEach(buildVis);
+	var maxSum = data.reduce(function(memo, object) {
+		var sum = 0, key;
+		for (key in object.focus_count) {
+			if (object.focus_count.hasOwnProperty(key)) {
+				sum += object.focus_count[key];
+			}
+		}
+
+		return sum > memo ? sum : memo;
+	}, -Infinity);
+
+	data.forEach(function(object) {
+		buildVis(object, maxSum);
+	});
 
 	// sample data
 	//
