@@ -3,73 +3,99 @@
 // run query on sparql (true) or use local copy (false)?
 var RUN_QUERY = false;
 
-var fieldsProgression = [ "tech_focus", "tech_method", "activity_label" ];
+// http://www.colourlovers.com/palette/953498/Headache
+var techColors = {
+	"Open Networks": "#655643",
+	"Open Data": "#80BCA3",
+	"Open Knowledge": "#E6AC27",
+	"Open Hardware": "#BF4D28"
+};
 
-var buildChooser = function(data, prop) {
-	var div = d3.select("body").append("div").attr("class", "chooser");
+var indexOfProp = function(data, prop, val) {
+	return data.map(function(o) { return o[prop]; }).indexOf(val);
+};
 
-	var values = data.reduce(function(memo, object) {
-		object[prop].forEach(function(key) {
-			if (memo[key] !== undefined) {
-				memo[key]++;
-			}
-			else {
-				memo[key] = 1;
-			}
-		});
+var sumInObject = function(object) {
+	var sum = 0, key;
 
-		return memo;
-	}, {});
-
-	var min = Infinity, max = -Infinity;
-	var key;
-
-	for (key in values) {
-		if (values.hasOwnProperty(key)) {
-			if (values[key] < min) { min = values[key]; }
-			if (values[key] > max) { max = values[key]; }
+	for (key in object) {
+		if (object.hasOwnProperty(key)) {
+			sum += object[key];
 		}
 	}
 
-	var scale = d3.scale.linear()
-		.domain([min, max])
-		.range([10, 30]);
+	return sum;
+};
 
-	var createDiv = function(key, value) {
-		div.append("div")
-			.attr("class", "grouping")
-			.style("font-size", function() {
-				return scale(value) + "px";
+var buildVis = function(organization, globalSum) {
+	var width = 440;
+	var height = 20;
+	var margin = 200;
+
+	var svg = d3.select("body").append("svg")
+		.attr("width", width * 2 + margin)
+		.attr("height", height);
+
+	var maxCount = 0;
+	var key;
+
+	for (key in organization.focus_count) {
+		if (organization.focus_count.hasOwnProperty(key)) {
+			maxCount += organization.focus_count[key];
+		}
+	}
+
+	var scaleLocal = d3.scale.linear()
+		.domain([0, maxCount])
+		.range([0, width]);
+
+	var scaleGlobal = d3.scale.linear()
+		.domain([0, globalSum])
+		.range([0, width]);
+
+	var buildChart = function(num, currentSum, scale, offset) {
+		svg.append("rect")
+			.attr("x", function() {
+				return scale(currentSum) + offset + margin;
 			})
-			.text(key + " [" + value + "]")
-			.on("click", function() {
-				d3.select(this).attr("class", "grouping selected");
-
-				var fieldIndex = fieldsProgression.indexOf(prop);
-				if (fieldIndex < fieldsProgression.length) {
-					fieldIndex++;
-
-					var filteredData = data.filter(function(object) {
-						return (object[prop].indexOf(key) > 0);
-					});
-
-					buildChooser(filteredData, fieldsProgression[fieldIndex]);
-				}
+			.attr("y", 0)
+			.attr("width", function() {
+				return scale(num);
+			})
+			.attr("height", height)
+			.attr("fill", function() {
+				return techColors[key];
+			})
+			.on("mouseover", function() {
+				console.log("[" + organization.label + "]");
+				console.log("  activity labels: " +  organization.activity_label);
+				console.log("  tech focuses: " + JSON.stringify(organization.focus_count));
+				console.log("  tech methods: " + organization.tech_method);
 			});
 	};
 
-	for (key in values) {
-		if (values.hasOwnProperty(key)) {
-			createDiv(key, values[key]);
+	var currentSum = 0, num;
+
+	for (key in organization.focus_count) {
+		if (organization.focus_count.hasOwnProperty(key)) {
+			num = organization.focus_count[key];
+
+			buildChart(num, currentSum, scaleLocal, 0);
+			buildChart(num, currentSum, scaleGlobal, width + 20);
+
+			currentSum += num;
 		}
 	}
+
+	svg.append("text")
+		.attr("class", "title")
+		.text(organization.label + " [" + organization.activity_label.length  + "]")
+		.attr("text-anchor", "end")
+		.attr("x", margin - 10)
+		.attr("y", 14);
 };
 
 var buildChart = function(data) {
-	var indexOfProp = function(data, prop, val) {
-		return data.map(function(o) { return o[prop]; }).indexOf(val);
-	};
-
 	// nicer data access
 	data = data
 		.map(function(object) {
@@ -86,28 +112,41 @@ var buildChart = function(data) {
 				}
 			}
 			return newObject;
-		})
+		});
+
+	data = data
 		.reduce(function(memo, object) {
 			var index = indexOfProp(memo, "label", object.label);
 
 			if (index < 0) {
+				var focusCount = {};
+				focusCount[object.tech_focus] = 1;
+
+				delete object.tech_focus;
+				object.focus_count = focusCount;
 				object.activity_label = [ object.activity_label ];
 				object.tech_method = [ object.tech_method ];
-				object.tech_focus = [ object.tech_focus ];
 
 				memo.push(object);
 			}
 			else {
 				var targetObject = memo[index];
 
+				// only count focus_count using distinct! tech_method
+				if (targetObject.focus_count[object.tech_focus]) {
+					targetObject.focus_count[object.tech_focus]++;
+				}
+				else {
+					targetObject.focus_count[object.tech_focus] = 1;
+				}
+
 				if (targetObject.activity_label.indexOf(object.activity_label) < 0) {
 					targetObject.activity_label.push(object.activity_label);
 				}
+
 				if (targetObject.tech_method.indexOf(object.tech_method) < 0) {
 					targetObject.tech_method.push(object.tech_method);
-				}
-				if (targetObject.tech_focus.indexOf(object.tech_focus) < 0) {
-					targetObject.tech_focus.push(object.tech_focus);
+
 				}
 
 				memo[index] = targetObject;
@@ -116,7 +155,28 @@ var buildChart = function(data) {
 			return memo;
 		}, []);
 
-	buildChooser(data, fieldsProgression[0]);
+	var maxSum = data.reduce(function(memo, object) {
+		var sum = sumInObject(object.focus_count);
+
+		return sum > memo ? sum : memo;
+	}, -Infinity);
+
+	data
+		.sort(function(a, b) {
+			var sorting = 0;
+
+			if (a.activity_label.length > b.activity_label.length) {
+				sorting = -1;
+			}
+			else if (a.activity_label.length < b.activity_label.length) {
+				sorting = 1;
+			}
+
+			return sorting;
+		})
+		.forEach(function(object) {
+			buildVis(object, maxSum);
+		});
 
 	// sample data
 	//
