@@ -27,13 +27,13 @@ var sumInObject = function(object) {
 	return sum;
 };
 
-var buildVis = function(organization, globalSum) {
+var buildVis = function(div, organization, globalSum) {
 	var width = 440;
 	var height = 20;
 	var margin = 200;
 
-	var svg = d3.select("body").append("svg")
-		.attr("width", width * 2 + margin)
+	var svg = div.append("svg")
+		.attr("width", width + margin)
 		.attr("height", height);
 
 	var maxCount = 0;
@@ -81,7 +81,7 @@ var buildVis = function(organization, globalSum) {
 			num = organization.focus_count[key];
 
 			buildChart(num, currentSum, scaleLocal, 0);
-			buildChart(num, currentSum, scaleGlobal, width + 20);
+			// buildChart(num, currentSum, scaleGlobal, width + 20);
 
 			currentSum += num;
 		}
@@ -93,6 +93,18 @@ var buildVis = function(organization, globalSum) {
 		.attr("text-anchor", "end")
 		.attr("x", margin - 10)
 		.attr("y", 14);
+};
+
+var visForCountry = function(data, globalSum) {
+	var div = d3.select("body").append("div")
+		.attr("class", "group");
+
+	div.append("text")
+		.text(data[0].country);
+
+	data.forEach(function(organization) {
+		buildVis(div, organization, globalSum);
+	});
 };
 
 var buildChart = function(data) {
@@ -153,15 +165,7 @@ var buildChart = function(data) {
 			}
 
 			return memo;
-		}, []);
-
-	var maxSum = data.reduce(function(memo, object) {
-		var sum = sumInObject(object.focus_count);
-
-		return sum > memo ? sum : memo;
-	}, -Infinity);
-
-	data
+		}, [])
 		.sort(function(a, b) {
 			var sorting = 0;
 
@@ -173,10 +177,31 @@ var buildChart = function(data) {
 			}
 
 			return sorting;
-		})
-		.forEach(function(object) {
-			buildVis(object, maxSum);
 		});
+
+	var maxSum = data.reduce(function(memo, object) {
+		var sum = sumInObject(object.focus_count);
+
+		return sum > memo ? sum : memo;
+	}, -Infinity);
+
+	var groupedData = data.reduce(function(memo, object) {
+		if (memo[object.country]) {
+			memo[object.country].push(object);
+		}
+		else {
+			memo[object.country] = [ object ];
+		}
+
+		return memo;
+	}, {});
+
+	var country;
+	for (country in groupedData) {
+		if (groupedData.hasOwnProperty(country)) {
+			visForCountry(groupedData[country], maxSum);
+		}
+	}
 
 	// sample data
 	//
