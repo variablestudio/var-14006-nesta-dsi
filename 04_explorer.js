@@ -18,6 +18,26 @@ var groupByField = function(data, field) {
 
 var fieldProgression = [ "tech_focus", "tech_method", "activity_label", "country" ];
 
+function makeTooltip() {
+	var tooltip = d3.select("body").append("svg")
+		.attr("width", 200)
+		.attr("height", 32)
+
+	tooltip.append('rect').attr('width', 200).attr('height', 24).attr('rx', '5px').attr('fill', '#EEE');
+	tooltip.append('text').attr('fill', 'black').attr('x', 5).attr('y', 18).text('tooltip');
+
+	window.addEventListener('mousemove', function(e) {
+		tooltip[0][0].style.position = 'absolute';
+		tooltip[0][0].style.left = e.pageX + 10 + 'px';
+		tooltip[0][0].style.top = e.pageY - 32 + 'px';
+	});
+
+	tooltip[0][0].style.display = 'none';
+	return tooltip;
+}
+
+var tooltip = makeTooltip();
+
 var drawChooser = function(data, name, depth) {
 	depth = depth || 0;
 	var width = 900;
@@ -63,7 +83,12 @@ var drawChooser = function(data, name, depth) {
 			.attr("height", height)
 			.attr("fill", color(index + depth * groupedData.length))
 			.on("mouseover", function() {
+				tooltip[0][0].style.display = 'block';
 				console.log("hover: "  + data[0][name] + " [" + name  + "]");
+				tooltip.select('text').text(data[0][name]);
+			})
+			.on("mouseout", function() {
+				tooltip[0][0].style.display = 'none';
 			})
 			.on("click", function() {
 				d3.selectAll("." + fieldProgression[depth] + " text").style("fill", "#FFFFFF");
