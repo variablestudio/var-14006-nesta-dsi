@@ -7,8 +7,6 @@ var fieldsProgression = [ "tech_focus", "tech_method", "activity_label" ];
 
 var buildChooser = function(data, prop) {
 	//cleanup levels below
-	//
-	console.log('trying to clean up above', prop);
 	var currLevel = fieldsProgression.indexOf(prop);
 	for(var i=currLevel; i<fieldsProgression.length; i++) {
 		d3.select(".chooser." + fieldsProgression[i]).remove();

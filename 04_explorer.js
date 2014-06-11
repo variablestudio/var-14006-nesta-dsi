@@ -23,9 +23,16 @@ var drawChooser = function(data, name, depth) {
 	var width = 900;
 	var height = 200 - 40 * depth;
 
+	for(var i=depth; i<fieldProgression.length; i++) {
+		d3.select("." + fieldProgression[i]).remove();
+	}
+
 	var svg = d3.select("body").append("svg")
 		.attr("width", width)
-		.attr("height", height);
+		.attr("height", height)
+
+	svg.attr("class", "" + fieldProgression[depth]);
+
 
 	var group, groupedData = [];
 	for (group in data) {
@@ -43,7 +50,7 @@ var drawChooser = function(data, name, depth) {
 
 	groupedData.forEach(function(data, index, array) {
 		var currentSum = array.slice(0, index).reduce(function(memo, data) { return memo + data.length; }, 0);
-
+		var text = null;
 		svg.append("rect")
 			.attr("class", "grouping")
 			.attr("x", function() {
@@ -59,9 +66,8 @@ var drawChooser = function(data, name, depth) {
 				console.log("hover: "  + data[0][name] + " [" + name  + "]");
 			})
 			.on("click", function() {
-				d3.select(this).attr("fill", "#333333");
-
-				console.log("selcted: " + data[0][name] + " [" + name  + "]");
+				d3.selectAll("." + fieldProgression[depth] + " text").style("fill", "#FFFFFF");
+				text.style("fill", "#333");
 
 				var currentFieldIndex = fieldProgression.indexOf(name);
 				var nextField = fieldProgression[currentFieldIndex + 1];
@@ -70,7 +76,7 @@ var drawChooser = function(data, name, depth) {
 				}
 			});
 
-		svg.append("text")
+		text = svg.append("text")
 			.attr("x", function() {
 				return x(currentSum) + 20;
 			})
