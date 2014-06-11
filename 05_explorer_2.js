@@ -50,7 +50,7 @@ var buildChooser = function(data, prop) {
 					fieldIndex++;
 
 					var filteredData = data.filter(function(object) {
-						return (object[prop].indexOf(key) > 0);
+						return (object[prop].indexOf(key) >= 0);
 					});
 
 					buildChooser(filteredData, fieldsProgression[fieldIndex]);
