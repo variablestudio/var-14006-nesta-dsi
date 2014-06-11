@@ -6,7 +6,15 @@ var RUN_QUERY = false;
 var fieldsProgression = [ "tech_focus", "tech_method", "activity_label" ];
 
 var buildChooser = function(data, prop) {
-	var div = d3.select("body").append("div").attr("class", "chooser");
+	//cleanup levels below
+	//
+	console.log('trying to clean up above', prop);
+	var currLevel = fieldsProgression.indexOf(prop);
+	for(var i=currLevel; i<fieldsProgression.length; i++) {
+		d3.select(".chooser." + fieldsProgression[i]).remove();
+	}
+
+	var div = d3.select("body").append("div").attr("class", "chooser " + prop);
 
 	var values = data.reduce(function(memo, object) {
 		object[prop].forEach(function(key) {
@@ -43,6 +51,8 @@ var buildChooser = function(data, prop) {
 			})
 			.text(key + " [" + value + "]")
 			.on("click", function() {
+
+				d3.select(".chooser." + prop + " > .grouping.selected").attr("class", "grouping");
 				d3.select(this).attr("class", "grouping selected");
 
 				var fieldIndex = fieldsProgression.indexOf(prop);
