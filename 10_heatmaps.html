@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DSI Data Viz</title>
+<style type="text/css">
+body {
+  font-family: 'Helvetica', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+h2.section {
+  font-size: 350%;
+  border-bottom: 1px solid #DDDDDD;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+}
+
+#header img {
+  display: block;
+  margin: 0 auto;
+}
+
+#sidebar {
+  xbackground: rgba(255,255,255,0.2);
+  width: 200px;
+  height: 100%;
+  position: absolute;
+  top: 100px;
+  left: 0px;
+  box-sizing: border-box;
+  padding: 1em;
+  color: #333;
+}
+
+#sidebar h1 {
+  margin: 0 0 1em 0;
+  padding: 0;
+  font-size: 150%;
+  color: #333;
+  color: rgba(253,115,81,0.95);
+  color: #333;
+}
+
+#sidebar a {
+  display: block;
+  width: 40%;
+  float: left;
+  font-size: 70%;
+  text-align: center;
+  color: #FFF;
+  text-decoration: none;
+  background: rgba(253,115,81,0.95);
+  background: #333;
+  xbackground: rgba(0,0,0,0.5);
+  margin: 0 0.65em 0.5em 0;
+  border-radius: 5px;
+  padding: 1em 0.5em;
+  font-weight: bold;
+  line-height: 180%;
+}
+
+#charts {
+  margin: 0;
+}
+
+#charts svg {
+}
+
+text.label {
+  font-size: 70%;
+  text-anchor: end;
+}
+
+text.value {
+  font-size: 90%;
+  text-anchor: start;
+}
+
+text.title {
+  font-size: 5%;
+  text-anchor: start;
+}
+
+</style>
+<script type='text/javascript' src='lib/d3.v3.min.js'></script>
+<script type='text/javascript' src='lib/q.min.js'></script>
+<script type='text/javascript' src="js/SPARQL.js"></script>
+<script type="text/javascript">
+
+var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
+var ds = new SPARQLDataSource(SPARQL_URL);
+var useCache = true;
+
+function init() {
+  if (useCache && localStorage['data_10_heatmaps']) {
+    buildViz(JSON.parse(localStorage['data_10_heatmaps']));
+  }
+  else {
+    localStorage['data_10_heatmaps'] = '';
+    ds.query()
+      .prefix('o:', '<http://www.w3.org/ns/org#>')
+      .prefix('rdfs:', '<http://www.w3.org/2000/01/rdf-schema#>')
+      .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
+      .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
+      .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
+      .select('?org ?label ?long ?lat ?country ?city ?org_type')
+      .where('?org', 'a', 'o:Organization')
+      .where('?org', 'ds:organizationType', '?org_type')
+      .where('?org', 'rdfs:label', '?label')
+      .where('?org', 'o:hasPrimarySite', '?org_site')
+      .where('?org_site', 'geo:long', '?long')
+      .where('?org_site', 'geo:lat', '?lat')
+      .where('?org_site', 'o:siteAddress', '?org_address')
+      .where('?org_address', 'vcard:country-name', '?country')
+      .where('?org_address', 'vcard:locality', '?city')
+      .execute().then(function(results) {
+        setTimeout(function() {
+          localStorage['data_10_heatmaps'] = JSON.stringify(results);
+          buildViz(results);
+        }, 1);
+      }
+    );
+  }
+}
+
+window.onload = init;
+
+
+var svg;
+
+function buildViz(results) {
+  var w = window.innerWidth;
+  var h = window.innerHeight - 100;
+
+
+  d3.select('#sidebar').style('height', h + 'px');
+
+  var longitude = d3.scale.linear().domain([-20, 30]).range([0, w]);
+  var latitude = d3.scale.linear().domain([65, 30]).range([0, h]);
+
+
+  if (!svg) {
+    svg = d3.select('#charts')
+              .append('svg')
+              .attr('width', w)
+              .attr('height', h);
+
+    svg.append('rect')
+      .attr('fill', '#FEE087')
+      .attr('class', 'bg')
+      .attr('x', 0)
+      .attr('y', 0)
+      .attr('width', w)
+      .attr('height', h);
+  }
+
+  var cities = [];
+  var cityInfo = {};
+  var orgTypes = [];
+
+  results.forEach(function(org) {
+    var type = org.org_type.value;
+    var city = org.city.value;
+    if (orgTypes.indexOf(type) == -1) orgTypes.push(type);
+    if (!cityInfo[city]) {
+      cityInfo[city] = { name: city, lat: 0, long:0, organizations: [] };
+      cities.push(cityInfo[city]);
+    }
+    cityInfo[city].organizations.push(org);
+    cityInfo[city].lat += Number(org.lat.value);
+    cityInfo[city].long += Number(org.long.value);
+  });
+
+  cities.forEach(function(city) {
+    city.lat /= city.organizations.length;
+    city.long /= city.organizations.length;
+    if (city.name == 'London') {
+
+    }
+    else {
+      //city.lat = 9999;
+    }
+  });
+
+  function hsla(h, s, l, a) {
+    return 'hsla(' + h + ',' + 100 * s + '%,' + 100 * l + '%,' + a + ')';
+  }
+
+  svg.selectAll('rect.org').data(results)
+    .enter()
+      .append('circle')
+      .attr('class', 'org')
+      .attr('cx', function(org) {
+        var city = cityInfo[org.city.value];
+        return longitude(city.long);
+      })
+      .attr('cy', function(org) {
+        var city = cityInfo[org.city.value];
+        return latitude(city.lat);
+      })
+      .attr('r', function(org) {
+        var city = cityInfo[org.city.value];
+        return 5 + Math.pow(city.organizations.length, 0.8);
+      })
+      .attr('fill', function(org) {
+        var typeIndex = orgTypes.indexOf(org.org_type.value);
+        //return hsla(typeIndex/orgTypes.length*360 + 50, 0.8, 0.6, 0.12)
+        return hsla(229, 0.52, 0.6, 0.29)
+        return '#7A92FD'
+      })
+
+  var hasLabel = {};
+
+  svg.selectAll('rect.title').data(results)
+    .enter()
+      .append('rect')
+      .attr('class', 'title')
+      .attr('x', function(org) {
+        var city = cityInfo[org.city.value];
+        return longitude(city.long);
+      })
+      .attr('y', function(org) {
+        var city = cityInfo[org.city.value];
+        return latitude(city.lat);
+      })
+      .attr('rx', function(org) {
+        return 3;
+      })
+      .attr('width', function(org) {
+        var city = cityInfo[org.city.value];
+        return 100;
+      })
+      .attr('height', function(org) {
+        var city = cityInfo[org.city.value];
+        return 18;
+      })
+      .attr('fill', function(org) {
+        var city = cityInfo[org.city.value];
+        if (city.organizations.length > 10 && !city.hasLabel) {
+          city.hasLabel = true;
+          return hsla(229, 0.52, 0.6, 0.59);
+        }
+        else
+          return 'rgba(0,0,0,0)';
+      })
+
+  svg.selectAll('text.title').data(results)
+    .enter()
+      .append('text')
+      .attr('class', 'title')
+      .attr('x', function(org) {
+        var city = cityInfo[org.city.value];
+        return longitude(city.long) + 5;
+      })
+      .attr('y', function(org) {
+        var city = cityInfo[org.city.value];
+        return latitude(city.lat) + 12;
+      })
+      .text(function(org) {
+        var city = cityInfo[org.city.value];
+        if (city.organizations.length > 10 && !city.hasLabelText) {
+          city.hasLabelText = true;
+          return city.name;
+        }
+        else
+          return '';
+      })
+      .attr('fill', '#FFF');
+
+  }
+
+  function filter(what) {
+    console.log(what);
+  }
+
+</script>
+</head>
+<body>
+  <div id="header"><img src="assets/header_01.png" height="100"></div>
+  <div id="sidebar">
+  <h1>Technology Trends</h1>
+  <a href="#" onclick="filter('open_knowledge')">Knowledge</a>
+  <a href="#" onclick="filter('open_data')">Data</a>
+  <a href="#" onclick="filter('open_networks')">Networks</a>
+  <a href="#" onclick="filter('open_hardware')">Hardware</a>
+  </div>
+  <div id="charts"></div>
+</body>
+</html>
