@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DSI Data Viz</title>
+<style type="text/css">
+body {
+  font-family: 'Helvetica', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+</style>
+<script type='text/javascript' src='lib/d3.v3.min.js'></script>
+<script type='text/javascript' src='lib/q.min.js'></script>
+<script type='text/javascript' src="js/SPARQL.js"></script>
+<script type='text/javascript' src="js/CSV.js"></script>
+<script type="text/javascript">
+
+var AreaTypes = ['open-democracy', 'new-ways-of-making', 'awarness-networks', 'collaborative-economy', 'open-access', 'funding-acceleration-and-incubation'];
+
+var AreaShapeSides = [4, 3, 12, 6, 4];
+var AreaShapeRotations = [0, 0, 0, 0, 45];
+
+function get(prop) {
+  return function(o) {
+    return o[prop];
+  }
+}
+
+function notNull(o) {
+  return o != null;
+}
+
+function trimToSlash(s) {
+  return s.substr(s.lastIndexOf('/')+1);
+}
+
+function join(separator) {
+  return function(list) {
+    return list.join(separator);
+  }
+}
+
+function last(list) {
+  return list[list.length-1];
+}
+
+function zipMap(keys, values) {
+  var map = {};
+  keys.forEach(function(key, index) {
+    map[key] = values[index];
+  });
+  return map;
+};
+
+function values(obj) {
+  var result = [];
+  for(var propertyName in obj) {
+    result.push(obj[propertyName]);
+  }
+  return result;
+};
+
+function keys(obj) {
+  var result = [];
+  for(var propertyName in obj) {
+    result.push(propertyName);
+  }
+  return result;
+};
+
+function flatten(list) {
+  var result = [];
+  for(var i=0; i<list.length; i++) {
+    if (Array.isArray(list[i])) {
+      result = result.concat(list[i]);
+    }
+    else {
+      result.push(list[i]);
+    }
+  }
+  return result;
+};
+
+function toNumber(value) {
+  return Number(value);
+}
+
+function partition(list, count) {
+  var result = [];
+  var i = 0;
+  while (i < list.length) {
+    var step = 0;
+    var group = [];
+    while (step < count && i < list.length) {
+      step++;
+      group.push(list[i]);
+      i++;
+    }
+    result.push(group);
+  }
+  return result;
+};
+
+function zip(lista, listb) {
+  var result = [];
+  var len = Math.min(lista.length, listb.length);
+  for(var i=0; i<len; i++) {
+    push.push([lista[i], listb[i]]);
+  }
+  return result;
+}
+
+function getValuesAt(list, indices) {
+  return indices.map(function(i) {
+    return list[i];
+  });
+}
+
+function unique(list) {
+  var results = [];
+  list.forEach(function(value) {
+    if (results.indexOf(value) == -1) {
+      results.push(value);
+    }
+  });
+  return results;
+}
+
+function countValues(list) {
+  var resultsMap = {};
+  list.forEach(function(value) {
+    if (!resultsMap[value]) {
+      resultsMap[value] = 0;
+    }
+    resultsMap[value]++;
+  });
+  return resultsMap;
+}
+
+//example data
+//["", "NEW_AREA", "Lobbying for the European public interest", "Empowering European citizens through online activism and participatory mechanisms", "participation-and-democracy education-and-skills", "http://data.digitalsocial.eu/id/activity/dc74af58-f1bc-ff08-dd07-222e0bdf69de", "1", "", "", "", "", "", "", "", "", ""]
+function init() {
+  CSV.load('data/new_schema_values_filled.csv').then(function(data) {
+    var lines = data.slice(1, 310);
+
+    projects = lines.map(function(tokens) {
+      return {
+        name: tokens[2],
+        tags: tokens[4].split(' '),
+        url: tokens[5],
+        areas: tokens.slice(6, 11)
+          .map(toNumber)
+          .map(function(value, index) { return value === 1 ? AreaTypes[index] : null;})
+          .filter(notNull)
+      }
+    })
+    visualizeData(projects);
+  });
+}
+
+function visualizeData(projects) {
+  console.dir(last(projects));
+  var areas = unique(flatten(projects.map(get('areas'))));
+  projects.forEach(function(p) { if (p.areas.length == 0) p.areas.push('unknown'); });
+  var areasCount = countValues(flatten(projects.map(get('areas'))));
+  console.log(areasCount);
+  console.log('unassigned projects', projects.filter(function(p) { return p.areas.length == 0}));
+
+  projects.forEach(function(project) {
+    if (project.areas.length > 0) {
+      project.shapeType
+    }
+    else {
+      project.shapeType = '0';
+    }
+  })
+
+  var marginTop = 100;
+  var marginBottom = 100;
+  var w = window.innerWidth;
+  var h = window.innerHeight - marginTop - marginBottom;
+  var svg = d3.select('#charts')
+              .append('svg')
+              .attr('width', w)
+              .attr('height', h);
+
+  updateBg(svg, w, h, '#FEE087');
+  updateTitle(svg, w, h, 'Areas');
+  updateProjects(svg, w, h, projects);
+
+}
+
+function updateTitle(svg, w, h, text) {
+  var title = svg.selectAll('text.title').data([text]);
+
+  title.enter()
+    .append('text')
+    .attr('class', 'title')
+    .attr('x', 20)
+    .attr('y', 80)
+    .style('font-size', '80px')
+    .style('font-weight', '100');
+
+  title.text(function(d) { return d; });
+
+}
+
+function updateBg(svg, w, h, color) {
+
+  var bg = svg.selectAll('rect.bg').data([color])
+
+  bg.enter()
+    .append('rect')
+    .attr('class', 'bg')
+    .attr('x', 0)
+    .attr('y', 0)
+    .attr('width', w)
+    .attr('height', h);
+
+  bg.attr('fill', function(d) { return d; });
+}
+
+//margin = [top, right, bottom, down]
+function matrixColumn(totalWidth, elemSize, spacing, margin) {
+  if (!margin.length) {
+    margin = [ margin, margin, margin, margin ];
+  }
+  var w = totalWidth - margin[1] - margin[3];
+  //w = elemSize * n + spacing * (n - 1)
+  //w = elemSize * n + spacing * n - spacing
+  //w + spacing = (elemSize + spacing ) * n
+  //
+  //       w + spacing
+  //n = ------------------
+  //    elemSize + spacing
+  //
+  var n = Math.floor((w + spacing) / (elemSize + spacing));
+
+  return function(d, i) {
+    var col = i % n;
+    return margin[3] + col * (elemSize + spacing);
+  }
+}
+
+//margin = [top, right, bottom, down]
+function matrixRow(totalWidth, elemSize, spacing, margin) {
+  if (!margin.length) {
+    margin = [ margin, margin, margin, margin ];
+  }
+  var w = totalWidth - margin[1] - margin[3];
+  //w = elemSize * n + spacing * (n - 1)
+  //w = elemSize * n + spacing * n - spacing
+  //w + spacing = (elemSize + spacing ) * n
+  //
+  //       w + spacing
+  //n = ------------------
+  //    elemSize + spacing
+  //
+  var n = Math.floor((w + spacing) / (elemSize + spacing));
+  return function(d, i) {
+    var row = Math.floor((i / n));
+    return margin[0] + row * (elemSize + spacing);
+  }
+}
+
+function updateProjects(svg, w, h, projects) {
+  var projectShapes = svg.selectAll('path.project').data(projects);
+
+  var shapeSize = 32;
+  var spacing = 10;
+  var margin = 10;
+  var marginTop = 100;
+
+  projectShapes.enter()
+    .append('rect')
+    .attr('x', matrixColumn(w, shapeSize, spacing, margin))
+    .attr('y', matrixRow(w, shapeSize, spacing, [marginTop, margin, margin, margin]))
+    .attr('width', shapeSize)
+    .attr('height', shapeSize)
+    .attr('fill', function(d, i) {
+      if (i % 10 == 0) return '#00FF00';
+      else return '#FF0000';
+    });
+}
+
+window.onload = init;
+
+</script>
+</head>
+<body>
+  <div id="header"><img src="assets/header_01.png" height="100"></div>
+  <div id="charts"></div>
+</body>
+</html>
