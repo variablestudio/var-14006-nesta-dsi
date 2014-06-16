@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DSI Data Viz</title>
+<style type="text/css">
+</style>
+<script type='text/javascript' src='lib/d3.v3.min.js'></script>
+<script type='text/javascript' src='lib/q.min.js'></script>
+<script type='text/javascript' src="js/SPARQL.js"></script>
+<script type="text/javascript">
+
+var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
+var ds = new SPARQLDataSource(SPARQL_URL);
+var useCache = true;
+var allResults;
+var lastHue;
+var lastResults;
+var layoutMode = 'grid';
+
+function get(prop) {
+  return function(o) {
+    return o[prop];
+  }
+}
+
+function notNull(o) {
+  return o != null;
+}
+
+function trimToSlash(s) {
+  return s.substr(s.lastIndexOf('/')+1);
+}
+
+function join(separator) {
+  return function(list) {
+    return list.join(separator);
+  }
+}
+
+function init() {
+  ds.query()
+    .prefix('o:', '<http://www.w3.org/ns/org#>')
+    .prefix('rdfs:', '<http://www.w3.org/2000/01/rdf-schema#>')
+    .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
+    .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
+    .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
+    .prefix('purl-terms:', '<http://purl.org/dc/terms/>')
+    .select('?activity ?activity_label ?activity_description ?as')
+    //.where('?org', 'a', 'o:Organization')
+    //.where('?org', 'ds:organizationType', '?org_type')
+    //.where('?org', 'rdfs:label', '?label')
+    //.where('?org', 'o:hasPrimarySite', '?org_site')
+    //.where('?org_site', 'geo:long', '?long')
+    //.where('?org_site', 'geo:lat', '?lat')
+    //.where('?org_site', 'o:siteAddress', '?org_address')
+    //.where('?org_address', 'vcard:country-name', '?country')
+    //.where('?org_address', 'vcard:locality', '?city')
+    //.where("?am", "a", "ds:ActivityMembership")
+    //.where("?am", "ds:organization", "?org")
+    //.where("?am", "ds:activity", "?activity")
+    .where('?activity', 'a', 'ds:Activity')
+    .where('?activity', 'rdfs:label', '?activity_label')
+    .where('?activity', 'purl-terms:description', '?activity_description', { optional: true })
+    //.where("?activity", "ds:technologyMethod", "?tm")
+    //.where("?activity", "ds:technologyFocus", "?tf", { optional: true })
+    .where("?activity", "ds:areaOfSociety", "?as", { optional: true })
+    .execute().then(function(results) {
+      setTimeout(function() {
+        var groupByField = function(data, field) {
+          return data.reduce(function(memo, object) {
+            if (memo[object[field]] !== undefined) {
+              memo[object[field]].push(object);
+            }
+            else {
+              memo[object[field]] = [ object ];
+            }
+            return memo;
+          }, {});
+        };
+
+        function sparqlResultToJson(list) {
+          return list.map(function(item) {
+            var o = {};
+            for(var prop in item) {
+              o[prop] = item[prop].value;
+            }
+            return o;
+          })
+        }
+
+        var projectsGroups = groupByField(sparqlResultToJson(results), 'activity');
+        var projects = [];
+        for(var projectId in projectsGroups) {
+          var projectGroup = projectsGroups[projectId];
+          var areaOfSociety = projectGroup.map(get('as')).filter(notNull).map(trimToSlash).join(' ').replace(/\,/g,'.');
+          var description = (projectGroup[0].activity_description || '').replace(/\,/g,'.').replace(/[\n\r]/g,'');
+          var label = projectGroup[0].activity_label.replace(/\,/g,'.');
+          var project = [ 'NEW_AREA', label, description, areaOfSociety, projectId];
+          projects.push(project);
+        }
+        projects.sort(function(a, b) {
+          if (a[0] < b[0]) return -1;
+          if (a[0] > b[0]) return  1;
+          return 0;
+        })
+        console.log(projects.length);
+        console.log(projects.map(join(',')).join('\n'));
+      }, 1);
+    }
+  );
+}
+
+window.onload = init;
+
+</script>
+</head>
+<body>
+  <div id="header"><img src="assets/header_01.png" height="100"></div>
+  <div id="sidebar">
+  <h1>Technology Trends</h1>
+  <a href="#" onclick="filter('open-knowledge', 1)">Knowledge</a>
+  <a href="#" onclick="filter('open-data', 229)">Data</a>
+  <a href="#" onclick="filter('open-networks', 120)">Networks</a>
+  <a href="#" onclick="filter('open-hardware', 260)">Hardware</a>
+  <hr/>
+  <h1>Viz</h1>
+  <a href="#" onclick="setLayout('map')">map</a>
+  <a href="#" onclick="setLayout('grid')">grid</a>
+  </div>
+  <div id="charts"></div>
+</body>
+</html>
