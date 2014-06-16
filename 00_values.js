@@ -20,6 +20,7 @@ var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
 //rdfs:type http://www.w3.org/ns/org#Organization
 
 //Activity http://data.digitalsocial.eu/doc/activity/7795ec63-2cec-dc77-f953-e176368bf0ff
+//purl-terms:description
 //ds:areaOfSociety http://data.digitalsocial.eu/def/concept/area-of-society/neighbourhood-regeneration
 //ds:activityType http://data.digitalsocial.eu/def/concept/activity-type/research-project
 //ds:technologyMethod http://data.digitalsocial.eu/def/concept/technology-method/social-networks
