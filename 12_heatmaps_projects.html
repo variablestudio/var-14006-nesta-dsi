@@ -101,7 +101,7 @@ var useCache = true;
 var allResults;
 var lastHue;
 var lastResults;
-var layoutMode = 'map';
+var layoutMode = 'grid';
 
 function init() {
   if (useCache && localStorage['data_11']) {
@@ -164,14 +164,42 @@ window.onload = init;
 
 var svg;
 var allResults;
+var tooltip;
+
+function makeTooltip() {
+  var tooltip = d3.select("body").append("svg")
+    .attr("width", 200)
+    .attr("height", 32)
+
+  tooltip.append('rect').attr('width', 200).attr('height', 24).attr('rx', '5px').attr('fill', '#EEE');
+  tooltip.append('text').attr('fill', 'black').attr('x', 5).attr('y', 18).text('tooltip');
+
+  window.addEventListener('mousemove', function(e) {
+    tooltip[0][0].style.position = 'absolute';
+    tooltip[0][0].style.left = e.pageX + 10 + 'px';
+    tooltip[0][0].style.top = e.pageY - 32 + 'px';
+  });
+
+  tooltip[0][0].style.display = 'none';
+  return tooltip;
+}
+
 
 function buildViz(results, hue) {
   hue = hue || lastHue || 360;
   var lightness = (hue == 360) ? 0 : 0.6;
-  results = results || lastResults;
+  results = results || lastResults || allResults;
   console.log('buildViz', results.length);
   var w = window.innerWidth;
   var h = window.innerHeight - 100;
+
+  var alpha = (layoutMode == 'map') ? 0.15 : 0.5;
+
+  if (!tooltip) tooltip = makeTooltip();
+
+  results.sort(function(a, b) {
+    return -(a.activities.length - b.activities.length);
+  });
 
 
   d3.select('#sidebar').style('height', h + 'px');
@@ -231,35 +259,59 @@ function buildViz(results, hue) {
     circles.enter()
       .append('circle')
       .attr('class', 'org')
-      .attr('cx', function(org) {
-        var city = cityInfo[org.city.value];
-        return longitude(city.long);
-      })
-      .attr('cy', function(org) {
-        var city = cityInfo[org.city.value];
-        return latitude(city.lat);
-      })
       .attr('r', 0)
+      .on("mouseover", function(org) {
+        tooltip[0][0].style.display = 'block';
+        tooltip.select('text').text(org.label.value);
+      })
+      .on("mouseout", function() {
+        tooltip[0][0].style.display = 'none';
+      })
 
     circles
       .transition()
-      .duration(300)
+      .duration(1000)
+      .attr('cx', function(org, orgIndex) {
+        var city = cityInfo[org.city.value];
+        if (layoutMode == 'map') {
+          return longitude(city.long);
+        }
+        return 200 + ((orgIndex % 15)/15 + 0.5/15) * (w - 200);
+      })
+      .attr('cy', function(org, orgIndex) {
+        var city = cityInfo[org.city.value];
+        if (layoutMode == 'map') {
+          return latitude(city.lat);
+        }
+        else {
+          return 50 + (Math.floor(orgIndex / 15)/10 + 0.5/10) * (h - 200);
+        }
+      })
       .attr('fill', function(org) {
         var typeIndex = orgTypes.indexOf(org.org_type.value);
         //return hsla(typeIndex/orgTypes.length*360 + 50, 0.8, 0.6, 0.12)
-        return hsla(hue, 0.52, lightness, 0.15)
+        return hsla(hue, 0.52, lightness, alpha)
         return '#7A92FD'
       })
       .attr('r', function(org) {
         var city = cityInfo[org.city.value];
-        return 3 + Math.pow(city.organizations.length, 0.8);
+        if (layoutMode == 'map') {
+          return 3 + Math.pow(city.organizations.length, 0.8);
+        }
+        else {
+          return 3 + Math.pow(org.activities.length, 0.6);
+        }
+        //
       })
 
-  circles.exit().transition().duration(300).attr('r', 0).remove()
+  circles.exit().transition().duration(1000).attr('r', 0).remove()
 
   var hasLabel = {};
 
-  var titleRects = svg.selectAll('rect.title').data(results);
+  var titleResults = results;
+  if (layoutMode == 'grid') titleResults = [];
+
+  var titleRects = svg.selectAll('rect.title').data(titleResults);
   titleRects.enter()
       .append('rect')
       .attr('class', 'title')
@@ -295,7 +347,7 @@ function buildViz(results, hue) {
 
   titleRects.exit().remove()
 
-  var titleTexts = svg.selectAll('text.title').data(results);
+  var titleTexts = svg.selectAll('text.title').data(titleResults);
   titleTexts.enter()
       .append('text')
       .attr('class', 'title')

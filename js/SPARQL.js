@@ -79,8 +79,12 @@ SPARQLQuery.prototype.prefix = function(prefix, uri) {
   return this;
 }
 
-SPARQLQuery.prototype.where = function(subject, predicate, object) {
-  this.lines.where.push(' ' + subject + ' ' + predicate + ' ' + object + '.');
+SPARQLQuery.prototype.where = function(subject, predicate, object, options) {
+  var q = ' ' + subject + ' ' + predicate + ' ' + object + '.';
+  if (options && options.optional) {
+    q = 'OPTIONAL { ' + q + ' } ';
+  }
+  this.lines.where.push(q);
   return this;
 }
 
