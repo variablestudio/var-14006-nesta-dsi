@@ -13,14 +13,40 @@ body {
 </style>
 <script type='text/javascript' src='lib/d3.v3.min.js'></script>
 <script type='text/javascript' src='lib/q.min.js'></script>
+<script type='text/javascript' src='lib/dat.gui.js'></script>
 <script type='text/javascript' src="js/SPARQL.js"></script>
 <script type='text/javascript' src="js/CSV.js"></script>
 <script type="text/javascript">
 
-var AreaTypes = ['open-democracy', 'new-ways-of-making', 'awarness-networks', 'collaborative-economy', 'open-access', 'funding-acceleration-and-incubation'];
 
-var AreaShapeSides = [4, 3, 12, 6, 4];
-var AreaShapeRotations = [0, 0, 0, 0, 45];
+
+var AreaTypes = ['unknown', 'open-democracy', 'new-ways-of-making', 'awarness-networks', 'collaborative-economy', 'open-access', 'funding-acceleration-and-incubation'];
+
+var TechnologyAreaTypes = ['', 'open-data', 'open-hardware', 'open-knowledge', 'open-networks'];
+
+var AreaColors = ['#666666', '#F9EB40', '#FB0D1B', '#319733', '#1DAEEC', '#FC6ACA', '#FF9E3A'];
+var AreaColors2 = ['#666666', '#F9EB40', '#f53944', '#31ac33', '#1DAEEC', '#f274c7', '#f79735'];
+var AreaColorsNew = ['#666666', '#F9EB40', '#FB0D1B', '#319733', '#1DAEEC', '#ca2d94', '#fa8309'];
+var AreaColorsPale = ['#666666', '#f2e75c', '#f0545d', '#5db35f', '#62bce3', '#d765af', '#faa147'];
+//AreaColors = AreaColorsNew;
+//AreaColors = AreaColorsPale;
+AreaColors = AreaColors2;
+var AreaShapeSides = [12, 4, 3, 12, 6, 4, 4];
+var AreaShapeRotation = [0, 0, -90, 0, 30, 45, 0];
+var AreaShapeRadius = [0.1, 1, 1, 0.8, 1, 1, 1];
+var AreaShapeOffsetY = [0, 0, 0.3, 0, 0, 0, 0];
+
+function sequence(start, end) {
+  if (end === undefined) {
+    end = start;
+    start = 0;
+  }
+  var result = [];
+  for(var i=start; i<end; i++) {
+    result.push(i);
+  }
+  return result;
+};
 
 function get(prop) {
   return function(o) {
@@ -44,6 +70,10 @@ function join(separator) {
 
 function last(list) {
   return list[list.length-1];
+}
+
+function first(list) {
+  return list[0];
 }
 
 function zipMap(keys, values) {
@@ -140,19 +170,22 @@ function countValues(list) {
 }
 
 //example data
-//["", "NEW_AREA", "Lobbying for the European public interest", "Empowering European citizens through online activism and participatory mechanisms", "participation-and-democracy education-and-skills", "http://data.digitalsocial.eu/id/activity/dc74af58-f1bc-ff08-dd07-222e0bdf69de", "1", "", "", "", "", "", "", "", "", ""]
+//["", "NEW_AREA", "Lobbying for the European public interest", "Empowering European citizens through online activism and participatory mechanisms", "open-data", "participation-and-democracy education-and-skills", "http://data.digitalsocial.eu/id/activity/dc74af58-f1bc-ff08-dd07-222e0bdf69de", "1", "", "", "", "", "", "", "", "", ""]
 function init() {
   CSV.load('data/new_schema_values_filled.csv').then(function(data) {
     var lines = data.slice(1, 310);
 
+    console.log(lines[0])
+
     projects = lines.map(function(tokens) {
       return {
         name: tokens[2],
-        tags: tokens[4].split(' '),
-        url: tokens[5],
-        areas: tokens.slice(6, 11)
+        technologyArea: tokens[4],
+        tags: tokens[5].split(' '),
+        url: tokens[6],
+        areas: tokens.slice(7, 13)
           .map(toNumber)
-          .map(function(value, index) { return value === 1 ? AreaTypes[index] : null;})
+          .map(function(value, index) { return value === 1 ? AreaTypes[index+1] : null;})
           .filter(notNull)
       }
     })
@@ -162,19 +195,22 @@ function init() {
 
 function visualizeData(projects) {
   console.dir(last(projects));
+  console.log('projects.length', projects.length);
+  console.log('projects w area', projects.filter(function(p) { return p.areas.length; }).length);
+  console.log('projects w/o area', projects.filter(function(p) { return p.areas.length == 0; }).length);
   var areas = unique(flatten(projects.map(get('areas'))));
-  projects.forEach(function(p) { if (p.areas.length == 0) p.areas.push('unknown'); });
+  var technologyAreas = unique(flatten(projects.map(get('technologyArea'))));
+  console.log('technologyArea', technologyAreas);
+  var unknown = 0;
+  projects.forEach(function(p) { if (p.areas.length == 0) { unknown++; p.areas.push('unknown');} });
   var areasCount = countValues(flatten(projects.map(get('areas'))));
-  console.log(areasCount);
-  console.log('unassigned projects', projects.filter(function(p) { return p.areas.length == 0}));
+  console.log(areasCount, 'unknown', unknown);
+  console.log('unassigned projects', projects.filter(function(p) { return p.areas.length == 0 || p.areas[0] == 'unknown'}).length);
 
   projects.forEach(function(project) {
-    if (project.areas.length > 0) {
-      project.shapeType
-    }
-    else {
-      project.shapeType = '0';
-    }
+    project.shapeType = TechnologyAreaTypes.indexOf(project.technologyArea);
+    project.primaryAreaIndex = AreaTypes.indexOf(last(project.areas));
+    project.primaryAreaIndex2 = AreaTypes.indexOf(first(project.areas));
   })
 
   var marginTop = 100;
@@ -186,9 +222,30 @@ function visualizeData(projects) {
               .attr('width', w)
               .attr('height', h);
 
-  updateBg(svg, w, h, '#FEE087');
+  updateBg(svg, w, h, '#EEEEEE');
   updateTitle(svg, w, h, 'Areas');
   updateProjects(svg, w, h, projects);
+
+  var gui = new dat.GUI();
+
+  var timeout = 0;
+  function rerender() {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+    timeout = setTimeout(function() {
+      timeout = 0;
+      updateProjects(svg, w, h, projects);
+    }, 100);
+  }
+
+  gui.addColor(AreaColors, '0').onChange(rerender);
+  gui.addColor(AreaColors, '1').onChange(rerender);
+  gui.addColor(AreaColors, '2').onChange(rerender);
+  gui.addColor(AreaColors, '3').onChange(rerender);
+  gui.addColor(AreaColors, '4').onChange(rerender);
+  gui.addColor(AreaColors, '5').onChange(rerender);
+  gui.addColor(AreaColors, '6').onChange(rerender);
 
 }
 
@@ -198,9 +255,9 @@ function updateTitle(svg, w, h, text) {
   title.enter()
     .append('text')
     .attr('class', 'title')
-    .attr('x', 20)
+    .attr('x', 40)
     .attr('y', 80)
-    .style('font-size', '80px')
+    .style('font-size', '70px')
     .style('font-weight', '100');
 
   title.text(function(d) { return d; });
@@ -266,22 +323,69 @@ function matrixRow(totalWidth, elemSize, spacing, margin) {
 }
 
 function updateProjects(svg, w, h, projects) {
-  var projectShapes = svg.selectAll('path.project').data(projects);
-
   var shapeSize = 32;
   var spacing = 10;
-  var margin = 10;
-  var marginTop = 100;
+  var margin = 40;
+  var marginTop = 120;
+
+  function makePolygon(shapeType, radius) {
+    var numSides = AreaShapeSides[shapeType];
+    var rotation = AreaShapeRotation[shapeType]/180 * Math.PI;
+    var r = AreaShapeRadius[shapeType];
+    var dy = radius * AreaShapeOffsetY[shapeType];
+    var points = sequence(0, numSides).map(function(i) {
+      return {
+        x: r * radius * Math.cos(i/numSides * Math.PI * 2 + rotation),
+        y: dy + r * radius * Math.sin(i/numSides * Math.PI * 2 + rotation)
+      };
+    });
+    return points.map(function(p) { return p.x + ',' + p.y; }).join(' ');
+  }
+
+  function translate(x, y) {
+    return 'translate(' + x + ',' + y + ')';
+  }
+
+  var projectShapes = svg.selectAll('polygon.project').data(projects);
 
   projectShapes.enter()
-    .append('rect')
-    .attr('x', matrixColumn(w, shapeSize, spacing, margin))
-    .attr('y', matrixRow(w, shapeSize, spacing, [marginTop, margin, margin, margin]))
+    .append('polygon')
+    .attr('class', 'project')
+    .attr('points', function(d) { return makePolygon(d.shapeType, shapeSize*0.4)})
+    .attr('transform', function(d, i) {
+      var t = translate(
+        matrixColumn(w, shapeSize, spacing, [margin, margin, margin, margin])(d, i) + shapeSize/2,
+        matrixRow(w, shapeSize, spacing, [marginTop, margin, margin, margin])(d, i) + shapeSize/2
+      );
+      return t;
+    })
     .attr('width', shapeSize)
     .attr('height', shapeSize)
+
+  projectShapes
     .attr('fill', function(d, i) {
-      if (i % 10 == 0) return '#00FF00';
-      else return '#FF0000';
+      return AreaColors[d.primaryAreaIndex];
+    });
+
+  var projectShapes2 = svg.selectAll('polygon.project2').data(projects);
+
+  projectShapes2.enter()
+    .append('polygon')
+    .attr('class', 'project2')
+    .attr('points', function(d) { return makePolygon(d.shapeType, shapeSize*0.3)})
+    .attr('transform', function(d, i) {
+      var t = translate(
+        matrixColumn(w, shapeSize, spacing, [margin, margin, margin, margin])(d, i) + shapeSize/2,
+        matrixRow(w, shapeSize, spacing, [marginTop, margin, margin, margin])(d, i) + shapeSize/2
+      );
+      return t;
+    })
+    .attr('width', shapeSize)
+    .attr('height', shapeSize)
+
+  projectShapes2
+    .attr('fill', function(d, i) {
+      return AreaColors[d.primaryAreaIndex2];
     });
 }
 
