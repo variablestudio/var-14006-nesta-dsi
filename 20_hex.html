@@ -305,11 +305,29 @@ function buildViz(results, color) {
       if (row % 2 == 1) {
         x += r;
       } 
-      return "M" + hexBite(x, y, 5 + Math.pow(org.countedDsiAreas[dsiArea], 0.5) || 5, i).join("L") + "Z" 
+      return "M" + hexBite(x, y, r, i).join("L") + "Z" 
+    }); 
+    //bite.attr('stroke', AreaColors[i]);
+    bite.attr('stroke', '#DDD');
+    bite.attr('fill', '#FFF');
+  })
+
+  fn.sequence(0,6).map(function(i) {
+    var dsiArea = AreaTypes[i];
+    var bite = circles.append('path');
+    bite.attr('d', function(org, orgIndex) { 
+      var col = (orgIndex % numCols);
+      var row = Math.floor(orgIndex / numCols);
+      var x = dx + col * r2;
+      var y = dy + row * r2 * 0.9;
+      if (row % 2 == 1) {
+        x += r;
+      } 
+      return "M" + hexBite(x, y, 5 + Math.min(r-5, Math.pow(org.countedDsiAreas[dsiArea], 0.6)) || 1, i).join("L") + "Z" 
     }); 
     bite.attr('fill', AreaColors[i]);
   })
-  }
+}
 
 </script>
 </head>
