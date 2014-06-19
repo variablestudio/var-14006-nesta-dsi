@@ -91,7 +91,7 @@ text.title {
 
 var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
 var ds = new SPARQLDataSource(SPARQL_URL);
-var useCache = true;
+var useCache = false;
 var allResults;
 
 function init() {
@@ -107,7 +107,7 @@ function init() {
       .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
       .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
       .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
-      .select('?org ?label ?long ?lat ?country ?city ?org_type ?tf ?activity_label')
+      .select('?org ?label ?long ?lat ?country ?city ?org_type ?tf ?activity ?activity_label')
       .where('?org', 'a', 'o:Organization')
       .where('?org', 'ds:organizationType', '?org_type')
       .where('?org', 'rdfs:label', '?label')
@@ -281,7 +281,7 @@ function buildViz(results, hue) {
       localStorage['randomPoints'] = JSON.stringify(randomPoints);
     }
 
-    var minR = 50;
+    var minR = 100;
     var minR2 = minR * minR;
 
     randomPoints.forEach(function(p) {
