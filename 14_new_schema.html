@@ -175,20 +175,24 @@ function init() {
   CSV.load('data/new_schema_values_filled.csv').then(function(data) {
     var lines = data.slice(1, 310);
 
-    console.log(lines[0])
+    console.log(lines[1].map(function(v, i) { return i + ' : ' + v; }))
 
     projects = lines.map(function(tokens) {
+      tokens.shift();
       return {
-        name: tokens[2],
-        technologyArea: tokens[4],
-        tags: tokens[5].split(' '),
-        url: tokens[6],
-        areas: tokens.slice(7, 13)
+        name: tokens[1],
+        description: tokens[2],
+        technologyArea: tokens[3],
+        tags: tokens[4].split(' '),
+        url: tokens[5],
+        areas: tokens.slice(6, 12)
           .map(toNumber)
           .map(function(value, index) { return value === 1 ? AreaTypes[index+1] : null;})
           .filter(notNull)
       }
     })
+    console.log(projects[0].areas)
+    console.log(projects[0].areas)
     visualizeData(projects);
   });
 }
@@ -200,11 +204,11 @@ function visualizeData(projects) {
   console.log('projects w/o area', projects.filter(function(p) { return p.areas.length == 0; }).length);
   var areas = unique(flatten(projects.map(get('areas'))));
   var technologyAreas = unique(flatten(projects.map(get('technologyArea'))));
-  console.log('technologyArea', technologyAreas);
+  //console.log('technologyArea', technologyAreas);
   var unknown = 0;
   projects.forEach(function(p) { if (p.areas.length == 0) { unknown++; p.areas.push('unknown');} });
   var areasCount = countValues(flatten(projects.map(get('areas'))));
-  console.log(areasCount, 'unknown', unknown);
+  //console.log(areasCount, 'unknown', unknown);
   console.log('unassigned projects', projects.filter(function(p) { return p.areas.length == 0 || p.areas[0] == 'unknown'}).length);
 
   projects.forEach(function(project) {

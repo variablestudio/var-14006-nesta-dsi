@@ -1,16 +1,7 @@
+var fs = require('fs');
+var Q = require('q');
+
 var CSV = {};
-CSV.createCORSRequest = function(method, url) {
-  var xhr = new XMLHttpRequest();
-  if ("withCredentials" in xhr) {
-    xhr.open(method, url, true);
-  } else if (typeof XDomainRequest != "undefined") {
-    xhr = new XDomainRequest();
-    xhr.open(method, url);
-  } else {
-    xhr = null;
-  }
-  return xhr;
-}
 
 //http://stackoverflow.com/questions/1293147/javascript-code-to-parse-csv-data
 CSV.csv2array = function( strData, strDelimiter ) {
@@ -83,27 +74,13 @@ CSV.csv2array = function( strData, strDelimiter ) {
 CSV.load = function(file) {
   var deferred = Q.defer();
 
-  var xhr = CSV.createCORSRequest('GET', file);
-  if (!xhr) {
-    console.log('CORS not supported!');
-    deferred.reject(new Error('CORS not supported!'));
-    return;
-  }
+  var path = __dirname + '/' + file;
+  var str = fs.readFileSync(file, 'utf8');
+  var data = CSV.csv2array(str);
 
-  xhr.onload = function() {
-    deferred.resolve(CSV.csv2array(xhr.responseText.trim().split('\n')));
-  };
-
-  xhr.onerror = function() {
-    console.log('error')
-    deferred.reject(new Error('Error making request to ' + url));
-  };
-
-  xhr.send();
+  deferred.resolve(data);
 
   return deferred.promise;
 }
 
-if (typeof(module) != 'undefined') {
-  module.exports = CSV;
-}
+module.exports = CSV;
