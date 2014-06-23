@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DSI Data Viz</title>
+<style type="text/css">
+body {
+  font-family: 'Helvetica', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+h2.section {
+  font-size: 350%;
+  border-bottom: 1px solid #DDDDDD;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+}
+
+#header img {
+  display: block;
+  margin: 0 auto;
+}
+
+#sidebar {
+  xbackground: rgba(255,255,255,0.2);
+  width: 200px;
+  height: 100%;
+  position: absolute;
+  top: 100px;
+  left: 0px;
+  box-sizing: border-box;
+  padding: 1em;
+  color: #333;
+}
+
+#sidebar h1 {
+  margin: 0 0 1em 0;
+  padding: 0;
+  font-size: 150%;
+  color: #333;
+  color: rgba(253,115,81,0.95);
+  color: #333;
+}
+
+#sidebar a {
+  display: block;
+  width: 70%;
+  float: left;
+  font-size: 70%;
+  text-align: center;
+  color: #FFF;
+  text-decoration: none;
+  background: rgba(253,115,81,0.95);
+  background: #333;
+  xbackground: rgba(0,0,0,0.5);
+  margin: 0 0.65em 0.5em 0;
+  border-radius: 5px;
+  padding: 1em 0.5em;
+  font-weight: bold;
+  line-height: 180%;
+}
+
+#charts {
+  margin: 0;
+}
+
+#charts svg {
+}
+
+text.label {
+  font-size: 70%;
+  text-anchor: end;
+}
+
+text.value {
+  font-size: 90%;
+  text-anchor: start;
+}
+
+text.title {
+  font-size: 5%;
+  text-anchor: start;
+}
+
+</style>
+<script type='text/javascript' src='lib/d3.v3.min.js'></script>
+<script type='text/javascript' src='lib/q.min.js'></script>
+<script type='text/javascript' src="js/SPARQL.js"></script>
+<script type='text/javascript' src="js/fn.js"></script>
+<script type='text/javascript' src="data/new_schema_list_min.js"></script>
+<script type="text/javascript">
+
+var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
+var ds = new SPARQLDataSource(SPARQL_URL);
+
+var ConceptSchemes = {
+  //Organization
+  organizationType: {
+    name: 'Organization Type',
+    predicate: 'ds:organizationType',
+    urlBase: 'http://data.digitalsocial.eu/def/concept/organization-type/'
+  },
+  //Project
+  areaOfDigitalSocialInnovation: {
+    name: 'Area of Digital Social Innovation',
+    predicate: 'ds:areaOfDigitalSocialInnovation',
+    urlBase: 'http://data.digitalsocial.eu/def/concept/area-of-digital-social-innovation/'
+  },
+  areaOfSociety: {
+    name: 'Domain',
+    predicate: 'ds:areaOfSociety',
+    urlBase: 'http://data.digitalsocial.eu/def/concept/area-of-society/'
+  },
+  activityType: {
+    name: 'Activity Type',
+    predicate: 'ds:activityType',
+    urlBase: 'http://data.digitalsocial.eu/def/concept/activity-type/'
+  },
+  technologyFocus: {
+    name: 'Technology focus',
+    predicate: 'ds:technologyFocus',
+    urlBase: 'http://data.digitalsocial.eu/def/concept/technology-focus/'
+  },
+  technologyMethod: {
+    name: 'Technology method',
+    predicate: 'ds:technologyMethod',
+    urlBase: 'http://data.digitalsocial.eu/def/concept/technology-method/'
+  }
+};
+
+function getConceptValues(concept) {
+  var deferred = Q.defer();
+  ds.query()
+    .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
+    .select('DISTINCT ?propValue')
+    .where('?subject', concept.predicate, '?propValue')
+    .execute().then(function(results) {
+      var values = results
+        .map(fn.get('propValue'))
+        .map(fn.get('value'))
+        .map(function(value) { return value.replace(concept.urlBase, ''); });
+
+      deferred.resolve(values);
+    });
+
+  return deferred.promise;
+}
+
+function init() {
+  var valueUpdates = fn.values(ConceptSchemes).map(function(concept) {
+    return getConceptValues(concept).then(function(values) {
+      concept.values = values;
+      console.log(concept.name, values);
+    });
+  });
+  Q.all(valueUpdates).then(function() {
+    console.log('done');
+  })
+}
+
+window.onload = init;
+
+</script>
+</head>
+<body>
+  <div id="header"><img src="assets/header_01.png" height="100"></div>
+  <div id="sidebar">
+  <h1>DSI Areas</h1>
+  </div>
+  <div id="charts"></div>
+</body>
+</html>
