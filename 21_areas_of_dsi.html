@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <title>DSI Data Viz</title>
 <style type="text/css">
+
+html, body {
+  height: 100%;
+}
+
 body {
   font-family: 'Scene Pro', 'Helvetica', sans-serif;
   margin: 0;
@@ -63,6 +68,9 @@ h2.section {
 
 #charts {
   margin: 0;
+  height: 50%;
+  max-height: 70%;
+  overflow: scroll;
 }
 
 #charts svg {
@@ -151,31 +159,37 @@ var ConceptSchemes = {
   areaOfDigitalSocialInnovation: {
     label: 'Area of Digital Social Innovation',
     predicate: 'ds:areaOfDigitalSocialInnovation',
+    property: 'areaOfDigitalSocialInnovation',
     urlBase: 'http://data.digitalsocial.eu/def/concept/area-of-digital-social-innovation/'
   },
   technologyFocus: {
     label: 'Technology focus',
     predicate: 'ds:technologyFocus',
+    property: 'technologyFocus',
     urlBase: 'http://data.digitalsocial.eu/def/concept/technology-focus/'
   },
   areaOfSociety: {
     label: 'Domain',
     predicate: 'ds:areaOfSociety',
+    property: 'areaOfSociety',
     urlBase: 'http://data.digitalsocial.eu/def/concept/area-of-society/'
   },
   organizationType: {
     label: 'Organization Type',
     predicate: 'ds:organizationType',
+    property: 'organizationType',
     urlBase: 'http://data.digitalsocial.eu/def/concept/organization-type/'
   },
   activityType: {
     label: 'Activity Type',
     predicate: 'ds:activityType',
+    property: 'activityType',
     urlBase: 'http://data.digitalsocial.eu/def/concept/activity-type/'
   },
   technologyMethod: {
     label: 'Technology method',
     predicate: 'ds:technologyMethod',
+    property: 'technologyMethod',
     urlBase: 'http://data.digitalsocial.eu/def/concept/technology-method/'
   }
 };
@@ -224,7 +238,9 @@ function init() {
     });
   });
   Q.all(valueUpdates).then(function() {
-    buildFilteringUI();
+    buildFilteringUI(function(concept, value) {
+      console.log('onClick', concept, value);
+    });
   });
 
   initViz();
@@ -241,10 +257,10 @@ var FilteringList = React.createClass({
       React.DOM.ul({},
         values.map(function(value) {
           return React.DOM.li({},
-            React.DOM.span({ className: 'label' }, value.label),
+            React.DOM.span({ className: 'label', onClick: function() { this.props.onClick(this.props.concept, value); }.bind(this) }, value.label),
             React.DOM.span({ className: 'count' }, ' / ' + value.count)
           );
-        })
+        }.bind(this))
       )
     )
   }
@@ -254,27 +270,27 @@ var FilteringPanel = React.createClass({
   render: function() {
     return React.DOM.div({},
       React.DOM.div({ className: 'col' },
-        FilteringList({ concept: this.props.concepts.areaOfDigitalSocialInnovation }),
-        FilteringList({ concept: this.props.concepts.technologyFocus })
+        FilteringList({ concept: this.props.concepts.areaOfDigitalSocialInnovation, onClick: this.props.onClick }),
+        FilteringList({ concept: this.props.concepts.technologyFocus, onClick: this.props.onClick })
       ),
       React.DOM.div({ className: 'col' },
-        FilteringList({ concept: this.props.concepts.organizationType }),
-        FilteringList({ concept: this.props.concepts.activityType })
+        FilteringList({ concept: this.props.concepts.organizationType, onClick: this.props.onClick }),
+        FilteringList({ concept: this.props.concepts.activityType, onClick: this.props.onClick })
       ),
       React.DOM.div({ className: 'col' },
-        FilteringList({ concept: this.props.concepts.areaOfSociety })
+        FilteringList({ concept: this.props.concepts.areaOfSociety, onClick: this.props.onClick })
       ),
       React.DOM.div({ className: 'col' },
-        FilteringList({ concept: this.props.concepts.technologyMethod })
+        FilteringList({ concept: this.props.concepts.technologyMethod, onClick: this.props.onClick })
       )
     )
   }
 });
 
-function buildFilteringUI() {
+function buildFilteringUI(onClick) {
   console.log('buildFilteringUI')
   var filteringUIContainer = document.getElementById('filteringUIContainer');
-  React.renderComponent(FilteringPanel({ 'concepts': ConceptSchemes }), filteringUIContainer);
+  React.renderComponent(FilteringPanel({ 'concepts': ConceptSchemes, onClick: onClick }), filteringUIContainer);
 }
 
 
@@ -299,7 +315,7 @@ function makeTooltip() {
 
 function initViz() {
   var w = window.innerWidth;
-  var h = window.innerHeight - 300;
+  var h = window.innerHeight;
 
   var svg = d3.select('#charts')
     .append('svg')
