@@ -122,14 +122,13 @@ fn.unique = function(list) {
 }
 
 fn.countValues = function(list) {
-  var resultsMap = {};
-  list.forEach(function(value) {
+  return list.reduce(function(resultsMap, value) {
     if (!resultsMap[value]) {
       resultsMap[value] = 0;
     }
     resultsMap[value]++;
-  });
-  return resultsMap;
+    return resultsMap;
+  }, {});
 }
 
 fn.groupBy = function(list, prop) {
