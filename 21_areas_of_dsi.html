@@ -240,7 +240,6 @@ var FilteringList = React.createClass({
 
 var FilteringPanel = React.createClass({
   render: function() {
-    console.log('FilteringPanel concepts', this.props.concepts.length);
     return React.DOM.div({},
       React.DOM.div({ className: 'col' },
         FilteringList({ concept: this.props.concepts.areaOfDigitalSocialInnovation }),
@@ -266,10 +265,139 @@ function buildFilteringUI() {
   React.renderComponent(FilteringPanel({ 'concepts': ConceptSchemes }), filteringUIContainer);
 }
 
+function initViz() {
+  var w = window.innerWidth;
+  var h = window.innerHeight - 300;
+
+  var svg = d3.select('#charts')
+    .append('svg')
+    .attr('width', w)
+    .attr('height', h);
+
+  svg.append('rect')
+    .attr('fill', '#FAFAFA')
+    .attr('class', 'bg')
+    .attr('x', 0)
+    .attr('y', 0)
+    .attr('width', w)
+    .attr('height', h);
+
+  loadVizData(svg);
+}
+
+function loadOrganizationsData() {
+  var deferred = Q.defer();
+  ds.query()
+    .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
+    .prefix('o:', '<http://www.w3.org/ns/org#>')
+    .select('?org ?p ?ot ?as')
+    .where('?org', 'a', 'o:Organization')
+    .where('?am', 'a', 'ds:ActivityMembership')
+    .where('?am', 'ds:organization', '?org')
+    .where('?am', 'ds:activity', '?o')
+    //.where('BIND(REPLACE(STR(?organization),"http://data.digitalsocial.eu/id/organization/","","i") AS ?org)', '','')
+    //.where('BIND(REPLACE(STR(?project),"http://data.digitalsocial.eu/id/activity/","","i") AS ?p)', '', '')
+    .where("?org", "ds:organizationType", "?ot", { optional: true })
+    .where("?org", "ds:areaOfSociety", "?as", { optional: true })
+    .execute().then(function(results) {
+      deferred.resolve(results);
+    });
+
+  return deferred.promise;
+}
+
+function loadProjectData() {
+  var deferred = Q.defer();
+  ds.query()
+    .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
+    .select('?p ?adsi ?tf ?adsi ?tm')
+    .where('?p', 'a', 'ds:Activity')
+    .where("?p", "ds:areaOfDigitalSocialInnovation", "?adsi", { optional: true })
+    .where("?p", "ds:technologyFocus", "?tf", { optional: true })
+    .where("?p", "ds:technologyMethod", "?tm", { optional: true })
+    .execute().then(function(results) {
+      var projects = {
+        byId: {},
+        list: []
+      };
+      results.map(function(row) {
+        var projectId = row.p.value;
+        var project = projects.byId[projectId];
+        if (!project) {
+          project = { id: projectId, areaOfDigitalSocialInnovation: [], technologyFocus: [], technologyMethod: [] };
+          projects.byId[projectId] = project;
+          projects.list.push(project);
+        }
+        if (row.adsi && project.areaOfDigitalSocialInnovation.indexOf(row.adsi.value) == -1) project.areaOfDigitalSocialInnovation.push(row.adsi.value);
+        if (row.tf && project.technologyFocus.indexOf(row.tf.value) == -1) project.technologyFocus.push(row.tf.value);
+        if (row.tm && project.technologyMethod.indexOf(row.tm.value) == -1) project.technologyMethod.push(row.tm.value);
+      });
+      deferred.resolve(projects);
+    });
+
+  return deferred.promise;
+}
+
+function loadVizData(svg) {
+  loadOrganizationsData().then(function(organizationsResults) {
+    console.log('loadOrganizationsAndProjects', organizationsResults.length);
+  });
+  loadProjectData().then(function(projectsResults) {
+    console.log('loadProjectData', projectsResults.list.length);
+    buildViz(svg, projectsResults.list)
+  });
+}
+
+function buildViz(svg, projects) {
+  var w = window.innerWidth;
+  var h = window.innerHeight - 300;
+  var dx = 50;
+  var dy = 50;
+  var r = 23;
+  var r2 = r * 2;
+  var marginRight = 60;
+
+  var numCols = Math.floor((w - marginRight) / (r * 2));
+
+  var circles = svg.selectAll('g.org').data(projects)
+    circles.enter()
+      .append('g')
+      .attr('class', 'org')
+
+  function hexBite(x, y, r, i) {
+    var a = i/6 * Math.PI * 2 + Math.PI/6;
+    var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
+    return [
+      [x, y],
+      [x + r * Math.cos(a), y + r * Math.sin(a)],
+      [x + r * Math.cos(na), y + r * Math.sin(na)]
+    ];
+  }
+
+  fn.sequence(0,6).map(function(i) {
+    var dsiArea = AreaTypes[i];
+    var bite = circles.append('path');
+    bite.attr('d', function(org, orgIndex) {
+      var col = (orgIndex % numCols);
+      var row = Math.floor(orgIndex / numCols);
+      var x = dx + col * r2;
+      var y = dy + row * r2 * 0.9;
+      if (row % 2 == 1) {
+        x += r;
+      }
+      return "M" + hexBite(x, y, r, i).join("L") + "Z"
+    });
+    //bite.attr('stroke', AreaColors[i]);
+    bite.attr('stroke', '#DDD');
+    bite.attr('fill', '#FFF');
+  })
+}
+
+/*
 var tooltip;
 
 function makeTooltip() {
-  var tooltip = d3.select("body").append("svg")
+  var tooltip = d3.select('body').append('svg')
     .attr("width", 200)
     .attr("height", 32)
 
@@ -370,8 +498,7 @@ function buildViz(results, color) {
   var hue = 229;
   color = color || '#000000';
   console.log('buildViz', results.length);
-  var w = window.innerWidth;
-  var h = window.innerHeight - 300;
+  
 
 
   d3.select('#sidebar').style('height', h + 'px');
@@ -385,18 +512,7 @@ function buildViz(results, color) {
   })
 
   if (!svg) {
-    svg = d3.select('#charts')
-              .append('svg')
-              .attr('width', w)
-              .attr('height', h);
-
-    svg.append('rect')
-      .attr('fill', '#FAFAFA')
-      .attr('class', 'bg')
-      .attr('x', 0)
-      .attr('y', 0)
-      .attr('width', w)
-      .attr('height', h);
+    
 
   }
 
@@ -430,54 +546,7 @@ function buildViz(results, color) {
 
   console.log(results.length);
 
-  var dx = 50;
-  var dy = 50;
-  var r = 23;
-  var r2 = r * 2;
-  var marginRight = 50;
-
-  var numCols = Math.floor((w - marginRight) / (r * 2));
-
-  var circles = svg.selectAll('g.org').data(results)
-    circles.enter()
-      .append('g')
-      .attr('class', 'org')
-
-    circles.on("mouseover", function(org) {
-      tooltip[0][0].style.display = 'block';
-      tooltip.select('text').text(org.label.value);
-    })
-    .on("mouseout", function() {
-      tooltip[0][0].style.display = 'none';
-    })
-
-  function hexBite(x, y, r, i) {
-    var a = i/6 * Math.PI * 2 + Math.PI/6;
-    var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
-    return [
-      [x, y],
-      [x + r * Math.cos(a), y + r * Math.sin(a)],
-      [x + r * Math.cos(na), y + r * Math.sin(na)]
-    ];
-  }
-
-  fn.sequence(0,6).map(function(i) {
-    var dsiArea = AreaTypes[i];
-    var bite = circles.append('path');
-    bite.attr('d', function(org, orgIndex) {
-      var col = (orgIndex % numCols);
-      var row = Math.floor(orgIndex / numCols);
-      var x = dx + col * r2;
-      var y = dy + row * r2 * 0.9;
-      if (row % 2 == 1) {
-        x += r;
-      }
-      return "M" + hexBite(x, y, r, i).join("L") + "Z"
-    });
-    //bite.attr('stroke', AreaColors[i]);
-    bite.attr('stroke', '#DDD');
-    bite.attr('fill', '#FFF');
-  })
+  
 
   fn.sequence(0,6).map(function(i) {
     var dsiArea = AreaTypes[i];
@@ -496,6 +565,8 @@ function buildViz(results, color) {
     bite.attr('fill', AreaColors[i]);
   })
 }
+
+*/
 
 window.onload = init;
 
