@@ -84,7 +84,7 @@ text.title {
 }
 
 #filteringUIContainer {
-  font-size: 80%;
+  font-size: 75%;
   padding: 2%;
 }
 
@@ -107,8 +107,20 @@ text.title {
 #filteringUIContainer li {
   margin: 0;
   padding: 0;
-  line-height: 170%;
+  line-height: 220%;
   color: #222;
+}
+
+#filteringUIContainer li .label {
+  padding: 0.5em 0.5em;
+  border-radius: 0.3em;
+}
+
+
+#filteringUIContainer li .label:hover {
+  background: black;
+  color: white;
+  cursor: pointer;
 }
 
 #filteringUIContainer li span.count {
@@ -132,8 +144,8 @@ text.title {
 var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
 var ds = new SPARQLDataSource(SPARQL_URL);
 
-var AreaTypes = ['open-democracy', 'new-ways-of-making', 'awarness-networks', 'collaborative-economy', 'open-access', 'funding-acceleration-and-incubation'];
-var AreaColors = ['#F9EB40', '#f53944', '#31ac33', '#1DAEEC', '#f274c7', '#f79735'];
+var DSIAreaTypes = ['open-democracy', 'new-ways-of-making', 'awareness-networks', 'collaborative-economy', 'open-access', 'funding-acceleration-and-incubation'];
+var DSIAreaColors = ['#F9EB40', '#f53944', '#31ac33', '#1DAEEC', '#f274c7', '#f79735'];
 
 var ConceptSchemes = {
   areaOfDigitalSocialInnovation: {
@@ -229,7 +241,7 @@ var FilteringList = React.createClass({
       React.DOM.ul({},
         values.map(function(value) {
           return React.DOM.li({},
-            value.label,
+            React.DOM.span({ className: 'label' }, value.label),
             React.DOM.span({ className: 'count' }, ' / ' + value.count)
           );
         })
@@ -265,6 +277,26 @@ function buildFilteringUI() {
   React.renderComponent(FilteringPanel({ 'concepts': ConceptSchemes }), filteringUIContainer);
 }
 
+
+function makeTooltip() {
+  var tooltip = d3.select("body").append("svg")
+    .attr("id", "tooltip")
+    .attr("width", 200)
+    .attr("height", 32)
+
+  tooltip.append('rect').attr('width', 200).attr('height', 24).attr('rx', '5px').attr('fill', '#EEE');
+  tooltip.append('text').attr('fill', 'black').attr('x', 5).attr('y', 18).text('tooltip');
+
+  window.addEventListener('mousemove', function(e) {
+    tooltip[0][0].style.position = 'absolute';
+    tooltip[0][0].style.left = e.pageX + 10 + 'px';
+    tooltip[0][0].style.top = e.pageY - 32 + 'px';
+  });
+
+  tooltip[0][0].style.display = 'none';
+  return tooltip;
+}
+
 function initViz() {
   var w = window.innerWidth;
   var h = window.innerHeight - 300;
@@ -282,6 +314,8 @@ function initViz() {
     .attr('width', w)
     .attr('height', h);
 
+
+  makeTooltip();
   loadVizData(svg);
 }
 
@@ -290,17 +324,40 @@ function loadOrganizationsData() {
   ds.query()
     .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
     .prefix('o:', '<http://www.w3.org/ns/org#>')
-    .select('?org ?p ?ot ?as')
+    .prefix("rdfs:", "<http://www.w3.org/2000/01/rdf-schema#>")
+    .select('?org ?label ?p ?ot ?as')
     .where('?org', 'a', 'o:Organization')
+    .where("?org", "rdfs:label", "?label")
     .where('?am', 'a', 'ds:ActivityMembership')
     .where('?am', 'ds:organization', '?org')
-    .where('?am', 'ds:activity', '?o')
-    //.where('BIND(REPLACE(STR(?organization),"http://data.digitalsocial.eu/id/organization/","","i") AS ?org)', '','')
-    //.where('BIND(REPLACE(STR(?project),"http://data.digitalsocial.eu/id/activity/","","i") AS ?p)', '', '')
+    .where('?am', 'ds:activity', '?p')
     .where("?org", "ds:organizationType", "?ot", { optional: true })
     .where("?org", "ds:areaOfSociety", "?as", { optional: true })
     .execute().then(function(results) {
-      deferred.resolve(results);
+      var organizations = {
+        byId: {},
+        list: []
+      };
+      results.forEach(function(row) {
+        var organizationId = row.org.value;
+        var organization = organizations.byId[organizationId];
+        if (!organization) {
+          organization = { id: organizationId, organizationType: [], areaOfSociety: [], projects: [] };
+          organizations.byId[organizationId] = organization;
+          organizations.list.push(organization);
+        }
+        organization.label = row.label.value;
+        if (row.p && organization.projects.indexOf(row.p.value) == -1) {
+          organization.projects.push(row.p.value);
+        }
+        if (row.ot && organization.organizationType.indexOf(row.ot.value.substr(row.ot.value.lastIndexOf('/')+1)) == -1) {
+          organization.organizationType.push(row.ot.value.substr(row.ot.value.lastIndexOf('/')+1));
+        }
+        if (row.as && organization.areaOfSociety.indexOf(row.as.value.substr(row.as.value.lastIndexOf('/')+1)) == -1) {
+          organization.areaOfSociety.push(row.as.value.substr(row.as.value.lastIndexOf('/')+1));
+        }
+      });
+      deferred.resolve(organizations);
     });
 
   return deferred.promise;
@@ -310,8 +367,10 @@ function loadProjectData() {
   var deferred = Q.defer();
   ds.query()
     .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
-    .select('?p ?adsi ?tf ?adsi ?tm')
+    .select('?p ?label ?adsi ?tf ?adsi ?tm')
+    .prefix("rdfs:", "<http://www.w3.org/2000/01/rdf-schema#>")
     .where('?p', 'a', 'ds:Activity')
+    .where("?p", "rdfs:label", "?label")
     .where("?p", "ds:areaOfDigitalSocialInnovation", "?adsi", { optional: true })
     .where("?p", "ds:technologyFocus", "?tf", { optional: true })
     .where("?p", "ds:technologyMethod", "?tm", { optional: true })
@@ -320,7 +379,7 @@ function loadProjectData() {
         byId: {},
         list: []
       };
-      results.map(function(row) {
+      results.forEach(function(row) {
         var projectId = row.p.value;
         var project = projects.byId[projectId];
         if (!project) {
@@ -328,9 +387,16 @@ function loadProjectData() {
           projects.byId[projectId] = project;
           projects.list.push(project);
         }
-        if (row.adsi && project.areaOfDigitalSocialInnovation.indexOf(row.adsi.value) == -1) project.areaOfDigitalSocialInnovation.push(row.adsi.value);
-        if (row.tf && project.technologyFocus.indexOf(row.tf.value) == -1) project.technologyFocus.push(row.tf.value);
-        if (row.tm && project.technologyMethod.indexOf(row.tm.value) == -1) project.technologyMethod.push(row.tm.value);
+        project.label = row.label.value;
+        if (row.adsi && project.areaOfDigitalSocialInnovation.indexOf(row.adsi.value.substr(row.adsi.value.lastIndexOf('/')+1)) == -1) {
+          project.areaOfDigitalSocialInnovation.push(row.adsi.value.substr(row.adsi.value.lastIndexOf('/')+1));
+        }
+        if (row.tf && project.technologyFocus.indexOf(row.tf.value.substr(row.tf.value.lastIndexOf('/')+1)) == -1) {
+          project.technologyFocus.push(row.tf.value.substr(row.tf.value.lastIndexOf('/')+1));
+        }
+        if (row.tm && project.technologyMethod.indexOf(row.tm.value.substr(row.tm.value.lastIndexOf('/')+1)) == -1) {
+          project.technologyMethod.push(row.tm.value.substr(row.tm.value.lastIndexOf('/')+1));
+        }
       });
       deferred.resolve(projects);
     });
@@ -339,30 +405,37 @@ function loadProjectData() {
 }
 
 function loadVizData(svg) {
-  loadOrganizationsData().then(function(organizationsResults) {
-    console.log('loadOrganizationsAndProjects', organizationsResults.length);
-  });
-  loadProjectData().then(function(projectsResults) {
+  Q.all([ loadOrganizationsData(), loadProjectData() ]).then(function(results) {
+    var organizationsResults = results[0];
+    var projectsResults = results[1];
+    console.log('loadOrganizations', organizationsResults.list.length);
     console.log('loadProjectData', projectsResults.list.length);
-    buildViz(svg, projectsResults.list)
+
+    organizationsResults.list.forEach(function(org) {
+      org.projects = org.projects.map(function(projectId) {
+        var project = projectsResults.byId[projectId];
+        //if (!project) { console.log('loadVizData: Missing project', org.id, projectId); }
+        return project;
+      }).filter(fn.notNull);
+      var areasOfDSI = fn.flatten(org.projects.map(fn.get('areaOfDigitalSocialInnovation')))
+      org.areaOfDigitalSocialInnovation = fn.unique(areasOfDSI);
+      org.areaOfDigitalSocialInnovationCounted = fn.countValues(areasOfDSI);
+    });
+
+    buildViz(svg, organizationsResults.list, projectsResults.list);
   });
 }
 
-function buildViz(svg, projects) {
+function buildViz(svg, organizations, projects) {
   var w = window.innerWidth;
   var h = window.innerHeight - 300;
   var dx = 50;
   var dy = 50;
-  var r = 23;
+  var r = 20;
   var r2 = r * 2;
   var marginRight = 60;
 
   var numCols = Math.floor((w - marginRight) / (r * 2));
-
-  var circles = svg.selectAll('g.org').data(projects)
-    circles.enter()
-      .append('g')
-      .attr('class', 'org')
 
   function hexBite(x, y, r, i) {
     var a = i/6 * Math.PI * 2 + Math.PI/6;
@@ -374,10 +447,89 @@ function buildViz(svg, projects) {
     ];
   }
 
+  function hexEdge(x, y, r, i) {
+    var a = i/6 * Math.PI * 2 + Math.PI/6;
+    var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
+    var r2 = r ? r - 3 : 0;
+    return [
+      [x + r2 * Math.cos(na), y + r2 * Math.sin(na)],
+      [x + r2 * Math.cos(a), y + r2 * Math.sin(a)],
+      [x + r * Math.cos(a), y + r * Math.sin(a)],
+      [x + r * Math.cos(na), y + r * Math.sin(na)]
+    ];
+  }
+
+  var projectGroup = svg.selectAll('g.project').data(projects)
+
+  projectGroup.enter()
+      .append('g')
+      .attr('class', 'project');
+
+  projectGroup.exit()
+    .remove()
+
   fn.sequence(0,6).map(function(i) {
-    var dsiArea = AreaTypes[i];
-    var bite = circles.append('path');
-    bite.attr('d', function(org, orgIndex) {
+    var dsiArea = DSIAreaTypes[i];
+    var bite = projectGroup.append('path');
+    bite.attr('d', function(p, projectIndex) {
+      var col = (projectIndex % numCols);
+      var row = Math.floor(projectIndex / numCols);
+      var x = dx + col * r2;
+      var y = dy + row * r2 * 0.9;
+      if (row % 2 == 1) {
+        x += r;
+      }
+      return "M" + hexBite(x, y, r, i).join("L") + "Z"
+    });
+    bite.attr('stroke', '#DDD');
+    bite.attr('fill', '#FFF');
+  })
+
+  fn.sequence(0,6).map(function(i) {
+    var dsiArea = DSIAreaTypes[i];
+    var bite = projectGroup.append('path');
+    bite.attr('d', function(p, projectIndex) {
+      var col = (projectIndex % numCols);
+      var row = Math.floor(projectIndex / numCols);
+      var x = dx + col * r2;
+      var y = dy + row * r2 * 0.9;
+      if (row % 2 == 1) {
+        x += r;
+      }
+      var edgeR = 0;
+      if (p.areaOfDigitalSocialInnovation.indexOf(DSIAreaTypes[i]) != -1) {
+        edgeR = r;
+      }
+      return "M" + hexEdge(x, y, edgeR, i).join("L") + "Z";
+    });
+    bite.attr('fill', DSIAreaColors[i]);
+    bite.attr('stroke', 'none');
+  })
+
+  projectGroup.on("mouseover", function(p) {
+    d3.select('#tooltip')[0][0].style.display = 'block';
+    d3.select('#tooltip').select('text').text(p.label);
+  })
+  .on("mouseout", function() {
+    d3.select('#tooltip')[0][0].style.display = 'none';
+  })
+
+  var orgHexOffset = projects.length;
+
+  var orgGroup = svg.selectAll('g.org').data(organizations.slice())
+
+  orgGroup.enter()
+      .append('g')
+      .attr('class', 'org');
+
+  orgGroup.exit()
+    .remove()
+
+  fn.sequence(0,6).map(function(i) {
+    var dsiArea = DSIAreaTypes[i];
+    var bite = orgGroup.append('path');
+    bite.attr('d', function(p, orgIndex) {
+      orgIndex += orgHexOffset;
       var col = (orgIndex % numCols);
       var row = Math.floor(orgIndex / numCols);
       var x = dx + col * r2;
@@ -387,171 +539,15 @@ function buildViz(svg, projects) {
       }
       return "M" + hexBite(x, y, r, i).join("L") + "Z"
     });
-    //bite.attr('stroke', AreaColors[i]);
     bite.attr('stroke', '#DDD');
     bite.attr('fill', '#FFF');
   })
-}
-
-/*
-var tooltip;
-
-function makeTooltip() {
-  var tooltip = d3.select('body').append('svg')
-    .attr("width", 200)
-    .attr("height", 32)
-
-  tooltip.append('rect').attr('width', 200).attr('height', 24).attr('rx', '5px').attr('fill', '#EEE');
-  tooltip.append('text').attr('fill', 'black').attr('x', 5).attr('y', 18).text('tooltip');
-
-  window.addEventListener('mousemove', function(e) {
-    tooltip[0][0].style.position = 'absolute';
-    tooltip[0][0].style.left = e.pageX + 10 + 'px';
-    tooltip[0][0].style.top = e.pageY - 32 + 'px';
-  });
-
-  tooltip[0][0].style.display = 'none';
-  return tooltip;
-}
-
-var useCache = false;
-
-function initViz() {
-  tooltip = makeTooltip();
-  if (useCache && localStorage['data_19']) {
-    allResults = JSON.parse(localStorage['data_19']);
-    buildViz(allResults);
-  }
-  else {
-    d3.json('data/org_query.json', function(data) {
-      allResults = data.results.bindings;
-      var orgHashMap = {};
-      var activityHashMap = {};
-      var organizations = [];
-      allResults.forEach(function(org) {
-        if (!orgHashMap[org.org.value]) {
-          orgHashMap[org.org.value] = org;
-          orgHashMap[org.org.value].activities = [];
-          orgHashMap[org.org.value].dsiAreas = [];
-          organizations.push(org);
-        }
-        var orgData = orgHashMap[org.org.value];
-        var activityData = activityHashMap[org.activity.value];
-        if (!activityData) {
-          activityData = {
-            label: org.activity.value,
-            technologyFocus: [],
-            dsiAreas: []
-          }
-          activityHashMap[org.activity.value] = activityData;
-        }
-        activityData.technologyFocus.push(org.tf.value);
-        orgData.activities.push(activityData);
-      })
-      var groupedResults = [];
-      for(var orgId in orgHashMap) {
-        groupedResults.push(orgHashMap[orgId]);
-      }
-      //localStorage['data_18'] = JSON.stringify(groupedResults);
-      allResults = groupedResults;
-
-      console.log(activityHashMap)
-
-      DSIAreasData.forEach(function(row) {
-        var activity = 'http://data.digitalsocial.eu/id/activity/' + row[0];
-        var dsiArea = row[1];
-        var activityData = activityHashMap[activity];
-        if (activityData) {
-          activityData.dsiAreas.push(dsiArea);
-        }
-      })
-
-      for(var orgId in orgHashMap) {
-        var org = orgHashMap[orgId];
-        org.activities.forEach(function(a){
-          a.dsiAreas.forEach(function(area) {
-            org.dsiAreas.push(area);
-          })
-        })
-      }
-
-      for(var orgId in orgHashMap) {
-        var org = orgHashMap[orgId];
-        org.uniqueDsiAreas = fn.unique(org.dsiAreas);
-        org.countedDsiAreas = fn.countValues(org.dsiAreas);
-      }
-
-
-      buildViz(allResults);
-    })
-  }
-}
-
-function hsla(h, s, l, a) {
-  return 'hsla(' + h + ',' + 100 * s + '%,' + 100 * l + '%,' + a + ')';
-}
-
-
-var svg;
-
-function buildViz(results, color) {
-  var hue = 229;
-  color = color || '#000000';
-  console.log('buildViz', results.length);
-  
-
-
-  d3.select('#sidebar').style('height', h + 'px');
-
-  var longitude = d3.scale.linear().domain([-20, 30]).range([0, w]);
-  var latitude = d3.scale.linear().domain([65, 30]).range([0, h]);
-
-  results.forEach(function(org) {
-    org.x = longitude(org.long.value);
-    org.y = latitude(org.lat.value);
-  })
-
-  if (!svg) {
-    
-
-  }
-
-  var cities = [];
-  var cityInfo = {};
-  var orgTypes = [];
-
-  results.forEach(function(org) {
-    var type = org.org_type.value;
-    var city = org.city.value;
-    if (orgTypes.indexOf(type) == -1) orgTypes.push(type);
-    if (!cityInfo[city]) {
-      cityInfo[city] = { name: city, lat: 0, long:0, organizations: [] };
-      cities.push(cityInfo[city]);
-    }
-    cityInfo[city].organizations.push(org);
-    cityInfo[city].lat += Number(org.lat.value);
-    cityInfo[city].long += Number(org.long.value);
-  });
-
-  cities.forEach(function(city) {
-    city.lat /= city.organizations.length;
-    city.long /= city.organizations.length;
-    if (city.name == 'London') {
-
-    }
-    else {
-      //city.lat = 9999;
-    }
-  });
-
-  console.log(results.length);
-
-  
 
   fn.sequence(0,6).map(function(i) {
-    var dsiArea = AreaTypes[i];
-    var bite = circles.append('path');
-    bite.attr('d', function(org, orgIndex) {
+    var dsiArea = DSIAreaTypes[i];
+    var bite = orgGroup.append('path');
+    bite.attr('d', function(p, orgIndex) {
+      orgIndex += orgHexOffset;
       var col = (orgIndex % numCols);
       var row = Math.floor(orgIndex / numCols);
       var x = dx + col * r2;
@@ -559,14 +555,24 @@ function buildViz(results, color) {
       if (row % 2 == 1) {
         x += r;
       }
-      //return "M" + hexBite(x, y, 5 + Math.min(r-5, Math.pow(org.countedDsiAreas[dsiArea], 0.6)) || 1, i).join("L") + "Z"
-      return "M" + hexBite(x, y, 5 + Math.min(r-5,org.countedDsiAreas[dsiArea]/10) || 1, i).join("L") + "Z"
+      var areaR = 0;
+      if (p.areaOfDigitalSocialInnovation.indexOf(DSIAreaTypes[i]) != -1) {
+        areaR = Math.min(r, 5 + 2*p.areaOfDigitalSocialInnovationCounted[DSIAreaTypes[i]]);
+      }
+      return "M" + hexBite(x, y, areaR, i).join("L") + "Z";
     });
-    bite.attr('fill', AreaColors[i]);
+    bite.attr('fill', DSIAreaColors[i]);
+    bite.attr('stroke', 'none');
+  })
+
+  orgGroup.on("mouseover", function(org) {
+    d3.select('#tooltip')[0][0].style.display = 'block';
+    d3.select('#tooltip').select('text').text(org.label);
+  })
+  .on("mouseout", function() {
+    d3.select('#tooltip')[0][0].style.display = 'none';
   })
 }
-
-*/
 
 window.onload = init;
 
