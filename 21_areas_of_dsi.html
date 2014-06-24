@@ -70,7 +70,8 @@ h2.section {
   margin: 0;
   height: 50%;
   max-height: 70%;
-  overflow: scroll;
+  x-overflow: scroll;
+  overflow: hidden;
 }
 
 #charts svg {
@@ -571,7 +572,7 @@ function buildViz(svg, organizations, projects) {
     var valueName = e.value.name;
 
     var existingFilter = filters.filter(function(f) {
-      return f.concept == conceptName && f.value == valueName;
+      return f.conceptName == conceptName && f.valueName == valueName;
     })[0];
 
     if (existingFilter) {
@@ -580,21 +581,23 @@ function buildViz(svg, organizations, projects) {
     }
     else {
       e.value.selected = true;
-      filters.push({ concept: conceptName, value: valueName})
+      filters.push({ conceptName: conceptName, valueName: valueName})
     }
 
     var filteredItems = items.filter(function(item) {
-      //var prop = item[e.concept.property];
-      //if (prop) {
-      //  return prop.indexOf(e.value.name) != -1;
-      //}
-      //else if (item.projects) {
-      //  for(var i=0; i<item.projects.length; i++) {
-      //    prop = item.projects[i][e.concept.property];
-      //    if (prop && prop.indexOf(e.value.name) != -1) return true;
-      //  }
-      //}
-      //return false
+      return filters.reduce(function(valid, filter) {
+        var prop = item[filter.conceptName];
+        if (prop) {
+          return valid && prop.indexOf(filter.valueName) != -1;
+        }
+        else if (item.projects) {
+          for(var i=0; i<item.projects.length; i++) {
+            prop = item.projects[i][filter.conceptName];
+            if (prop && prop.indexOf(filter.valueName) != -1) return valid;
+          }
+        }
+        return false
+      }, true);
     });
     render(filteredItems);
 
