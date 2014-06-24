@@ -120,15 +120,19 @@ text.title {
 }
 
 #filteringUIContainer li .label {
-  padding: 0.5em 0.5em;
+  padding: 0.5em 0.5em 0.4em 0.5em;
   border-radius: 0.3em;
+  border: 1px solid white;
 }
 
 
 #filteringUIContainer li .label:hover {
-  background: black;
-  color: white;
+  background: #EEE;
   cursor: pointer;
+}
+
+#filteringUIContainer li .label.selected {
+  border: 1px solid black;
 }
 
 #filteringUIContainer li span.count {
@@ -145,6 +149,7 @@ text.title {
 <script type='text/javascript' src='lib/q.min.js'></script>
 <script type='text/javascript' src='lib/react.min.js'></script>
 <script type='text/javascript' src="js/SPARQL.js"></script>
+<script type='text/javascript' src="js/EventDispatcher.js"></script>
 <script type='text/javascript' src="js/fn.js"></script>
 <script type='text/javascript' src="data/new_schema_list_min.js"></script>
 <script type="text/javascript">
@@ -194,6 +199,10 @@ var ConceptSchemes = {
   }
 };
 
+var VizController = EventDispatcher.extend({
+
+});
+
 function getConceptValues(concept) {
   var deferred = Q.defer();
   ds.query()
@@ -239,7 +248,7 @@ function init() {
   });
   Q.all(valueUpdates).then(function() {
     buildFilteringUI(function(concept, value) {
-      console.log('onClick', concept, value);
+      VizController.fire('updateFilters', { concept: concept, value: value });
     });
   });
 
@@ -247,6 +256,11 @@ function init() {
 }
 
 var FilteringList = React.createClass({
+  componentDidMount: function() {
+    VizController.addEventListener('filtersChanged', function(e) {
+      this.forceUpdate();
+    }.bind(this));
+  },
   render: function() {
     var values = this.props.concept.values;
     values = values.filter(function(value) {
@@ -256,8 +270,9 @@ var FilteringList = React.createClass({
       React.DOM.h3({}, this.props.concept.label),
       React.DOM.ul({},
         values.map(function(value) {
+          var selectedClass = value.selected ? 'selected' : '';
           return React.DOM.li({},
-            React.DOM.span({ className: 'label', onClick: function() { this.props.onClick(this.props.concept, value); }.bind(this) }, value.label),
+            React.DOM.span({ className: 'label ' + selectedClass, onClick: function() { this.props.onClick(this.props.concept, value); }.bind(this) }, value.label),
             React.DOM.span({ className: 'count' }, ' / ' + value.count)
           );
         }.bind(this))
@@ -348,7 +363,6 @@ function loadOrganizationsData() {
     .where('?am', 'ds:organization', '?org')
     .where('?am', 'ds:activity', '?p')
     .where("?org", "ds:organizationType", "?ot", { optional: true })
-    .where("?org", "ds:areaOfSociety", "?as", { optional: true })
     .execute().then(function(results) {
       var organizations = {
         byId: {},
@@ -358,7 +372,7 @@ function loadOrganizationsData() {
         var organizationId = row.org.value;
         var organization = organizations.byId[organizationId];
         if (!organization) {
-          organization = { id: organizationId, organizationType: [], areaOfSociety: [], projects: [] };
+          organization = { id: organizationId, organizationType: [], projects: [] };
           organizations.byId[organizationId] = organization;
           organizations.list.push(organization);
         }
@@ -369,9 +383,6 @@ function loadOrganizationsData() {
         if (row.ot && organization.organizationType.indexOf(row.ot.value.substr(row.ot.value.lastIndexOf('/')+1)) == -1) {
           organization.organizationType.push(row.ot.value.substr(row.ot.value.lastIndexOf('/')+1));
         }
-        if (row.as && organization.areaOfSociety.indexOf(row.as.value.substr(row.as.value.lastIndexOf('/')+1)) == -1) {
-          organization.areaOfSociety.push(row.as.value.substr(row.as.value.lastIndexOf('/')+1));
-        }
       });
       deferred.resolve(organizations);
     });
@@ -379,40 +390,47 @@ function loadOrganizationsData() {
   return deferred.promise;
 }
 
+function cutPrefix(s) {
+  return s.substr(s.lastIndexOf('/') + 1);
+}
+
 function loadProjectData() {
   var deferred = Q.defer();
   ds.query()
     .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
-    .select('?p ?label ?adsi ?tf ?adsi ?tm')
+    .select('?p')
+    .select('(group_concat(distinct ?adsi ; separator = ",") AS ?adsi_values)')
+    .select('(group_concat(distinct ?tf ; separator = ",") AS ?tf_values)')
+    .select('(group_concat(distinct ?tm ; separator = ",") AS ?tm_values)')
+    .select('(group_concat(distinct ?at ; separator = ",") AS ?at_values)')
+    .select('(group_concat(distinct ?as ; separator = ",") AS ?as_values)')
+    .select('(group_concat(distinct ?label ; separator = ",") AS ?label_values)')
     .prefix("rdfs:", "<http://www.w3.org/2000/01/rdf-schema#>")
     .where('?p', 'a', 'ds:Activity')
     .where("?p", "rdfs:label", "?label")
     .where("?p", "ds:areaOfDigitalSocialInnovation", "?adsi", { optional: true })
     .where("?p", "ds:technologyFocus", "?tf", { optional: true })
     .where("?p", "ds:technologyMethod", "?tm", { optional: true })
+    .where("?p", "ds:activityType", "?at", { optional: true })
+    .where("?p", "ds:areaOfSociety", "?as", { optional: true })
+    .groupBy('?p')
     .execute().then(function(results) {
+      console.log('loadProjectData', results.length, results[0]);
       var projects = {
         byId: {},
         list: []
       };
       results.forEach(function(row) {
         var projectId = row.p.value;
-        var project = projects.byId[projectId];
-        if (!project) {
-          project = { id: projectId, areaOfDigitalSocialInnovation: [], technologyFocus: [], technologyMethod: [] };
-          projects.byId[projectId] = project;
-          projects.list.push(project);
-        }
-        project.label = row.label.value;
-        if (row.adsi && project.areaOfDigitalSocialInnovation.indexOf(row.adsi.value.substr(row.adsi.value.lastIndexOf('/')+1)) == -1) {
-          project.areaOfDigitalSocialInnovation.push(row.adsi.value.substr(row.adsi.value.lastIndexOf('/')+1));
-        }
-        if (row.tf && project.technologyFocus.indexOf(row.tf.value.substr(row.tf.value.lastIndexOf('/')+1)) == -1) {
-          project.technologyFocus.push(row.tf.value.substr(row.tf.value.lastIndexOf('/')+1));
-        }
-        if (row.tm && project.technologyMethod.indexOf(row.tm.value.substr(row.tm.value.lastIndexOf('/')+1)) == -1) {
-          project.technologyMethod.push(row.tm.value.substr(row.tm.value.lastIndexOf('/')+1));
-        }
+        project = { id: projectId };
+        projects.list.push(project);
+        projects.byId[projectId] = project;
+        project.label = row.label_values.value;
+        project.areaOfDigitalSocialInnovation = row.adsi_values ? row.adsi_values.value.split(',').map(cutPrefix) : [];
+        project.technologyFocus = row.tf_values ? row.tf_values.value.split(',').map(cutPrefix) : [];
+        project.technologyMethod = row.tm_values ? row.tm_values.value.split(',').map(cutPrefix) : [];
+        project.areaOfSociety = row.as_values ? row.as_values.value.split(',').map(cutPrefix) : [];
+        project.activityType = row.at_values ? row.at_values.value.split(',').map(cutPrefix) : [];
       });
       deferred.resolve(projects);
     });
@@ -475,119 +493,115 @@ function buildViz(svg, organizations, projects) {
     ];
   }
 
-  var projectGroup = svg.selectAll('g.project').data(projects)
+  var items = projects.concat(organizations);
 
-  projectGroup.enter()
-      .append('g')
-      .attr('class', 'project');
+  function render(items) {
+    var itemGroup = svg.selectAll('g.item').data(items)
 
-  projectGroup.exit()
-    .remove()
+    itemGroup.enter()
+        .append('g')
+        .attr('class', 'item');
 
-  fn.sequence(0,6).map(function(i) {
-    var dsiArea = DSIAreaTypes[i];
-    var bite = projectGroup.append('path');
-    bite.attr('d', function(p, projectIndex) {
-      var col = (projectIndex % numCols);
-      var row = Math.floor(projectIndex / numCols);
-      var x = dx + col * r2;
-      var y = dy + row * r2 * 0.9;
-      if (row % 2 == 1) {
-        x += r;
-      }
-      return "M" + hexBite(x, y, r, i).join("L") + "Z"
+    itemGroup.exit()
+      .remove()
+
+    fn.sequence(0,6).map(function(i) {
+      var dsiArea = DSIAreaTypes[i];
+      var bite = itemGroup.append('path');
+      bite.attr('d', function(item, itemIndex) {
+        var col = (itemIndex % numCols);
+        var row = Math.floor(itemIndex / numCols);
+        var x = dx + col * r2;
+        var y = dy + row * r2 * 0.9;
+        if (row % 2 == 1) {
+          x += r;
+        }
+        return "M" + hexBite(x, y, r, i).join("L") + "Z"
+      });
+      bite.attr('stroke', '#DDD');
+      bite.attr('fill', '#FFF');
+    })
+
+    fn.sequence(0,6).map(function(i) {
+      var dsiArea = DSIAreaTypes[i];
+      var bite = itemGroup.append('path');
+      bite.attr('d', function(item, itemIndex) {
+        var col = (itemIndex % numCols);
+        var row = Math.floor(itemIndex / numCols);
+        var x = dx + col * r2;
+        var y = dy + row * r2 * 0.9;
+        if (row % 2 == 1) {
+          x += r;
+        }
+
+        if (item.projects != null) {
+          var areaR = 0;
+          if (item.areaOfDigitalSocialInnovation.indexOf(DSIAreaTypes[i]) != -1) {
+            areaR = Math.min(r, 5 + 2*item.areaOfDigitalSocialInnovationCounted[DSIAreaTypes[i]]);
+          }
+          return "M" + hexBite(x, y, areaR, i).join("L") + "Z";
+        }
+        else {
+          var edgeR = 0;
+          if (item.areaOfDigitalSocialInnovation.indexOf(DSIAreaTypes[i]) != -1) {
+            edgeR = r;
+          }
+          return "M" + hexEdge(x, y, edgeR, i).join("L") + "Z";
+        }
+      });
+      bite.attr('fill', DSIAreaColors[i]);
+      bite.attr('stroke', 'none');
+    })
+
+    itemGroup.on("mouseover", function(item) {
+      d3.select('#tooltip')[0][0].style.display = 'block';
+      d3.select('#tooltip').select('text').text(item.label);
+    })
+    .on("mouseout", function() {
+      d3.select('#tooltip')[0][0].style.display = 'none';
+    })
+  }
+
+  render(items);
+
+  var filters = [];
+
+  VizController.addEventListener('updateFilters', function(e) {
+    var conceptName = e.concept.property;
+    var valueName = e.value.name;
+
+    var existingFilter = filters.filter(function(f) {
+      return f.concept == conceptName && f.value == valueName;
+    })[0];
+
+    if (existingFilter) {
+      e.value.selected = false;
+      filters.splice(filters.indexOf(existingFilter), 1);
+    }
+    else {
+      e.value.selected = true;
+      filters.push({ concept: conceptName, value: valueName})
+    }
+
+    var filteredItems = items.filter(function(item) {
+      //var prop = item[e.concept.property];
+      //if (prop) {
+      //  return prop.indexOf(e.value.name) != -1;
+      //}
+      //else if (item.projects) {
+      //  for(var i=0; i<item.projects.length; i++) {
+      //    prop = item.projects[i][e.concept.property];
+      //    if (prop && prop.indexOf(e.value.name) != -1) return true;
+      //  }
+      //}
+      //return false
     });
-    bite.attr('stroke', '#DDD');
-    bite.attr('fill', '#FFF');
-  })
+    render(filteredItems);
 
-  fn.sequence(0,6).map(function(i) {
-    var dsiArea = DSIAreaTypes[i];
-    var bite = projectGroup.append('path');
-    bite.attr('d', function(p, projectIndex) {
-      var col = (projectIndex % numCols);
-      var row = Math.floor(projectIndex / numCols);
-      var x = dx + col * r2;
-      var y = dy + row * r2 * 0.9;
-      if (row % 2 == 1) {
-        x += r;
-      }
-      var edgeR = 0;
-      if (p.areaOfDigitalSocialInnovation.indexOf(DSIAreaTypes[i]) != -1) {
-        edgeR = r;
-      }
-      return "M" + hexEdge(x, y, edgeR, i).join("L") + "Z";
-    });
-    bite.attr('fill', DSIAreaColors[i]);
-    bite.attr('stroke', 'none');
-  })
+    VizController.fire('filtersChanged');
 
-  projectGroup.on("mouseover", function(p) {
-    d3.select('#tooltip')[0][0].style.display = 'block';
-    d3.select('#tooltip').select('text').text(p.label);
-  })
-  .on("mouseout", function() {
-    d3.select('#tooltip')[0][0].style.display = 'none';
-  })
-
-  var orgHexOffset = projects.length;
-
-  var orgGroup = svg.selectAll('g.org').data(organizations.slice())
-
-  orgGroup.enter()
-      .append('g')
-      .attr('class', 'org');
-
-  orgGroup.exit()
-    .remove()
-
-  fn.sequence(0,6).map(function(i) {
-    var dsiArea = DSIAreaTypes[i];
-    var bite = orgGroup.append('path');
-    bite.attr('d', function(p, orgIndex) {
-      orgIndex += orgHexOffset;
-      var col = (orgIndex % numCols);
-      var row = Math.floor(orgIndex / numCols);
-      var x = dx + col * r2;
-      var y = dy + row * r2 * 0.9;
-      if (row % 2 == 1) {
-        x += r;
-      }
-      return "M" + hexBite(x, y, r, i).join("L") + "Z"
-    });
-    bite.attr('stroke', '#DDD');
-    bite.attr('fill', '#FFF');
-  })
-
-  fn.sequence(0,6).map(function(i) {
-    var dsiArea = DSIAreaTypes[i];
-    var bite = orgGroup.append('path');
-    bite.attr('d', function(p, orgIndex) {
-      orgIndex += orgHexOffset;
-      var col = (orgIndex % numCols);
-      var row = Math.floor(orgIndex / numCols);
-      var x = dx + col * r2;
-      var y = dy + row * r2 * 0.9;
-      if (row % 2 == 1) {
-        x += r;
-      }
-      var areaR = 0;
-      if (p.areaOfDigitalSocialInnovation.indexOf(DSIAreaTypes[i]) != -1) {
-        areaR = Math.min(r, 5 + 2*p.areaOfDigitalSocialInnovationCounted[DSIAreaTypes[i]]);
-      }
-      return "M" + hexBite(x, y, areaR, i).join("L") + "Z";
-    });
-    bite.attr('fill', DSIAreaColors[i]);
-    bite.attr('stroke', 'none');
-  })
-
-  orgGroup.on("mouseover", function(org) {
-    d3.select('#tooltip')[0][0].style.display = 'block';
-    d3.select('#tooltip').select('text').text(org.label);
-  })
-  .on("mouseout", function() {
-    d3.select('#tooltip')[0][0].style.display = 'none';
-  })
+    console.log('updateFilters', e)
+  });
 }
 
 window.onload = init;

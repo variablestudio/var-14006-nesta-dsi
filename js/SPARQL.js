@@ -70,7 +70,8 @@ function SPARQLQuery(dataSource) {
     prefix: [],
     select: [],
     describe: [],
-    where: []
+    where: [],
+    groupBy: []
   };
 }
 
@@ -85,6 +86,12 @@ SPARQLQuery.prototype.where = function(subject, predicate, object, options) {
     q = 'OPTIONAL { ' + q + ' } ';
   }
   this.lines.where.push(q);
+  return this;
+}
+
+SPARQLQuery.prototype.groupBy = function(subject) {
+  var q = 'GROUP BY ' + subject;
+  this.lines.groupBy.push(q);
   return this;
 }
 
@@ -105,7 +112,8 @@ SPARQLQuery.prototype.compile = function() {
   if (this.lines.select.length > 0) str += '\nSELECT ' + this.lines.select.join(' ');
   str += '\n' + 'WHERE {\n';
   str += this.lines.where.join('\n');
-  str += '\n}';
+  str += '\n}\n';
+  str += this.lines.groupBy.join('\n');
   return str;
 }
 
