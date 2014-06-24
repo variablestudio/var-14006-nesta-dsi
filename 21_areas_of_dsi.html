@@ -257,11 +257,6 @@ function init() {
 }
 
 var FilteringList = React.createClass({
-  componentDidMount: function() {
-    VizController.addEventListener('filtersChanged', function(e) {
-      this.forceUpdate();
-    }.bind(this));
-  },
   render: function() {
     var values = this.props.concept.values;
     values = values.filter(function(value) {
@@ -282,7 +277,35 @@ var FilteringList = React.createClass({
   }
 });
 
+var SearchBox = React.createClass({
+  onKeyPress: function(e) {
+    if (e.keyCode == 13) {
+      VizController.fire('search', { q: this.refs.input.getDOMNode().value })
+    }
+  },
+  reset: function() {
+    this.refs.input.getDOMNode().value = '';
+    VizController.fire('search', { q: '' })
+  },
+  render: function() {
+    return React.DOM.div({ className: 'filter'},
+      React.DOM.h3({}, 'Search by name'),
+      React.DOM.ul({},
+        React.DOM.li({},
+          React.DOM.input({ ref: 'input', type: 'text', className: 'searchInput', onKeyPress: this.onKeyPress}),
+          React.DOM.span({ onClick: this.reset.bind(this)}, ' ✖')
+        )
+      )
+    )
+  }
+});
+
 var FilteringPanel = React.createClass({
+  componentDidMount: function() {
+    VizController.addEventListener('filtersChanged', function(e) {
+      this.forceUpdate();
+    }.bind(this));
+  },
   render: function() {
     return React.DOM.div({},
       React.DOM.div({ className: 'col' },
@@ -297,6 +320,7 @@ var FilteringPanel = React.createClass({
         FilteringList({ concept: this.props.concepts.areaOfSociety, onClick: this.props.onClick })
       ),
       React.DOM.div({ className: 'col' },
+        SearchBox({}),
         FilteringList({ concept: this.props.concepts.technologyMethod, onClick: this.props.onClick })
       )
     )
@@ -567,6 +591,19 @@ function buildViz(svg, organizations, projects) {
 
   var filters = [];
 
+  VizController.addEventListener('search', function(e) {
+    if (e.q) {
+      var searchTerm = e.q.toLowerCase();
+      var filteredItems = items.filter(function(item) {
+        return (item.label.toLowerCase().indexOf(searchTerm) != -1);
+      });
+      render(filteredItems);
+    }
+    else {
+      rerenderFilteredItems();
+    }
+  });
+
   VizController.addEventListener('updateFilters', function(e) {
     var conceptName = e.concept.property;
     var valueName = e.value.name;
@@ -584,6 +621,12 @@ function buildViz(svg, organizations, projects) {
       filters.push({ conceptName: conceptName, valueName: valueName})
     }
 
+    VizController.fire('filtersChanged');
+
+    rerenderFilteredItems();
+  });
+
+  function rerenderFilteredItems() {
     var filteredItems = items.filter(function(item) {
       return filters.reduce(function(valid, filter) {
         var prop = item[filter.conceptName];
@@ -600,11 +643,7 @@ function buildViz(svg, organizations, projects) {
       }, true);
     });
     render(filteredItems);
-
-    VizController.fire('filtersChanged');
-
-    console.log('updateFilters', e)
-  });
+  }
 }
 
 window.onload = init;
