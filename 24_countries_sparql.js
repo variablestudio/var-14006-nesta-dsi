@@ -68,6 +68,16 @@ var drawProjectCount = function(div, data) {
 		.text(data.projects_count);
 };
 
+var drawFunds = function(div, data) {
+	div.append("div")
+		.attr("class", "title")
+		.text("GRANTS");
+
+	div.append("div")
+		.attr("class", "count")
+		.text("\u00A3"+ (data.funds_invested / 1000000) + "m");
+};
+
 var drawCountryName = function(div, data) {
 	div.text(data.country);
 };
@@ -119,6 +129,9 @@ var buildCharts = function(data) {
 		var projectCountDiv = div.append("div").attr("class", "project-count");
 		drawProjectCount(projectCountDiv, data);
 
+		var fundsCountDiv = div.append("div").attr("class", "funds-count");
+		drawFunds(fundsCountDiv, data);
+
 		var countryNameDiv = div.append("div").attr("class", "country-name");
 		drawCountryName(countryNameDiv, data);
 
@@ -156,7 +169,8 @@ ds.query()
 	.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
 	.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
 	.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
-	.select("?label ?country ?adsi_label")
+	.prefix("reach:", "<http://data.digitalsocial.eu/def/ontology/reach/>")
+	.select("?label ?country ?adsi_label ?funds_invested")
 	.where("?org", "a", "o:Organization")
 	.where("?am", "a", "ds:ActivityMembership")
 	.where("?am", "ds:organization", "?org")
@@ -167,6 +181,9 @@ ds.query()
 	.where("?org", "o:hasPrimarySite", "?org_site")
 	.where("?org_site", "o:siteAddress", "?org_address")
 	.where("?org_address", "vcard:country-name", "?country")
+	.where("?rv", "a", "ds:ReachValue")
+	.where("?rv", "ds:activityForReach", "?activity")
+	.where("?rv", "reach:fundsInvested", "?funds_invested", { optional: true })
 	.execute()
 	.then(function(results) {
 		// easier key acces
@@ -175,7 +192,7 @@ ds.query()
 			var key;
 			for (key in object) {
 				if (object.hasOwnProperty(key)) {
-					if (key === "lat" || key === "long") {
+					if (key === "lat" || key === "long" || key === "funds_invested") {
 						newObject[key] = +object[key].value;
 					}
 					else {
@@ -206,6 +223,7 @@ ds.query()
 				object.projects_count = 1;
 				delete object.adsi_label;
 				delete object.label;
+				object.funds_invested = object.funds_invested || 0;
 
 				memo.push(object);
 			}
@@ -217,6 +235,7 @@ ds.query()
 					memo[index].adsi_labels[object.adsi_label] = 1;
 				}
 
+				memo[index].funds_invested += object.funds_invested || 0;
 				memo[index].projects_count++;
 			}
 
