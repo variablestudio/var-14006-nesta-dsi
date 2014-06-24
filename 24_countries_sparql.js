@@ -195,7 +195,6 @@ ds.query()
 
 			return memo;
 		}, []);
-		console.log(JSON.stringify(ADSILabels, null, 2));
 
 		// prepare data
 		data = data.reduce(function(memo, object) {
