@@ -3,9 +3,56 @@
 	<head>
 		<title>DSI Data Viz</title>
 		<style>
+			* {
+				padding: 0;
+				margin: 0;
+			}
+
+			#carousel {
+				width: 994px;
+
+				margin: 0 auto;
+				margin-top: 60px;
+			}
+
+			#carousel .button-prev {
+				float: left;
+				margin-left: -40px;
+				cursor: pointer;
+			}
+
+			#carousel .button-next {
+				float: right;
+				margin-right: -40px;
+				cursor: pointer;
+			}
+
+			#carousel .carousel-wrapper {
+				width: 994px;
+
+				height: 240px;
+
+
+				overflow: hidden;
+				position: relative;
+			}
+
+			#carousel .carousel-item {
+				width: 322px;
+				float: left;
+				background: #eeeeee;
+			}
 		</style>
 	</head>
 	<body>
+		<div id="carousel">
+			<div class="button-prev">&lang;</div>
+			<div class="button-next">&rang;</div>
+
+			<div class="carousel-wrapper">
+			</div>
+		</div>
+
 		<script type="text/javascript" src="lib/live.js"></script>
 
 		<script type="text/javascript" src="lib/jquery-2.1.1.min.js"></script>
