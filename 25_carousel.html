@@ -72,19 +72,21 @@
 				top: 182px;
 				left: 0;
 				width: 322px;
-				height: 40px;
+				height: 181px;
 
-				padding: 10px;
+				padding-top: 80px; /* ugly text hand centering */
+				text-align: center;
 
 				background: rgba(234, 235, 235, 0.5);
 				color: black;
+
 
 				-webkit-transition: top 300ms;
 				transition: top 300ms;
 			}
 
 			#carousel .carousel-item:hover span {
-				top: 142px;
+				top: 0;
 			}
 		</style>
 	</head>
@@ -97,10 +99,31 @@
 			</div>
 		</div>
 
+		<div id="filter">FILTER!</div>
+		<div id="reset">RESET!</div>
+
 		<script type="text/javascript" src="lib/live.js"></script>
 
 		<script type="text/javascript" src="lib/jquery-2.1.1.min.js"></script>
-
 		<script type="text/javascript" src="25_carousel.js"></script>
+		<script type="text/javascript">
+			// builds carousel
+			var carousel = new Carousel({
+				"wrapper": $("#carousel >.carousel-wrapper"),
+				"buttonPrev": $("#carousel > .button-prev"),
+				"buttonNext": $("#carousel > .button-next")
+			});
+
+			// filter examples
+			$("#filter").on("click", function() {
+				carousel.filter(function(item) {
+					return item.areaOfDSI == "new-ways-of-making";
+				});
+			});
+
+			$("#reset").on("click", function() {
+				carousel.filter(null);
+			});
+		</script>
 	</body>
 </html>
