@@ -36,13 +36,12 @@ var buildCarousel = function() {
 
 DOM.buttonPrev.on("click", function() {
 	// adjust index
-	var prependIndex = CAROUSEL_INDEX + 4;
-	if (prependIndex > CAROUSEL_DATA.length - 1) { prependIndex = 0; }
-	CAROUSEL_INDEX = prependIndex;
+	var appendIndex = (CAROUSEL_INDEX + 3) % CAROUSEL_DATA.length; // prepend after third element
+	CAROUSEL_INDEX = (CAROUSEL_INDEX + 1) % CAROUSEL_DATA.length; // update index
 
 	// append element and animate
 	DOM.carouselWrapper
-		.append(buildItem(CAROUSEL_DATA[prependIndex]))
+		.append(buildItem(CAROUSEL_DATA[appendIndex]))
 		.children().each(function(index, child) {
 			$(child)
 				.css({ "left": index * ITEM_WIDTH + "px" })
@@ -55,8 +54,7 @@ DOM.buttonPrev.on("click", function() {
 
 DOM.buttonNext.on("click", function() {
 	// adjust index
-	var prependIndex = CAROUSEL_INDEX - 1;
-	if (prependIndex < 0) { prependIndex = CAROUSEL_DATA.length - 1; }
+	var prependIndex = (CAROUSEL_INDEX - 1) < 0 ? (CAROUSEL_DATA.length - 1) : (CAROUSEL_INDEX - 1);
 	CAROUSEL_INDEX = prependIndex;
 
 	// prepend element and animate
