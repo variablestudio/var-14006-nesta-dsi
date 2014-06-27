@@ -13,6 +13,11 @@ function Carousel(DOMElements, settings) {
 		"index": 0
 	};
 
+	this.animating = {
+		"next": false,
+		"prev": false
+	};
+
 	this.width = settings ? settings.width : 322 + 14; // 14px margin
 	var apiUrl = settings ? settings.url : "http://content.digitalsocial.eu/api/get_page/?slug=case-studies&children=true";
 
@@ -24,6 +29,12 @@ function Carousel(DOMElements, settings) {
 
 	// setup button events
 	this.DOM.buttonNext.on("click", function() {
+		// don't do anything if currently animatin
+		if (this.animating.next || this.animating.prev) { return; }
+
+		// set as animating
+		this.animating.next = true;
+
 		// prepend after third element
 		var appendIndex = (this.carousel.index + 3) % this.carousel.data.length;
 
@@ -36,14 +47,25 @@ function Carousel(DOMElements, settings) {
 			.children().each(function(index, child) {
 				$(child)
 					.css({ "left": index * this.width + "px" })
-					.animate(
-						{ "left": (index - 1) * this.width + "px" },
-						{ "complete": function() { if (index === 0) { $(child).remove(); } }} // remove invisible child after animations complete
-					);
+					.animate({
+						"left": (index - 1) * this.width + "px"
+					},
+					{
+						"complete": function() {
+							if (index === 0) { $(child).remove(); }
+							if (index === 3) { this.animating.next = false; }
+						}.bind(this)
+					});
 			}.bind(this));
 	}.bind(this));
 
 	this.DOM.buttonPrev.on("click", function() {
+		// don't do anything if currently animatin
+		if (this.animating.next || this.animating.prev) { return; }
+
+		// set as animating
+		this.animating.prev = true;
+
 		// calculate prepend index
 		var prependIndex = (this.carousel.index - 1) < 0 ? (this.carousel.data.length - 1) : (this.carousel.index - 1);
 
@@ -56,10 +78,17 @@ function Carousel(DOMElements, settings) {
 			.children().each(function(index, child) {
 				$(child)
 					.css({ "left": (index - 1) * this.width + "px" })
-					.animate(
-						{ "left": index * this.width + "px" },
-						{ "complete": function() { if (index === 3) { $(child).remove(); } }} // remove invisible child after animations complete
-					);
+					.animate({
+						"left": index * this.width + "px"
+					},
+					{
+						"complete": function() {
+							if (index === 3) {
+								$(child).remove();
+								this.animating.prev = false;
+							}
+						}.bind(this)
+					});
 			}.bind(this));
 	}.bind(this));
 }
