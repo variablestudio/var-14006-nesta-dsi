@@ -8,6 +8,10 @@
 				margin: 0;
 			}
 
+			body {
+				font-family: "Scene Pro", "Helvetica", sans-serif;
+			}
+
 			#carousel {
 				width: 1008px;
 
@@ -15,16 +19,20 @@
 				margin-top: 60px;
 			}
 
+			#carousel .button {
+				cursor: pointer;
+				margin-top: 60px;
+				font-size: 40px;
+			}
+
 			#carousel .button-prev {
 				float: left;
 				margin-left: -40px;
-				cursor: pointer;
 			}
 
 			#carousel .button-next {
 				float: right;
 				margin-right: -40px;
-				cursor: pointer;
 			}
 
 			#carousel .carousel-wrapper {
@@ -37,16 +45,53 @@
 			}
 
 			#carousel .carousel-item {
-				width: 322px;
 				float: left;
-				background: #eeeeee;
+				background: #eaebeb;
+			}
+
+			#carousel .carousel-item,
+			#carousel .carousel-item img {
+				width: 322px;
+				height: 181px;
+			}
+
+			#carousel .carousel-item a {
+				display: block;
+				position: relative;
+				overflow: hidden;
+				width: 100%;
+				height: 100%;
+
+				text-decoration: none;
+			}
+
+			#carousel .carousel-item span {
+				display: block;
+				position: absolute;
+
+				top: 182px;
+				left: 0;
+				width: 322px;
+				height: 40px;
+
+				padding: 10px;
+
+				background: rgba(234, 235, 235, 0.5);
+				color: black;
+
+				-webkit-transition: top 300ms;
+				transition: top 300ms;
+			}
+
+			#carousel .carousel-item:hover span {
+				top: 142px;
 			}
 		</style>
 	</head>
 	<body>
 		<div id="carousel">
-			<div class="button-prev">&lang;</div>
-			<div class="button-next">&rang;</div>
+			<div class="button button-prev">&lang;</div>
+			<div class="button button-next">&rang;</div>
 
 			<div class="carousel-wrapper">
 			</div>

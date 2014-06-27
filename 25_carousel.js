@@ -13,12 +13,18 @@ var DOM = {
 
 // creates single carousel item
 var buildItem = function(data) {
-	var carouselItem = "<div class=\"carousel-item\" style=\"position: absolute\">";
+	// console.log(JSON.stringify(data, null, 2));
 
-	// TODO: add case study image
-	// carouselItem += "<img src=\"" +
+	var carouselItem = "<div class=\"carousel-item\" style=\"position: absolute\">";
+	carouselItem += "<a href=\"" + data.url + "\" + alt=\"" + data.name + "\">";
+
+	if (data.coverImage) {
+		carouselItem += "<img src=\"" + data.coverImage + "\">";
+	}
 
 	carouselItem += "<span>" + data.name + "</span>";
+
+	carouselItem += "</a>";
 	carouselItem += "</div>";
 
 	return carouselItem;
@@ -34,7 +40,7 @@ var buildCarousel = function() {
 	});
 };
 
-DOM.buttonPrev.on("click", function() {
+DOM.buttonNext.on("click", function() {
 	// adjust index
 	var appendIndex = (CAROUSEL_INDEX + 3) % CAROUSEL_DATA.length; // prepend after third element
 	CAROUSEL_INDEX = (CAROUSEL_INDEX + 1) % CAROUSEL_DATA.length; // update index
@@ -52,7 +58,7 @@ DOM.buttonPrev.on("click", function() {
 		});
 });
 
-DOM.buttonNext.on("click", function() {
+DOM.buttonPrev.on("click", function() {
 	// adjust index
 	var prependIndex = (CAROUSEL_INDEX - 1) < 0 ? (CAROUSEL_DATA.length - 1) : (CAROUSEL_INDEX - 1);
 	CAROUSEL_INDEX = prependIndex;
@@ -96,7 +102,7 @@ var parseData = function(data) {
 			"url": data.url,
 			"areaOfDSI": data.custom_fields["area-of-digital-social-innovation"][0],
 			"techFocus": techFocus,
-			"attachments": data.attachments
+			"coverImage": data.custom_fields.cover_image ? data.custom_fields.cover_image[0] : null
 		};
 	});
 };
