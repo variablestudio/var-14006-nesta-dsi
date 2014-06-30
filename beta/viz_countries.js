@@ -178,7 +178,7 @@ Countries.prototype.draw = function() {
 
 Countries.prototype.drawBarChart = function(div, data) {
 	//(8*14+14)*8-14
-	var width = 112; //8*14
+	var width = 100; //8*14
 	var height = 80;
 	var barWidth = 12;
 
@@ -246,8 +246,8 @@ Countries.prototype.drawCountryName = function(div, data) {
 };
 
 Countries.prototype.drawMap = function(div, data) {
-		var width = 120;
-		var height = 120;
+		var width = 100;
+		var height = 100;
 
 		// initial projection
 		var projection = d3.geo.mercator().scale(1).translate([ 0, 0 ]);
