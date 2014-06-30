@@ -46,8 +46,9 @@
     var countriesViz = $('<div id="countriesViz"></div>');
     vizContainer.append(countriesViz);
 
-    vizCountriesInit();
-  }
+		var countries = new Countries("#countriesViz");
+		countries.init();
+	}
 
   window.addEventListener('DOMContentLoaded', init);
 })();
