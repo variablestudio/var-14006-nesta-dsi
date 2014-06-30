@@ -107,6 +107,11 @@ Countries.prototype.init = function() {
 				return memo;
 			}, []);
 
+
+			data.sort(function(a, b) {
+				return -(a.projects_count - b.projects_count);
+			});
+
 			// add empty labels
 			data = data.map(function(object) {
 				this.ADSILabels.forEach(function(adsiLabel) {
@@ -165,9 +170,6 @@ Countries.prototype.draw = function() {
 		var projectCountDiv = div.append("div").attr("class", "project-count");
 		this.drawProjectCount(projectCountDiv, data);
 
-		// var fundsCountDiv = div.append("div").attr("class", "funds-count");
-		// this.drawFunds(fundsCountDiv, data);
-
 		var countryNameDiv = div.append("div").attr("class", "country-name");
 		this.drawCountryName(countryNameDiv, data);
 
@@ -177,7 +179,8 @@ Countries.prototype.draw = function() {
 };
 
 Countries.prototype.drawBarChart = function(div, data) {
-	var width = 120;
+	//(8*14+14)*8-14
+	var width = 100; //8*14
 	var height = 80;
 	var barWidth = 12;
 
@@ -197,10 +200,11 @@ Countries.prototype.drawBarChart = function(div, data) {
 		}
 	}
 
-	div.append("svg")
+	var svg = div.append("svg")
 		.attr("width", width)
 		.attr("height", height)
-		.selectAll(".rect")
+
+	svg.selectAll(".rect")
 		.data(rectData)
 		.enter()
 		.append("rect")
@@ -244,8 +248,8 @@ Countries.prototype.drawCountryName = function(div, data) {
 };
 
 Countries.prototype.drawMap = function(div, data) {
-		var width = 120;
-		var height = 120;
+		var width = 100;
+		var height = 100;
 
 		// initial projection
 		var projection = d3.geo.mercator().scale(1).translate([ 0, 0 ]);

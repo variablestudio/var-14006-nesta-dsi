@@ -1,25 +1,35 @@
 
 #viz {
-  width: 994px;
   margin: 0 auto;
 }
 
 #viz h1 {
   width: 994px;
-  margin: 1em auto 0.5em auto;
+  margin: 2em auto 0.5em auto;
+  clear: both;
 }
 
 #mainViz {
   min-height: 50px;
+  width: 100%;
+  overflow: hidden;
+}
+
+#introViz {
+  min-height: 50px;
+  width: 100%;
+  overflow: hidden;
+}
+
+#introViz {
+  background: black;
+}
+
+#mainViz + h1 {
+  margin-top: 1em;
 }
 
 #caseStudiesViz {
-}
-
-#countriesViz {
-  width: 994px;
-  width: 1054px;
-  margin: 0 auto;
 }
 
 /*---------------------------------- carousel -------------------------------------*/
@@ -103,16 +113,27 @@
 /*---------------------------------- eu countries -------------------------------------*/
 
 #countriesViz {
-	overflow: auto;
+  width: 994px;
+  margin: 0 auto;
+  overflow: auto;
 }
 
 #countriesViz .map {
   font-family: "Scene Pro", "Helvetica", sans-serif;
-  font-weight: 300;
+  width: 112px;
   display: block;
   float: left;
-  padding: 26px;
+  padding: 0;
+  margin-right: 14px;
   color: #222222;
+}
+
+#countriesViz .map:nth-child(8n+0) {
+  margin-right: 0;
+}
+
+#countriesViz .map:nth-child(8n+9) {
+  clear: left;
 }
 
 #countriesViz .area-chart {
@@ -150,6 +171,7 @@
 
 #choroplethViz svg {
 	display: block;
+	margin: 0 auto;
 }
 
 #choroplethViz text {
@@ -157,4 +179,16 @@
 	font-weight: 300;
 	font-size: 16px;
 	fill: #222222;
+}
+
+/*---------------------------------- explorer ----------------------------------------*/
+
+#explorerViz {
+	padding-bottom: 80px;
+}
+
+#explorerViz svg {
+	display: block;
+	margin: 0 auto;
+	padding-bottom: 10px;
 }

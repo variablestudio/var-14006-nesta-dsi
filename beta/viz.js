@@ -1,83 +1,90 @@
 (function() {
-	function init() {
-		var mainContainer = document.getElementById('main');
-		mainContainer.removeChild(mainContainer.childNodes[0]);
-		mainContainer.removeChild(mainContainer.childNodes[0]);
+  function init() {
+    var mainContainer = document.getElementById('main');
+    mainContainer.removeChild(mainContainer.childNodes[0]);
+    mainContainer.removeChild(mainContainer.childNodes[0]);
 
-		var vizContainer = $('#viz');
+    var vizContainer = $('#viz');
 
-		initMainViz(vizContainer);
-		initCaseStudies(vizContainer);
-		initEUCountries(vizContainer);
-		initChoropleth(vizContainer);
-		initExplorer(vizContainer);
-	}
+    //initIntroViz(vizContainer);
+    initMainViz(vizContainer);
+    initCaseStudies(vizContainer);
+    initEUCountries(vizContainer);
+    initChoropleth(vizContainer);
+    initExplorer(vizContainer);
+  }
 
-	function initMainViz(vizContainer) {
-		var mainViz = $('<div id="mainViz"></div>');
-		vizContainer.append(mainViz);
+  function initIntroViz(vizContainer) {
+    var introViz = $('<div id="introViz"></div>');
+    vizContainer.append(introViz);
+    var intro = new Intro(introViz);
+  }
 
-		mainVizInit();
-	}
+  function initMainViz(vizContainer) {
+    var mainViz = $('<div id="mainViz"></div>');
+    vizContainer.append(mainViz);
 
-	function initCaseStudies(vizContainer) {
-		var caseStudiesTitle = $('<h1>Case Studies</h1>');
-		vizContainer.append(caseStudiesTitle);
+    mainVizInit();
+  }
 
-		var caseStudiesViz = $('<div id="caseStudiesViz"></div>');
-		vizContainer.append(caseStudiesViz);
+  function initCaseStudies(vizContainer) {
+    var caseStudiesTitle = $('<h1>Case Studies</h1>');
+    vizContainer.append(caseStudiesTitle);
 
-		var carouselDiv = $('<div id="carousel"></div>');
-		var carouselPrev = $('<div class="button button-prev">&lang;</div>');
-		var carouselNext = $('<div class="button button-next">&rang;</div>');
-		var carouselWrap = $('<div class="carousel-wrapper"></div>');
-		carouselDiv.append(carouselPrev);
-		carouselDiv.append(carouselNext);
-		carouselDiv.append(carouselWrap);
-		caseStudiesViz.append(carouselDiv);
+    var caseStudiesViz = $('<div id="caseStudiesViz"></div>');
+    vizContainer.append(caseStudiesViz);
 
-		var carousel = new Carousel({
-			"wrapper": $("#carousel >.carousel-wrapper"),
-			"buttonPrev": $("#carousel > .button-prev"),
-			"buttonNext": $("#carousel > .button-next")
-		});
-	}
+    var carouselDiv = $('<div id="carousel"></div>');
+    var carouselPrev = $('<div class="button button-prev">&lang;</div>');
+    var carouselNext = $('<div class="button button-next">&rang;</div>');
+    var carouselWrap = $('<div class="carousel-wrapper"></div>');
+    carouselDiv.append(carouselPrev);
+    carouselDiv.append(carouselNext);
+    carouselDiv.append(carouselWrap);
+    caseStudiesViz.append(carouselDiv);
 
-	function initEUCountries(vizContainer) {
-		var euCountriesTitle = $('<h1>Projects by EU Country</h1>');
-		vizContainer.append(euCountriesTitle);
+    var carousel = new Carousel({
+      "wrapper": $("#carousel >.carousel-wrapper"),
+      "buttonPrev": $("#carousel > .button-prev"),
+      "buttonNext": $("#carousel > .button-next")
+    });
+  }
 
-		var countriesViz = $('<div id="countriesViz"></div>');
-		vizContainer.append(countriesViz);
+  function initEUCountries(vizContainer) {
+    var euCountriesTitle = $('<h1>Projects by EU Country</h1>');
+    vizContainer.append(euCountriesTitle);
 
-		var countries = new Countries("#countriesViz");
-		countries.init();
-	}
+    var countriesViz = $('<div id="countriesViz"></div>');
+    vizContainer.append(countriesViz);
 
-	function initChoropleth(vizContainer) {
-		var choroplethTitle = $('<h1>Projects by tech focus and method</h1>');
-		vizContainer.append(choroplethTitle);
+    var countries = new Countries("#countriesViz");
+    countries.init();
+  }
 
-		var choroplethViz = $('<div id="choroplethViz"></div>');
-		vizContainer.append(choroplethViz);
+  function initChoropleth(vizContainer) {
+    var choroplethTitle = $('<h1>Projects by tech focus and method</h1>');
+    vizContainer.append(choroplethTitle);
 
-		var choroplethColors = ["#f2f0f7", "#dadaeb", "#bcbddc", "#9e9ac8", "#756bb1", "#54278f"];
+    var choroplethViz = $('<div id="choroplethViz"></div>');
+    vizContainer.append(choroplethViz);
 
-		var choropleth = new Choropleth("#choroplethViz");
-		choropleth.init();
-	}
+    var choroplethColors = ["#f2f0f7", "#dadaeb", "#bcbddc", "#9e9ac8", "#756bb1", "#54278f"];
 
-	function initExplorer(vizContainer) {
-		var explorerTitle = $('<h1>Organizations explorer</h1>');
-		vizContainer.append(explorerTitle);
+    var choropleth = new Choropleth("#choroplethViz");
+    choropleth.init();
+  }
 
-		var explorerViz = $('<div id="explorerViz"></div>');
-		vizContainer.append(explorerViz);
+  function initExplorer(vizContainer) {
+    var explorerTitle = $('<h1>Organizations explorer</h1>');
+    vizContainer.append(explorerTitle);
 
-		var explorer = new Explorer("#explorerViz");
-		explorer.init();
-	}
+    var explorerViz = $('<div id="explorerViz"></div>');
+    vizContainer.append(explorerViz);
 
-	window.addEventListener('DOMContentLoaded', init);
+    var explorer = new Explorer("#explorerViz");
+    explorer.init();
+  }
+
+  window.addEventListener('DOMContentLoaded', init);
 })();
 
