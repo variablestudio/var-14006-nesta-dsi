@@ -25,7 +25,7 @@
 /*---------------------------------- carousel -------------------------------------*/
 
 #carousel {
-  width: 1330px;
+  width: 1008px;
 
   margin: 0 auto;
 }
@@ -47,9 +47,9 @@
 }
 
 #carousel .carousel-wrapper {
-  width: 1330px;
+  width: 1008px;
 
-  height: 181px;
+  height: 133px;
 
   overflow: hidden;
   position: relative;
@@ -62,8 +62,8 @@
 
 #carousel .carousel-item,
 #carousel .carousel-item img {
-  width: 322px;
-  height: 181px;
+  width: 238px;
+  height: 133px;
 }
 
 #carousel .carousel-item a {
@@ -80,12 +80,12 @@
   display: block;
   position: absolute;
 
-  top: 182px;
+  top: 133px;
   left: 0;
-  width: 322px;
-  height: 181px;
+  width: 238px;
+  height: 133px;
 
-  padding-top: 80px; /* ugly text hand centering */
+  padding-top: 60px; /* ugly text hand centering */
   text-align: center;
 
   background: rgba(234, 235, 235, 0.5);
