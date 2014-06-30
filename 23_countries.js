@@ -9,7 +9,7 @@ var buildChart = function(data) {
 	var height = 160;
 
 	data.forEach(function(data) {
-		d3.json("/assets/countries/" + data.country_code + ".geo.json", function(geo) {
+		d3.json("assets/countries/" + data.country_code + ".geo.json", function(geo) {
 			var projection = d3.geo.mercator()
 				.scale(1)
 				.translate([ 0, 0 ]);
@@ -47,7 +47,7 @@ var buildChart = function(data) {
 };
 
 var prepareData = function(data, callback) {
-	d3.json("/assets/countries/all.json", function(countries) {
+	d3.json("assets/countries/all.json", function(countries) {
 		data = data.map(function(object) {
 			var newObject = {};
 			var key;

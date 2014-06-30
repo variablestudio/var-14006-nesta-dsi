@@ -86,7 +86,7 @@ var drawMap = function(div, data) {
 	var width = 120;
 	var height = 120;
 
-	d3.json("/assets/countries/" + data.country_code + ".geo.json", function(geo) {
+	d3.json("assets/countries/" + data.country_code + ".geo.json", function(geo) {
 		// initial projection
 		var projection = d3.geo.mercator().scale(1).translate([ 0, 0 ]);
 
@@ -141,7 +141,7 @@ var buildCharts = function(data) {
 };
 
 var countryCodeData = function(data, callback) {
-	d3.json("/assets/countries/all.json", function(countries) {
+	d3.json("assets/countries/all.json", function(countries) {
 		data = data .map(function(object) {
 			var index = indexOfProp(countries, "name", object.country);
 
