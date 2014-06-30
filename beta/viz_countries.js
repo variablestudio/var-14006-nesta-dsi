@@ -5,8 +5,6 @@ var indexOfProp = function(data, prop, val) {
 };
 
 function Countries(div) {
-	this.euCountries = ['GBR', 'FRA', 'NLD', 'ESP', 'DEU', 'FIN', 'BEL', 'PRT', 'CHE', 'DNK', 'ITA', 'IRL', 'AUT', 'SWE', 'LUX', 'HUN', 'POL', 'ISL', 'ROU', 'SVK', 'NOR'];
-
 	this.ADSILabels = [];  // will be filled on SPARQL query
 	this.ADSIMaxCount = 0; // will be filled on SPARQL query
 
@@ -129,19 +127,24 @@ Countries.prototype.init = function() {
 
 			// add geography to data, and callback when finished
 			d3.json("assets/all_countries.json", function(countries) {
-				data = data.map(function(object) {
-					var index = indexOfProp(countries, "name", object.country);
+				data = data
+					.map(function(object) {
+						var index = indexOfProp(countries, "name", object.country);
 
-					if (index > 0) {
-						object.country_code = countries[index]["alpha-3"];
-						object.geo = JSON.parse(countries[index].geo);
-					}
-					else {
-						console.error("no country for " + object.country);
-					}
+						if (index > 0) {
+							object.country_code = countries[index]["alpha-3"];
+							object.geo = JSON.parse(countries[index].geo);
+						}
+						else {
+							// remove countries that are not all_countries.json file
+							object = null;
+						}
 
-					return object;
-				});
+						return object;
+					})
+					.filter(function(object) {
+						return (object !== null);
+					});
 
 				// save data
 				this.data = data;
@@ -154,8 +157,6 @@ Countries.prototype.init = function() {
 
 Countries.prototype.draw = function() {
 	this.data.forEach(function(data) {
-		if (this.euCountries.indexOf(data.country_code) === -1) { return; }
-
 		var div = this.DOM.div.append("div").attr("class", "map " + data.country_code);
 
 		var barChartDiv = div.append("div").attr("class", "area-chart");
