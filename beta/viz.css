@@ -1,6 +1,6 @@
 
 #viz {
-  x-width: 994px;
+  width: 994px;
   margin: 0 auto;
 }
 
@@ -102,7 +102,11 @@
 
 /*---------------------------------- eu countries -------------------------------------*/
 
-.map {
+#countriesViz {
+	overflow: auto;
+}
+
+#countriesViz .map {
   font-family: "Scene Pro", "Helvetica", sans-serif;
   font-weight: 300;
   display: block;
@@ -111,33 +115,46 @@
   color: #222222;
 }
 
-.area-chart {
+#countriesViz .area-chart {
   margin-bottom: 20px;
 }
 
-.project-count,
-.funds-count {
+#countriesViz .project-count,
+#countriesViz .funds-count {
   margin-bottom: 20px;
 }
 
-.project-count .title,
-.funds-count .title {
+#countriesViz .project-count .title,
+#countriesViz .funds-count .title {
   font-size: 20px;
   letter-spacing: 1px;
   margin-bottom: 8px;
 }
 
-.project-count .count,
-.funds-count .count {
+#countriesViz .project-count .count,
+#countriesViz .funds-count .count {
   font-size: 32px;
 }
 
-.country-name {
+#countriesViz .country-name {
   font-size: 18px;
   margin-bottom: 30px;
 }
 
-.country svg path {
+#countriesViz .country svg path {
   fill: #999999;
   stroke: #999999;
+}
+
+/*---------------------------------- choropleth --------------------------------------*/
+
+#choroplethViz svg {
+	display: block;
+}
+
+#choroplethViz text {
+  font-family: "Scene Pro", "Helvetica", sans-serif;
+	font-weight: 300;
+	font-size: 16px;
+	fill: #222222;
 }
