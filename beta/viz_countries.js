@@ -177,7 +177,8 @@ Countries.prototype.draw = function() {
 };
 
 Countries.prototype.drawBarChart = function(div, data) {
-	var width = 120;
+	//(8*14+14)*8-14
+	var width = 112; //8*14
 	var height = 80;
 	var barWidth = 12;
 
@@ -197,10 +198,11 @@ Countries.prototype.drawBarChart = function(div, data) {
 		}
 	}
 
-	div.append("svg")
+	var svg = div.append("svg")
 		.attr("width", width)
 		.attr("height", height)
-		.selectAll(".rect")
+
+	svg.selectAll(".rect")
 		.data(rectData)
 		.enter()
 		.append("rect")

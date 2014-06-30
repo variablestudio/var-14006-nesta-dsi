@@ -20,7 +20,7 @@
 
 #countriesViz {
   width: 994px;
-  width: 1054px;
+  width: 994px;
   margin: 0 auto;
 }
 
@@ -106,11 +106,20 @@
 
 .map {
   font-family: "Scene Pro", "Helvetica", sans-serif;
-  font-weight: 300;
+  width: 112px;
   display: block;
   float: left;
-  padding: 26px;
+  padding: 0;
+  margin-right: 14px;
   color: #222222;
+}
+
+.map:nth-child(8n+0) {
+  margin-right: 0;
+}
+
+.map:nth-child(8n+9) {
+  clear: left;
 }
 
 .area-chart {
