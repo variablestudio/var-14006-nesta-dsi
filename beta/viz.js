@@ -1,5 +1,6 @@
 (function() {
   function init() {
+    if (document.l)
     var mainContainer = document.getElementById('main');
     mainContainer.removeChild(mainContainer.childNodes[0]);
     mainContainer.removeChild(mainContainer.childNodes[0]);
@@ -14,6 +15,8 @@
   function initMainViz(vizContainer) {
     var mainViz = $('<div id="mainViz"></div>');
     vizContainer.append(mainViz);
+
+    mainVizInit();
   }
 
   function initCaseStudies(vizContainer) {
