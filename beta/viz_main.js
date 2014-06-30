@@ -77,7 +77,7 @@ function buildViz(results, color) {
   color = color || '#DDDDDD';
   console.log('buildViz', results.length);
   var w = window.innerWidth;
-  var h = window.innerHeight - 400;
+  var h = Math.min(window.innerHeight - 360, 500);
 
 
   d3.select('#sidebar').style('height', h + 'px');
