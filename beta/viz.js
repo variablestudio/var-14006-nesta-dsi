@@ -1,6 +1,5 @@
 (function() {
   function init() {
-    if (document.l)
     var mainContainer = document.getElementById('main');
     mainContainer.removeChild(mainContainer.childNodes[0]);
     mainContainer.removeChild(mainContainer.childNodes[0]);
