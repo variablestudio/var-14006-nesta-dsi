@@ -10,6 +10,7 @@
     initMainViz(vizContainer);
     initCaseStudies(vizContainer);
     initEUCountries(vizContainer);
+    initChoropleth(vizContainer);
   }
 
   function initIntroViz(vizContainer) {
@@ -59,6 +60,19 @@
 		countries.init();
 	}
 
-  window.addEventListener('DOMContentLoaded', init);
+	function initChoropleth(vizContainer) {
+		var choroplethTitle = $('<h1>Projects by tech focus and method</h1>');
+		vizContainer.append(choroplethTitle);
+
+		var choroplethViz = $('<div id="choroplethViz"></div>');
+		vizContainer.append(choroplethViz);
+
+		var choroplethColors = ["#f2f0f7", "#dadaeb", "#bcbddc", "#9e9ac8", "#756bb1", "#54278f"];
+
+		var choropleth = new Choropleth("#choroplethViz");
+		choropleth.init();
+	}
+
+	window.addEventListener('DOMContentLoaded', init);
 })();
 
