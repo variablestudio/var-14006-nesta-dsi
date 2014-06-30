@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>DSI Data Viz</title>
+		<style>
+			.map {
+				font-family: "Scene Pro", "Helvetica", sans-serif;
+				font-weight: 300;
+				display: block;
+				float: left;
+				padding: 30px;
+				color: #222222;
+			}
+
+			.area-chart {
+				margin-bottom: 20px;
+			}
+
+			.project-count,
+			.funds-count {
+				margin-bottom: 20px;
+			}
+
+			.project-count .title,
+			.funds-count .title {
+				font-size: 20px;
+				letter-spacing: 1px;
+				margin-bottom: 8px;
+			}
+
+			.project-count .count,
+			.funds-count .count {
+				font-size: 32px;
+			}
+
+			.country-name {
+				font-size: 18px;
+				margin-bottom: 30px;
+			}
+
+			.country svg path {
+				fill: #999999;
+				stroke: #999999;
+			}
+		</style>
+	</head>
+	<body>
+		<script type="text/javascript" src="lib/live.js"></script>
+
+		<script type="text/javascript" src="lib/d3.v3.min.js"></script>
+		<script type="text/javascript" src="lib/q.min.js"></script>
+		<script type="text/javascript" src="js/SPARQL.js"></script>
+
+		<script type="text/javascript" src="25_countries.js"></script>
+	</body>
+</html>
