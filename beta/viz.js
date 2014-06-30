@@ -10,6 +10,7 @@
 		initCaseStudies(vizContainer);
 		initEUCountries(vizContainer);
 		initChoropleth(vizContainer);
+		initExplorer(vizContainer);
 	}
 
 	function initMainViz(vizContainer) {
@@ -64,6 +65,17 @@
 
 		var choropleth = new Choropleth("#choroplethViz");
 		choropleth.init();
+	}
+
+	function initExplorer(vizContainer) {
+		var explorerTitle = $('<h1>Organizations explorer</h1>');
+		vizContainer.append(explorerTitle);
+
+		var explorerViz = $('<div id="explorerViz"></div>');
+		vizContainer.append(explorerViz);
+
+		var explorer = new Explorer("#explorerViz");
+		explorer.init();
 	}
 
 	window.addEventListener('DOMContentLoaded', init);
