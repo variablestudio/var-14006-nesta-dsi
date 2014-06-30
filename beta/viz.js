@@ -6,9 +6,16 @@
 
     var vizContainer = $('#viz');
 
-    initMainViz(vizContainer);
+    initIntroViz(vizContainer);
+    //initMainViz(vizContainer);
     initCaseStudies(vizContainer);
-    initEUCountries(vizContainer);
+    //initEUCountries(vizContainer);
+  }
+
+  function initIntroViz(vizContainer) {
+    var introViz = $('<div id="introViz"></div>');
+    vizContainer.append(introViz);
+    var intro = new Intro(introViz);
   }
 
   function initMainViz(vizContainer) {
