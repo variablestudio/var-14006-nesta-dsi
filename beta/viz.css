@@ -171,6 +171,7 @@
 
 #choroplethViz svg {
 	display: block;
+	margin: 0 auto;
 }
 
 #choroplethViz text {
@@ -178,4 +179,16 @@
 	font-weight: 300;
 	font-size: 16px;
 	fill: #222222;
+}
+
+/*---------------------------------- explorer ----------------------------------------*/
+
+#explorerViz {
+	padding-bottom: 80px;
+}
+
+#explorerViz svg {
+	display: block;
+	margin: 0 auto;
+	padding-bottom: 10px;
 }

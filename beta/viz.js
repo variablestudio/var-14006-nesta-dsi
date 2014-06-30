@@ -11,6 +11,7 @@
     initCaseStudies(vizContainer);
     initEUCountries(vizContainer);
     initChoropleth(vizContainer);
+    initExplorer(vizContainer);
   }
 
   function initIntroViz(vizContainer) {
@@ -56,23 +57,34 @@
     var countriesViz = $('<div id="countriesViz"></div>');
     vizContainer.append(countriesViz);
 
-		var countries = new Countries("#countriesViz");
-		countries.init();
-	}
+    var countries = new Countries("#countriesViz");
+    countries.init();
+  }
 
-	function initChoropleth(vizContainer) {
-		var choroplethTitle = $('<h1>Projects by tech focus and method</h1>');
-		vizContainer.append(choroplethTitle);
+  function initChoropleth(vizContainer) {
+    var choroplethTitle = $('<h1>Projects by tech focus and method</h1>');
+    vizContainer.append(choroplethTitle);
 
-		var choroplethViz = $('<div id="choroplethViz"></div>');
-		vizContainer.append(choroplethViz);
+    var choroplethViz = $('<div id="choroplethViz"></div>');
+    vizContainer.append(choroplethViz);
 
-		var choroplethColors = ["#f2f0f7", "#dadaeb", "#bcbddc", "#9e9ac8", "#756bb1", "#54278f"];
+    var choroplethColors = ["#f2f0f7", "#dadaeb", "#bcbddc", "#9e9ac8", "#756bb1", "#54278f"];
 
-		var choropleth = new Choropleth("#choroplethViz");
-		choropleth.init();
-	}
+    var choropleth = new Choropleth("#choroplethViz");
+    choropleth.init();
+  }
 
-	window.addEventListener('DOMContentLoaded', init);
+  function initExplorer(vizContainer) {
+    var explorerTitle = $('<h1>Organizations explorer</h1>');
+    vizContainer.append(explorerTitle);
+
+    var explorerViz = $('<div id="explorerViz"></div>');
+    vizContainer.append(explorerViz);
+
+    var explorer = new Explorer("#explorerViz");
+    explorer.init();
+  }
+
+  window.addEventListener('DOMContentLoaded', init);
 })();
 
