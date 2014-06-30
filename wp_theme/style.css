@@ -1,103 +1,15 @@
-* {
-	margin: 0;
-	padding: 0;
-}
+/*
+ * Theme Name: Digital Social
+ * Theme URI: http://digitalsocial.eu
+ * Description: Digital Social Theme
+ * Version: 1.0
+ * Author: Digital Social
+ * Author URI: http://digitalsocial.eu
+ * Tags: blue, RWD
+ * */
 
-body {
-	background: white;
-	color: #333;
 
-	font-family: "Scene Pro", "Helvetica", sans-serif;
-}
+/* STYLESHEET */
 
-/* LOGIN */
-
-#user-info {
-	width: 100%;
-	padding: 12px 0;
-	background: #333;
-	color: #fff;
-	font-family: "Scene Std Medium", sans-serif;
-	font-size: 13px;
-	color: rgba(255,255,255,0.35);
-}
-
-#user-info a {
-	display: block;
-	width: 944px;
-	text-align: right;
-	margin: 0 auto;
-
-	text-decoration: none;
-	color: rgba(255,255,255,0.65);
-}
-
-#user-info a:hover {
-	color: #FFF;
-}
-
-/* MENU */
-
-.nav-bar {
-	width: 944px;
-	margin: 0 auto;
-	padding: 28px 0 35px;
-	position: relative;
-}
-
-.header-links {
-	float: right;
-	list-style: none;
-	height: 40px;
-	padding: 0;
-	border-bottom: 2px solid #eee;
-}
-
-.header-links li {
-	float: left;
-	display: block;
-}
-
-.header-links li:not(:first-child) {
-	margin-left: 28px;
-}
-
-.header-links li a {
-	font-family: 'Scene Std Medium', sans-serif;
-	text-decoration: none;
-	color: #333;
-	display: block;
-	height: 40px;
-}
-
-/* SEARCH */
-
-.search {
-	position: absolute;
-	top: 80px;
-	right: 0;
-}
-
-.search input {
-	width: 678px;
-	border: 2px solid #eee;
-	outline: 0;
-	margin: 0;
-	font-size: 14px;
-	font-family: "Scene Std Medium", sans-serif;
-	padding: 12px;
-}
-
-/* PAGE */
-
-#page {
-	width: 944px;
-	margin: 0 auto;
-}
-
-/* FOOTER */
-
-footer {
-	width: 944px;
-	margin: 0 auto;
-}
+@import "mainsite.css";
+@import "main.css";
