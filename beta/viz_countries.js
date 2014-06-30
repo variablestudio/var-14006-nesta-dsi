@@ -107,6 +107,11 @@ Countries.prototype.init = function() {
 				return memo;
 			}, []);
 
+
+			data.sort(function(a, b) {
+				return -(a.projects_count - b.projects_count);
+			});
+
 			// add empty labels
 			data = data.map(function(object) {
 				this.ADSILabels.forEach(function(adsiLabel) {
@@ -164,9 +169,6 @@ Countries.prototype.draw = function() {
 
 		var projectCountDiv = div.append("div").attr("class", "project-count");
 		this.drawProjectCount(projectCountDiv, data);
-
-		// var fundsCountDiv = div.append("div").attr("class", "funds-count");
-		// this.drawFunds(fundsCountDiv, data);
 
 		var countryNameDiv = div.append("div").attr("class", "country-name");
 		this.drawCountryName(countryNameDiv, data);
