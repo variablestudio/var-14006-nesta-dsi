@@ -114,11 +114,11 @@ Carousel.prototype.filter = function(callback) {
 
 // creates single carousel item
 Carousel.prototype.buildItem = function(data) {
-	var imgUrl = data.coverImage || "/assets/placeholder.jpg";
+	var imgUrl = data.coverImage;
 
 	var carouselItem = "<div class=\"carousel-item\" style=\"position: absolute\">";
 	carouselItem += "<a href=\"" + data.url + "\" + alt=\"" + data.name + "\">";
-	carouselItem += "<img src=\"" + imgUrl + "\">";
+	if (imgUrl) carouselItem += "<img src=\"" + imgUrl + "\">";
 	carouselItem += "<span>" + data.name + "</span>";
 	carouselItem += "</a>";
 	carouselItem += "</div>";
@@ -143,6 +143,11 @@ Carousel.prototype.buildCarousel = function() {
 Carousel.prototype.parseData = function(data) {
 	return data.page.children
 		.map(function(data) {
+			var coverImage = null;
+			if (data.attachments.length > 0) {
+				coverImage = data.attachments[0].images.medium.url;
+			}
+
 			// prepare tech focus array
 			var techFocus = data.custom_fields["tech-focus"];
 
@@ -166,7 +171,7 @@ Carousel.prototype.parseData = function(data) {
 				"url": data.url,
 				"areaOfDSI": data.custom_fields["area-of-digital-social-innovation"][0],
 				"techFocus": techFocus,
-				"coverImage": data.custom_fields.cover_image ? data.custom_fields.cover_image[0] : null
+				"coverImage": coverImage
 			};
 		})
 		.sort(function(a, b) {
@@ -175,6 +180,7 @@ Carousel.prototype.parseData = function(data) {
 
 			if (a.coverImage && !b.coverImage) { returnVal = -1; }
 			if (!a.coverImage && b.coverImage) { returnVal = 1; }
+			if (a.coverImage && b.coverImage) { returnVal = Math.random() > 0.5 ? 1 : -1; }
 
 			return returnVal;
 		});
