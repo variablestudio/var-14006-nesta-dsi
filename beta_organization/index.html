@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Digital Social Innovation | Nesta</title>
+
+		<style>
+			body {
+				font-family: 'Helvetica', sans-serif;
+				margin: 0;
+				padding: 0;
+			}
+
+			#container {
+				width: 944px;
+				margin: 0 auto;
+			}
+
+			.dsi-areas .title {
+				font-family: "Helvetica";
+				font-size: 12px;
+			}
+		</style>
+
+		<script src='../js/SPARQL.js'></script>
+		<script src='../js/fn.js'></script>
+		<script src="../lib/d3.v3.min.js"></script>
+		<script src='../lib/q.min.js'></script>
+
+		<script src='viz_stats.js'></script>
+	</head>
+	<body>
+		<div id="container">
+			<div class="dsi-areas">
+				<h2>DSI Areas</h2>
+			</div>
+		</div>
+
+		<script>
+			var orgURL = "eb70a18d-2f2b-62fd-76ca-5a33f71b9f50";
+			var stats = new Stats(".dsi-areas", orgURL);
+
+			stats.init();
+		</script>
+	</body>
+</html>
