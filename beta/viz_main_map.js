@@ -24,6 +24,8 @@ MainMap.prototype.init = function() {
     this.organisations = organisations;
     this.buildViz(organisations);
     this.hijackSearch();
+
+    this.getCollaborations(); //pre cache
   }.bind(this));
 }
 
@@ -170,9 +172,12 @@ MainMap.prototype.buildViz = function(organisations) {
   this.organisationsById = organisationsById;
 
   this.DOM.g = svg.append('g');
+  this.DOM.mapGroup = this.DOM.g.append('g');
   this.DOM.networkGroup = this.DOM.g.append('g');
+  this.DOM.orgGroup = this.DOM.g.append('g');
 
   var zoom = this.addZoom(svg, this.DOM.g, w, h);
+  this.showWorldMap(svg, this.DOM.g, projection);
   this.showOrganisations(svg, this.DOM.g, projection, center, organisations, zoom);
   this.showIsoLines(svg, this.DOM.g, organisations, w, h, zoom);
 }
@@ -266,8 +271,26 @@ MainMap.prototype.addZoom = function(svg, g, w, h) {
   return zoom;
 }
 
+MainMap.prototype.showWorldMap = function(svg, g, projection) {
+  d3.json("assets/world-110m.json", function(error, world) {
+    var countries = topojson.feature(world, world.objects.countries).features;
+    var neighbors = topojson.neighbors(world.objects.countries.geometries);
+
+    var path = d3.geo.path()
+      .projection(projection);
+
+    this.DOM.mapGroup.selectAll(".country")
+      .data(countries)
+      .enter().insert("path", ".graticule")
+      .attr("class", "country")
+      .attr("d", path)
+      .attr("stroke", "none")
+      .attr("fill", "#EEE");
+  }.bind(this));
+}
+
 MainMap.prototype.showOrganisations = function(svg, g, projection, center, organisations, zoom) {
-  var circles = g.selectAll('circle.org').data(organisations);
+  var circles = this.DOM.orgGroup.selectAll('circle.org').data(organisations);
 
   circles.enter()
     .append('circle')
@@ -286,12 +309,9 @@ MainMap.prototype.showOrganisations = function(svg, g, projection, center, organ
     .attr('transform', function(d) {
       return "translate(" + d.x + "," + d.y + ")"
     })
-    .attr('fill', function(org) {
-      return '#000000';
-    })
-    .attr('r', function(org) {
-      return 2;
-    })
+    .attr('fill', 'rgba(0,0,0,0.1)')
+    .attr('stroke', 'rgba(0,0,0,0.3)')
+    .attr('r', 3)
 
   circles.exit().transition().duration(300).attr('r', 0).remove();
 
@@ -300,9 +320,11 @@ MainMap.prototype.showOrganisations = function(svg, g, projection, center, organ
   });
 
   zoom.on('zoom.circles', function() {
-    circles.attr('r', function() {
-      return 2 * 1/d3.event.scale * Math.pow(d3.event.scale, 0.29);
-    })
+    var r = 3 * 1/d3.event.scale * Math.pow(d3.event.scale, 0.29);
+    var strokeWidth = 1 / d3.event.scale;
+    circles
+      .attr('r', r)
+      .attr('stroke-width', strokeWidth)
     g.selectAll('line.network').attr('stroke-width', 1/d3.event.scale);
   });
 
@@ -317,6 +339,8 @@ MainMap.prototype.showNetwork = function(org, limit) {
   this.getCollaborations().then(function(collaborations) {
     var projects = collaborations.byOrganisation[org];
     var collaborators = [];
+
+    console.time('showNetwork collab');
     projects.forEach(function(project) {
       collaborations.byProject[project].forEach(function(member) {
         if (member == org) return;
@@ -325,6 +349,7 @@ MainMap.prototype.showNetwork = function(org, limit) {
         }
       })
     });
+    console.timeEnd('showNetwork collab');
 
     var ns = 'org'
     if (limit) {
@@ -336,6 +361,7 @@ MainMap.prototype.showNetwork = function(org, limit) {
     else {
       this.DOM.networkGroup.selectAll('line.network').remove(); //remove existing
     }
+
     var networkPaths = this.DOM.networkGroup.selectAll('line.network.' + ns).data(collaborators);
     networkPaths.enter()
       .append('line')
@@ -360,7 +386,7 @@ MainMap.prototype.showIsoLines = function(svg, g, organisations, w, h, zoom) {
   var randomPoints;
   var numPoints = 4002;
 
-  var color = hsla(0, 0, 0, 0.1);
+  var color = hsla(0, 0, 0, 0.2);
 
   if (localStorage['randomPoints'] && localStorage['randomPoints'] != 'null') {
     randomPoints = JSON.parse(localStorage['randomPoints']);
