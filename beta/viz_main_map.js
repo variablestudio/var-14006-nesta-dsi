@@ -13,25 +13,40 @@ function resultValuesToObj(result) {
 }
 
 function MainMap(mainVizContainer) {
+  this.DOM = {};
   this.mainVizContainer = mainVizContainer;
   this.init();
 }
 
 MainMap.prototype.init = function() {
-  this.getOrganisations().then(this.buildViz.bind(this));
-  this.hijackSearch();
+  this.getOrganisations().then(function(organisations) {
+
+    this.organisations = organisations;
+    this.buildViz(organisations);
+    this.hijackSearch();
+  }.bind(this));
 }
 
 MainMap.prototype.hijackSearch = function() {
   $('#q').parent().submit(function(e) {
-    console.log($('#q').val())
+    var searchTerm = $('#q').val();
+    $('#q').val('');
+
+    var foundOrgs = this.organisations.filter(function(org) {
+      return org.label.toLowerCase().indexOf(searchTerm) != -1;
+    });
+
+    console.log('foundOrgs', foundOrgs)
+
+    if (foundOrgs.length > 0) {
+      this.showNetwork(foundOrgs[0].org);
+    }
+
     $('#q').hide();
     e.preventDefault();
     return false;
-  })
+  }.bind(this));
 }
-
-
 
 MainMap.prototype.getOrganisations = function() {
   var deferred = Q.defer();
@@ -43,25 +58,29 @@ MainMap.prototype.getOrganisations = function() {
 }
 
 MainMap.prototype.getCollaborations = function() {
-  var deferred = Q.defer();
-  var collaborations = {
-    byProject: {},
-    byOrganisation: {}
-  };
-  this.runCollaboratorsQuery().then(function(results) {
-    results.forEach(function(c) {
-      var org = c.org.value;
-      var projects = c.activity_values.value.split(',');
-      projects.forEach(function(project) {
-        if (!collaborations.byProject[project]) collaborations.byProject[project] = [];
-        collaborations.byProject[project].push(org);
-        if (!collaborations.byOrganisation[org]) collaborations.byOrganisation[org] = [];
-        collaborations.byOrganisation[org].push(project);
-      });
-      deferred.resolve(collaborations);
-    })
-  });
-  return deferred.promise;
+  if (!this.collaorationsPromise) {
+    var deferred = Q.defer();
+    var collaborations = {
+      byProject: {},
+      byOrganisation: {}
+    };
+    this.runCollaboratorsQuery().then(function(results) {
+      results.forEach(function(c) {
+        var org = c.org.value;
+        var projects = c.activity_values.value.split(',');
+        projects.forEach(function(project) {
+          if (!collaborations.byProject[project]) collaborations.byProject[project] = [];
+          collaborations.byProject[project].push(org);
+          if (!collaborations.byOrganisation[org]) collaborations.byOrganisation[org] = [];
+          collaborations.byOrganisation[org].push(project);
+        });
+        deferred.resolve(collaborations);
+      })
+    });
+    this.collaorationsPromise = deferred.promise;
+  }
+
+  return this.collaorationsPromise;
 }
 
 MainMap.prototype.runOrganisationsQuery = function() {
@@ -77,7 +96,7 @@ MainMap.prototype.runOrganisationsQuery = function() {
     .select('?org ?label ?lon ?lat ?country ?city ?org_type ?tf ?activity ?activity_label')
     .where('?org', 'a', 'o:Organization')
     //.where('?org', 'ds:organizationType', '?org_type')
-    //.where('?org', 'rdfs:label', '?label')
+    .where('?org', 'rdfs:label', '?label')
     .where('?org', 'o:hasPrimarySite', '?org_site')
     .where('?org_site', 'geo:long', '?lon')
     .where('?org_site', 'geo:lat', '?lat')
@@ -144,13 +163,18 @@ MainMap.prototype.buildViz = function(organisations) {
     org.y = pos[1];
   });
 
-  var g = svg.append('g');
+  var organisationsById = {};
+  organisations.forEach(function(org) {
+    organisationsById[org.org] = org;
+  });
+  this.organisationsById = organisationsById;
 
-  var collaboratorsPromise = this.getCollaborations();
+  this.DOM.g = svg.append('g');
+  this.DOM.networkGroup = this.DOM.g.append('g');
 
-  var zoom = this.addZoom(svg, g, w, h);
-  this.showOrganisations(svg, g, projection, center, organisations, zoom, collaboratorsPromise);
-  this.showIsoLines(svg, g, organisations, w, h, zoom);
+  var zoom = this.addZoom(svg, this.DOM.g, w, h);
+  this.showOrganisations(svg, this.DOM.g, projection, center, organisations, zoom);
+  this.showIsoLines(svg, this.DOM.g, organisations, w, h, zoom);
 }
 
 MainMap.prototype.addZoom = function(svg, g, w, h) {
@@ -242,15 +266,8 @@ MainMap.prototype.addZoom = function(svg, g, w, h) {
   return zoom;
 }
 
-MainMap.prototype.showOrganisations = function(svg, g, projection, center, organisations, zoom, collaboratorsPromise) {
+MainMap.prototype.showOrganisations = function(svg, g, projection, center, organisations, zoom) {
   var circles = g.selectAll('circle.org').data(organisations);
-
-  var networkGroup = g.append('g');
-
-  var organisationsById = {};
-  organisations.forEach(function(org) {
-    organisationsById[org.org] = org;
-  })
 
   circles.enter()
     .append('circle')
@@ -292,55 +309,52 @@ MainMap.prototype.showOrganisations = function(svg, g, projection, center, organ
   var NESTA = "http://data.digitalsocial.eu/id/organization/eb70a18d-2f2b-62fd-76ca-5a33f71b9f50";
 
   //TODO: verify this is correct data
-  function showNetwork(org, limit) {
-    collaboratorsPromise.then(function(collaborations) {
-      var projects = collaborations.byOrganisation[org];
-      var collaborators = [];
-      projects.forEach(function(project) {
-        collaborations.byProject[project].forEach(function(member) {
-          if (member == org) return;
-          if (collaborators.indexOf('member') == -1) {
-            collaborators.push(member);
-          }
-        })
-      });
-
-      var ns = 'org'
-      if (limit) {
-        collaborators = collaborators.filter(function(c) {
-          return limit.indexOf(c) != -1;
-        });
-        ns += limit.indexOf(org);
-      }
-      else {
-        networkGroup.selectAll('line.network').remove(); //remove existing
-      }
-      var networkPaths = networkGroup.selectAll('line.network.' + ns).data(collaborators);
-      networkPaths.enter()
-        .append('line')
-        .attr('class', 'network ' + ns)
-        .attr('x1', function() { return organisationsById[org].x; })
-        .attr('y1', function() { return organisationsById[org].y; })
-        .attr('x2', function(c) { return organisationsById[c].x; })
-        .attr('y2', function(c) { return organisationsById[c].y; })
-        .attr('stroke', 'black')
-        .attr('stroke-width', 1)
-        .attr('opacity', limit ? 0.05 : 1)
-
-      if (!limit) {
-        collaborators.forEach(function(org_collab) {
-          showNetwork(org_collab, collaborators)
-        })
-      }
-      console.log(collaborators.length);
-    });
-  }
 
   //showNetwork(NESTA);
 }
 
-//function showNetwork(org, collaboratorsPromise) {
-//}
+MainMap.prototype.showNetwork = function(org, limit) {
+  this.getCollaborations().then(function(collaborations) {
+    var projects = collaborations.byOrganisation[org];
+    var collaborators = [];
+    projects.forEach(function(project) {
+      collaborations.byProject[project].forEach(function(member) {
+        if (member == org) return;
+        if (collaborators.indexOf('member') == -1) {
+          collaborators.push(member);
+        }
+      })
+    });
+
+    var ns = 'org'
+    if (limit) {
+      collaborators = collaborators.filter(function(c) {
+        return limit.indexOf(c) != -1;
+      });
+      ns += limit.indexOf(org);
+    }
+    else {
+      this.DOM.networkGroup.selectAll('line.network').remove(); //remove existing
+    }
+    var networkPaths = this.DOM.networkGroup.selectAll('line.network.' + ns).data(collaborators);
+    networkPaths.enter()
+      .append('line')
+      .attr('class', 'network ' + ns)
+      .attr('x1', function() { return this.organisationsById[org].x; }.bind(this))
+      .attr('y1', function() { return this.organisationsById[org].y; }.bind(this))
+      .attr('x2', function(c) { return this.organisationsById[c].x; }.bind(this))
+      .attr('y2', function(c) { return this.organisationsById[c].y; }.bind(this))
+      .attr('stroke', 'black')
+      .attr('stroke-width', 1)
+      .attr('opacity', limit ? 0.05 : 1)
+
+    if (!limit) {
+      collaborators.forEach(function(org_collab) {
+        this.showNetwork(org_collab, collaborators)
+      }.bind(this));
+    }
+  }.bind(this));
+}
 
 MainMap.prototype.showIsoLines = function(svg, g, organisations, w, h, zoom) {
   var randomPoints;
