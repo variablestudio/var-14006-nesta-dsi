@@ -194,10 +194,10 @@
   width: 238px;
   height: 133px;
 
-  padding-top: 60px; /* ugly text hand centering */
+  padding-top: 20px; /* ugly text hand centering */
   text-align: center;
 
-  background: rgba(234, 235, 235, 0.5);
+  background: rgba(234, 235, 235, 0.75);
   color: black;
 
 
@@ -207,6 +207,16 @@
 
 #carousel .carousel-item:hover span {
   top: 0;
+}
+
+#carousel .carousel-item span img {
+  width: 110px;
+  height: 125px;
+  width: 55px;
+  height: 62px;
+  display: block;
+  margin: 0 auto;
+  margin-bottom: 1em;
 }
 
 /*---------------------------------- eu countries -------------------------------------*/

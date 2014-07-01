@@ -114,12 +114,11 @@ Carousel.prototype.filter = function(callback) {
 
 // creates single carousel item
 Carousel.prototype.buildItem = function(data) {
-	var imgUrl = data.coverImage;
-
 	var carouselItem = "<div class=\"carousel-item\" style=\"position: absolute\">";
 	carouselItem += "<a href=\"" + data.url + "\" + alt=\"" + data.name + "\">";
-	if (imgUrl) carouselItem += "<img src=\"" + imgUrl + "\">";
-	carouselItem += "<span>" + data.name + "</span>";
+	if (data.coverImage) carouselItem += "<img src=\"" + data.coverImage + "\">";
+	//if (data.logoImage) carouselItem += "<img src=\"" + data.logoImage + "\">";
+	carouselItem += "<span><img src='"+data.logoImage+"'/>" + data.name + "</span>";
 	carouselItem += "</a>";
 	carouselItem += "</div>";
 
@@ -144,9 +143,19 @@ Carousel.prototype.parseData = function(data) {
 	return data.page.children
 		.map(function(data) {
 			var coverImage = null;
+			var logoImage = null;
 			if (data.attachments.length > 0) {
+				console.log(data.attachments)
 				coverImage = data.attachments[0].images.medium.url;
+				var logos = data.attachments.filter(function(img) {
+					return img.images.full.width == 110 && img.images.full.height == 125;
+				});
+				if (logos.length > 0) {
+					logoImage = logos[0].images.full.url;
+				}
+				console.log(logoImage);
 			}
+
 
 			// prepare tech focus array
 			var techFocus = data.custom_fields["tech-focus"];
@@ -171,9 +180,11 @@ Carousel.prototype.parseData = function(data) {
 				"url": data.url,
 				"areaOfDSI": data.custom_fields["area-of-digital-social-innovation"][0],
 				"techFocus": techFocus,
-				"coverImage": coverImage
+				"coverImage": coverImage,
+				"logoImage": logoImage
 			};
 		})
+		/*
 		.sort(function(a, b) {
 			// sort using cover image
 			var returnVal = 0;
@@ -184,4 +195,5 @@ Carousel.prototype.parseData = function(data) {
 
 			return returnVal;
 		});
+		*/
 };

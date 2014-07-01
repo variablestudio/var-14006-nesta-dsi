@@ -22,7 +22,7 @@
   function initVisualizations() {
     var vizContainer = $('#viz');
 
-    initMainViz(vizContainer);
+    //initMainViz(vizContainer);
     initCaseStudies(vizContainer);
     initEUCountries(vizContainer);
     initChoropleth(vizContainer);
