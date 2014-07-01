@@ -15,10 +15,17 @@
 				margin: 0 auto;
 			}
 
-			.dsi-areas .title {
+			#container > div {
+				float: left;
+				width: 322px;
+				margin-right: 14px;
+			}
+
+			svg .title {
 				font-family: "Helvetica";
 				font-size: 12px;
 			}
+
 		</style>
 
 		<script src='../js/SPARQL.js'></script>
@@ -33,12 +40,25 @@
 			<div class="dsi-areas">
 				<h2>DSI Areas</h2>
 			</div>
+
+			<div class="tech-areas">
+				<h2>Technology Areas</h2>
+			</div>
+
+			<div class="collaborators">
+				<h2>Collaborators</h2>
+			</div>
 		</div>
 
 		<script>
 			var orgURL = "eb70a18d-2f2b-62fd-76ca-5a33f71b9f50";
-			var stats = new Stats(".dsi-areas", orgURL);
+			var divs = {
+				"dsi": ".dsi-areas",
+				"tech": ".tech-areas",
+				"collaborators": ".collaborators"
+			};
 
+			var stats = new Stats(divs, orgURL);
 			stats.init();
 		</script>
 	</body>

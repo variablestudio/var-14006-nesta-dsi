@@ -4,11 +4,15 @@ var indexOfProp = function(data, prop, val) {
 	return data.map(function(o) { return o[prop]; }).indexOf(val);
 };
 
-function Stats(div, org, dsiColors) {
+function Stats(divs, org, dsiColors) {
 	this.data = []; // will be filled on SPARQL query
 
 	this.org = org;
-	this.DOM = { "div": d3.select(div) };
+	this.DOM = {
+		"dsi": d3.select(divs.dsi),
+		"tech": d3.select(divs.tech),
+		"collaborators": d3.select(divs.collaborators)
+	};
 
 	this.DSIColors = dsiColors || {
 		"Open Democracy": "#F9EB40",
@@ -94,27 +98,28 @@ Stats.prototype.init = function() {
 
 Stats.prototype.draw = function() {
 	this.drawDSIAreas();
+	this.drawTechnologyAreas();
+};
+
+Stats.prototype.countField = function(field) {
+	return this.data.reduce(function(memo, object) {
+		object[field].forEach(function(label) {
+			var index = indexOfProp(memo, "name", label);
+
+			if (index < 0) {
+				memo.push({ "name": label, "count": 1 });
+			}
+			else {
+				memo[index].count++;
+			}
+		});
+
+		return memo;
+	}, []);
 };
 
 Stats.prototype.drawDSIAreas = function() {
-	var groupedData = this.data
-		.reduce(function(memo, object) {
-			object.adsi_labels.forEach(function(label) {
-				var index = indexOfProp(memo, "name", label);
-
-				if (index < 0) {
-					memo.push({ "name": label, "count": 1 });
-				}
-				else {
-					memo[index].count++;
-				}
-			});
-
-			return memo;
-		}, [])
-		.filter(function(object) {
-			return (object.count > 0);
-		});
+	var groupedData = this.countField("adsi_labels").filter(function(object) { return (object.count > 0); });
 
 	var width = 322;
 	var height = 40;
@@ -122,7 +127,7 @@ Stats.prototype.drawDSIAreas = function() {
 	var rectHeight = 15;
 	var rectMargin = 4;
 
-	var svg = this.DOM.div
+	var svg = this.DOM.dsi
 		.append("svg")
 		.attr("width", width)
 		.attr("height", height * (groupedData.length + 1))
@@ -146,3 +151,41 @@ Stats.prototype.drawDSIAreas = function() {
 	}.bind(this));
 };
 
+Stats.prototype.drawTechnologyAreas = function() {
+	var groupedData = this.countField("tech_focuses").filter(function(object) { return (object.count > 0); });
+	var maxCount = groupedData.reduce(function(memo, object) {
+		return memo > object.count ? memo : object.count;
+	}, -Infinity);
+
+	var width = 322;
+	var height = 40;
+	var rectHeight = 5;
+	var rectMargin = 4;
+
+	var scale = d3.scale.linear()
+		.domain([0, maxCount])
+		.range([0, width]);
+
+	var svg = this.DOM.tech
+		.append("svg")
+		.attr("width", width)
+		.attr("height", height * (groupedData.length + 1))
+		.attr("class", "tech-areas");
+
+	groupedData.forEach(function(group, index) {
+		svg.append("text")
+			.attr("class", "title")
+			.text(group.name)
+			.attr("y", (index + 1) * height);
+
+		svg.append("rect")
+			.attr("x", 0)
+			.attr("y", (index + 1) * height + rectMargin)
+			.attr("width", scale(group.count))
+			.attr("height", rectHeight);
+	});
+};
+
+Stats.prototype.drawCollaborators = function() {
+
+};
