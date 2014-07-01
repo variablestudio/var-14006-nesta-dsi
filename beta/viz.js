@@ -1,5 +1,5 @@
 (function() {
-  var showIntro = true;
+  var showIntro = false;
 
   function init() {
     if (document.location.pathname != '/' && document.location.pathname.indexOf('beta') == -1) {
@@ -23,10 +23,10 @@
     var vizContainer = $('#viz');
 
     initMainViz(vizContainer);
-    initCaseStudies(vizContainer);
-    initEUCountries(vizContainer);
-    initChoropleth(vizContainer);
-    initExplorer(vizContainer);
+    //initCaseStudies(vizContainer);
+    //initEUCountries(vizContainer);
+    //initChoropleth(vizContainer);
+    //initExplorer(vizContainer);
   }
 
   function initIntroViz(vizContainer, cb) {

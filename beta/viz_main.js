@@ -3,7 +3,17 @@ var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
 var ds = new SPARQLDataSource(SPARQL_URL);
 
 function init() {
-  getOrganisations().then(handleResults);
+  getOrganisations().then(buildViz);
+  hijackSearch();
+}
+
+function hijackSearch() {
+  $('#q').parent().submit(function(e) {
+    console.log($('#q').val())
+    $('#q').hide();
+    e.preventDefault();
+    return false;
+  })
 }
 
 function hsla(h, s, l, a) {
@@ -24,8 +34,27 @@ function getOrganisations() {
     var organisations = results.map(resultValuesToObj);
     deferred.resolve(organisations);
   });
+  return deferred.promise;
+}
+
+function getCollaborations() {
+  var deferred = Q.defer();
+  var collaborations = {
+    byProject: {},
+    byOrganisation: {}
+  };
   runCollaboratorsQuery().then(function(results) {
-    console.log(results);
+    results.forEach(function(c) {
+      var org = c.org.value;
+      var projects = c.activity_values.value.split(',');
+      projects.forEach(function(project) {
+        if (!collaborations.byProject[project]) collaborations.byProject[project] = [];
+        collaborations.byProject[project].push(org);
+        if (!collaborations.byOrganisation[org]) collaborations.byOrganisation[org] = [];
+        collaborations.byOrganisation[org].push(project);
+      });
+      deferred.resolve(collaborations);
+    })
   });
   return deferred.promise;
 }
@@ -69,11 +98,7 @@ function runCollaboratorsQuery() {
     .where("?am", "ds:organization", "?org")
     .where("?am", "ds:activity", "?activity")
     .groupBy("?org")
-    .execute(true);
-}
-
-function handleResults(organisations) {
-  buildViz(organisations);
+    .execute();
 }
 
 function buildViz(organisations) {
@@ -110,8 +135,10 @@ function buildViz(organisations) {
 
   var g = svg.append('g');
 
+  var collaboratorsPromise = getCollaborations();
+
   var zoom = addZoom(svg, g, w, h);
-  showOrganisations(svg, g, projection, center, organisations, zoom);
+  showOrganisations(svg, g, projection, center, organisations, zoom, collaboratorsPromise);
   showIsoLines(svg, g, organisations, w, h, zoom);
 }
 
@@ -149,6 +176,7 @@ function addZoom(svg, g, w, h) {
 
   var prevScale = 1;
 
+  //can't make animations work at the moment
   function updateTransform(translate, scale, animate) {
     if (animate) {
       prevScale = scale;
@@ -159,10 +187,10 @@ function addZoom(svg, g, w, h) {
       g.attr('transform','translate('+translate.join(',')+')scale('+scale+')');
     }
 
-    if (scale < 0.5) {
-      zoom.scale(0.5);
-      zoom.event(svg);
-    }
+    //if (scale < 0.5) {
+    //  zoom.scale(0.5);
+    //  zoom.event(svg);
+    //}
   }
 
   var zoom = d3.behavior.zoom().on('zoom', function() {
@@ -203,8 +231,15 @@ function addZoom(svg, g, w, h) {
   return zoom;
 }
 
-function showOrganisations(svg, g, projection, center, organisations, zoom) {
-  var circles = g.selectAll('circle.org').data(organisations)
+function showOrganisations(svg, g, projection, center, organisations, zoom, collaboratorsPromise) {
+  var circles = g.selectAll('circle.org').data(organisations);
+
+  var networkGroup = g.append('g');
+
+  var organisationsById = {};
+  organisations.forEach(function(org) {
+    organisationsById[org.org] = org;
+  })
 
   circles.enter()
     .append('circle')
@@ -230,14 +265,71 @@ function showOrganisations(svg, g, projection, center, organisations, zoom) {
       return 2;
     })
 
-  circles.exit().transition().duration(300).attr('r', 0).remove()
+  circles.exit().transition().duration(300).attr('r', 0).remove();
+
+  circles.on('click', function(d) {
+    console.log(d);
+  });
 
   zoom.on('zoom.circles', function() {
     circles.attr('r', function() {
       return 2 * 1/d3.event.scale * Math.pow(d3.event.scale, 0.29);
     })
+    g.selectAll('line.network').attr('stroke-width', 1/d3.event.scale);
   });
+
+  var NESTA = "http://data.digitalsocial.eu/id/organization/eb70a18d-2f2b-62fd-76ca-5a33f71b9f50";
+
+  //TODO: verify this is correct data
+  function showNetwork(org, limit) {
+    collaboratorsPromise.then(function(collaborations) {
+      var projects = collaborations.byOrganisation[org];
+      var collaborators = [];
+      projects.forEach(function(project) {
+        collaborations.byProject[project].forEach(function(member) {
+          if (member == org) return;
+          if (collaborators.indexOf('member') == -1) {
+            collaborators.push(member);
+          }
+        })
+      });
+
+      var ns = 'org'
+      if (limit) {
+        collaborators = collaborators.filter(function(c) {
+          return limit.indexOf(c) != -1;
+        });
+        ns += limit.indexOf(org);
+      }
+      else {
+        networkGroup.selectAll('line.network').remove(); //remove existing
+      }
+      var networkPaths = networkGroup.selectAll('line.network.' + ns).data(collaborators);
+      networkPaths.enter()
+        .append('line')
+        .attr('class', 'network ' + ns)
+        .attr('x1', function() { return organisationsById[org].x; })
+        .attr('y1', function() { return organisationsById[org].y; })
+        .attr('x2', function(c) { return organisationsById[c].x; })
+        .attr('y2', function(c) { return organisationsById[c].y; })
+        .attr('stroke', 'black')
+        .attr('stroke-width', 1)
+        .attr('opacity', limit ? 0.05 : 1)
+
+      if (!limit) {
+        collaborators.forEach(function(org_collab) {
+          showNetwork(org_collab, collaborators)
+        })
+      }
+      console.log(collaborators.length);
+    });
+  }
+
+  //showNetwork(NESTA);
 }
+
+//function showNetwork(org, collaboratorsPromise) {
+//}
 
 function showIsoLines(svg, g, organisations, w, h, zoom) {
   var randomPoints;
@@ -339,9 +431,9 @@ function showIsoLines(svg, g, organisations, w, h, zoom) {
     var p0 = triangle[0];
     var p1 = triangle[1];
     var p2 = triangle[2];
-    var sections0 = sections(p0, p1, 5, p2);
-    var sections1 = sections(p0, p2, 5, p1);
-    var sections2 = sections(p1, p2, 5, p0);
+    var sections0 = sections(p0, p1, 10, p2);
+    var sections1 = sections(p0, p2, 10, p1);
+    var sections2 = sections(p1, p2, 10, p0);
     addLines(sections0, sections1);
     addLines(sections0, sections2);
     addLines(sections1, sections2);
