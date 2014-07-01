@@ -63,23 +63,13 @@ function runCollaboratorsQuery() {
     .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
     .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
     .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
-    .select('?org ?label ?lon ?lat ?country ?city ?org_type ?tf ?activity ?activity_label')
+    .select('?org (group_concat(distinct ?activity ; separator = ",") AS ?activity_values)')
     .where('?org', 'a', 'o:Organization')
-    //.where('?org', 'ds:organizationType', '?org_type')
-    //.where('?org', 'rdfs:label', '?label')
-    .where('?org', 'o:hasPrimarySite', '?org_site')
-    .where('?org_site', 'geo:long', '?lon')
-    .where('?org_site', 'geo:lat', '?lat')
-    //.where('?org_site', 'o:siteAddress', '?org_address')
-    //.where('?org_address', 'vcard:country-name', '?country')
-    //.where('?org_address', 'vcard:locality', '?city')
-    //.where("?am", "a", "ds:ActivityMembership")
-    //.where("?am", "ds:organization", "?org")
-    //.where("?am", "ds:activity", "?activity")
-    //.where("?activity", "rdfs:label", "?activity_label")
-    //.where("?activity", "ds:technologyMethod", "?tm")
-    //  .where("?activity", "ds:technologyFocus", "?tf")
-    .execute();
+    .where("?am", "a", "ds:ActivityMembership")
+    .where("?am", "ds:organization", "?org")
+    .where("?am", "ds:activity", "?activity")
+    .groupBy("?org")
+    .execute(true);
 }
 
 function handleResults(organisations) {
