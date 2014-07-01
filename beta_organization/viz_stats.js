@@ -7,13 +7,17 @@ var indexOfProp = function(data, prop, val) {
 function Stats(divs, org, dsiColors) {
 	this.data = []; // will be filled on SPARQL query
 
+	// cache org url
 	this.org = org;
+
+	// cache selectors
 	this.DOM = {
 		"dsi": d3.select(divs.dsi),
 		"tech": d3.select(divs.tech),
 		"collaborators": d3.select(divs.collaborators)
 	};
 
+	// DSI colors and area names
 	this.DSIColors = dsiColors || {
 		"Open Democracy": "#F9EB40",
 		"New Ways of Making": "#f53944",
@@ -22,8 +26,30 @@ function Stats(divs, org, dsiColors) {
 		"Open Access": "#f274c7",
 		"Funding Acceleration and Incubation": "#f79735"
 	};
+
 	this.DSIAreas = Object.keys(this.DSIColors);
 }
+
+Stats.prototype.cleanResults = function(results) {
+	var numericKeys = [ "lat", "long" ];
+
+	return results.map(function(object) {
+		var newObject = {};
+		var key;
+		for (key in object) {
+			if (object.hasOwnProperty(key)) {
+				if (numericKeys.indexOf(key) >= 0) {
+					newObject[key] = +object[key].value;
+				}
+				else {
+					newObject[key] = object[key].value;
+				}
+			}
+		}
+
+		return newObject;
+	});
+};
 
 Stats.prototype.init = function() {
 	var url = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
@@ -35,7 +61,7 @@ Stats.prototype.init = function() {
 		.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
 		.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
 		.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
-		.select("?org_label ?activity_label ?adsi_label ?tech_label")
+		.select("?org_label ?activity_label ?adsi_label ?tech_label ?lat ?long")
 		.where("?org", "a", "o:Organization")
 		.where("FILTER regex(str(?org), \"" + this.org + "\")", "", "")
 		.where("?am", "a", "ds:ActivityMembership")
@@ -47,24 +73,14 @@ Stats.prototype.init = function() {
 		.where("?tf", "rdfs:label", "?tech_label")
 		.where("?adsi", "rdfs:label", "?adsi_label")
 		.where("?org", "rdfs:label", "?org_label")
+		.where("?org", "o:hasPrimarySite", "?org_site")
+		.where("?org_site", "geo:long", "?long")
+		.where("?org_site", "geo:lat", "?lat")
 		.execute()
 		.then(function(results) {
-			this.data = results.map(function(object) {
-				var newObject = {};
-				var key;
-				for (key in object) {
-					if (object.hasOwnProperty(key)) {
-						if (key === "lat" || key === "long") {
-							newObject[key] = +object[key].value;
-						}
-						else {
-							newObject[key] = object[key].value;
-						}
-					}
-				}
+			this.data = this.cleanResults(results);
 
-				return newObject;
-			});
+			var parentOrg = this.data[0].org_label;
 
 			this.data = this.data.reduce(function(memo, object) {
 				var index = indexOfProp(memo, "activity_label", object.activity_label);
@@ -74,6 +90,8 @@ Stats.prototype.init = function() {
 						"activity_label": object.activity_label,
 						"adsi_labels": [ object.adsi_label ],
 						"tech_focuses": [ object.tech_label ],
+						"lat": object.lat,
+						"long": object.long
 					});
 				}
 				else {
@@ -93,7 +111,64 @@ Stats.prototype.init = function() {
 				return memo;
 			}, []);
 
-			this.draw();
+			var projects = this.data.map(function(object) {
+				return object.activity_label;
+			});
+
+			this.queryCollaborators(projects, parentOrg, function() {
+				this.draw();
+			}.bind(this));
+		}.bind(this));
+};
+
+// finds collaborators for given project names and parent organization, callbacks when finished
+Stats.prototype.queryCollaborators = function(projects, parentOrg, callback) {
+	var url = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
+	var ds = new SPARQLDataSource(url);
+
+	// generate projects string for filter
+	var projectsStr = projects.map(function(value) { return "\"" + value + "\""; }).join(", ");
+
+	ds.query()
+		.prefix("o:", "<http://www.w3.org/ns/org#>")
+		.prefix("rdfs:", "<http://www.w3.org/2000/01/rdf-schema#>")
+		.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
+		.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
+		.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
+		.select("DISTINCT ?org_label ?activity_label ?lat ?long")
+		.where("?org", "a", "o:Organization")
+		.where("?org", "rdfs:label", "?org_label")
+		.where("?am", "a", "ds:ActivityMembership")
+		.where("?am", "ds:organization", "?org")
+		.where("?am", "ds:activity", "?activity")
+		.where("?activity", "rdfs:label", "?activity_label")
+		.where("?org", "o:hasPrimarySite", "?org_site")
+		.where("?org_site", "geo:long", "?long")
+		.where("?org_site", "geo:lat", "?lat")
+		.where("FILTER (?activity_label IN (" + projectsStr + "))", "", "")
+		.where("FILTER (?org_label != \"" + parentOrg + "\")", "", "")
+		.execute()
+		.then(function(results) {
+			var collabData = this.cleanResults(results);
+
+			collabData.forEach(function(collab) {
+				var index = indexOfProp(this.data, "activity_label", collab.activity_label);
+			
+				if (index >= 0) {
+					var dataObject = this.data[index];
+
+					if (dataObject.collaborators !== undefined) {
+						dataObject.collaborators.push(collab);
+					}
+					else {
+						dataObject.collaborators = [ collab ];
+					}
+
+					this.data[index] = dataObject;
+				}
+			}.bind(this));
+
+			callback();
 		}.bind(this));
 };
 
@@ -103,6 +178,7 @@ Stats.prototype.draw = function() {
 	this.drawCollaborators();
 };
 
+// counts fields in data that are arrays, used for dsi and technology area charts
 Stats.prototype.countField = function(field) {
 	return this.data.reduce(function(memo, object) {
 		object[field].forEach(function(label) {
@@ -192,12 +268,15 @@ Stats.prototype.drawCollaborators = function() {
 	var width = 322;
 	var height = 322;
 	var hexR = 25;
+	var smallHexR = 15;
 
+	// initial d3 selection passed to lines and hexes
 	var selection = this.DOM.collaborators
 		.append("svg")
 		.attr("width", width)
 		.attr("height", height);
 
+	// prepare proper data for main hex
 	var hexData = this.data.reduce(function(memo, object) {
 		object.adsi_labels.forEach(function(label) {
 			if (memo[label] !== undefined) {
@@ -211,10 +290,81 @@ Stats.prototype.drawCollaborators = function() {
 		return memo;
 	}, {});
 
-	this.drawHex(width / 2, height / 2, hexR, hexData, selection);
+	// filter collaborators
+	var collaborators = this.data.reduce(function(memo, data) {
+		if (data.collaborators) {
+			data.collaborators.forEach(function(collaborator) {
+				if (indexOfProp(memo, "org_label", collaborator.org_label) < 0) {
+					memo.push(collaborator);
+				}
+			});
+		}
+
+		return memo;
+	}, []);
+
+	// initial projection
+	var projection = d3.geo.mercator().scale(1).translate([ 0, 0 ]);
+
+	// create path
+	var path = d3.geo.path().projection(projection);
+
+	// proper object for calculating bounds
+	var multiPoints = {
+		"type": "MultiPoint",
+		"coordinates": collaborators.map(function(object) {
+			return [ object.lat, object.long ];
+		})
+	};
+
+	// add parent lat long to multipoints
+	multiPoints.coordinates.push([ this.data[0].lat, this.data[0].long ]);
+
+	// calculate bounds, scale and translation
+	var bounds = path.bounds(multiPoints);
+	var scale = 0.8 / Math.max(
+		(bounds[1][0] - bounds[0][0]) / width,
+		(bounds[1][1] - bounds[0][1]) / height
+	);
+	var translate = [
+		(width - scale * (bounds[1][0] + bounds[0][0])) / 2,
+		(height - scale * (bounds[1][1] + bounds[0][1])) / 2
+	];
+
+	// update projection
+	projection.scale(scale).translate(translate);
+
+	// get position for parent company
+	var orgPos = projection([ this.data[0].lat, this.data[0].long ]);
+
+	// draw all connecting lines
+	collaborators.forEach(function(collaborator) {
+		var pos = projection([ collaborator.lat, collaborator.long ]);
+		this.drawLine(selection, orgPos[0], orgPos[1], pos[0], pos[1]);
+	}.bind(this));
+
+	// draw all collaborators
+	collaborators.forEach(function(collaborator) {
+		var pos = projection([ collaborator.lat, collaborator.long ]);
+		this.drawHex(selection, pos[0], pos[1], smallHexR, null);
+	}.bind(this));
+
+	// draw main company
+	this.drawHex(selection, orgPos[0], orgPos[1], hexR, hexData);
 };
 
-Stats.prototype.drawHex = function(x, y, r,  data, selection) {
+Stats.prototype.drawLine = function(selection, x1, y1, x2, y2) {
+	selection
+		.append("line")
+		.attr("x1", x1)
+		.attr("x2", x2)
+		.attr("y1", y1)
+		.attr("y2", y2)
+		.attr("stroke", "#DDD")
+		.attr("fill", "none");
+};
+
+Stats.prototype.drawHex = function(selection, x, y, r, data) {
 	var hexBite = function(x, y, r, i) {
 		var a = i/6 * Math.PI * 2 + Math.PI/6;
 		var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
@@ -236,14 +386,17 @@ Stats.prototype.drawHex = function(x, y, r,  data, selection) {
 			.attr("fill", "#FFF");
 	}.bind(this));
 
-	fn.sequence(0, 6).forEach(function(i) {
-		var dsiArea = this.DSIAreas[i];
-		var bite = selection.append("path");
+	// fill hex only if data is passed
+	if (data) {
+		fn.sequence(0, 6).forEach(function(i) {
+			var dsiArea = this.DSIAreas[i];
+			var bite = selection.append("path");
 
-		bite
-			.attr("d", function(org, orgIndex) {
-				return "M" + hexBite(x, y, 5 + Math.min(r - 5, Math.pow(data[dsiArea], 0.6)) || 1, i).join("L") + "Z";
-			})
-			.attr('fill', this.DSIColors[this.DSIAreas[i]]);
-	}.bind(this));
+			bite
+				.attr("d", function(org, orgIndex) {
+					return "M" + hexBite(x, y, 5 + Math.min(r - 5, Math.pow(data[dsiArea], 0.6)) || 1, i).join("L") + "Z";
+				})
+				.attr('fill', this.DSIColors[this.DSIAreas[i]]);
+		}.bind(this));
+	}
 };
