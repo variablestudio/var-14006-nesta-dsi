@@ -153,7 +153,7 @@ Stats.prototype.queryCollaborators = function(projects, parentOrg, callback) {
 
 			collabData.forEach(function(collab) {
 				var index = indexOfProp(this.data, "activity_label", collab.activity_label);
-			
+
 				if (index >= 0) {
 					var dataObject = this.data[index];
 
@@ -219,15 +219,46 @@ Stats.prototype.drawDSIAreas = function() {
 			.attr("fill", this.DSIColors[group.name]);
 
 		fn.sequence(0, group.count).forEach(function(projectIndex) {
-			svg.append("rect")
+			var rect = svg.append("rect")
+				.attr("class", "dsiAreaProject")
 				.attr("x", projectIndex * (rectWidth + rectMargin))
 				.attr("y", (index + 1) * height + rectMargin)
 				.attr("width", rectWidth)
 				.attr("height", rectHeight)
 				.attr("fill", this.DSIColors[group.name]);
+			this.highlightProject(svg, rect, group.name, projectIndex);
 		}.bind(this));
 	}.bind(this));
 };
+
+Stats.prototype.highlightProject = function(svg, rect, groupName, projectIndex) {
+	rect.on("mouseover", function() {
+		svg.selectAll(".dsiAreaProject").transition().duration(200).style("opacity", "0.25")
+		rect.transition().duration(0).style("opacity", "1");
+
+		var projects = this.data.filter(function(p) { return p.adsi_labels.indexOf(groupName) != -1; });
+		var project = projects[projectIndex];
+
+		var techFocuses = this.countField("tech_focuses").filter(function(object) { return (object.count > 0); });
+
+		d3.selectAll('.techFocusBar')
+			.style('opacity', function(d, i) {
+				if (project.tech_focuses.indexOf(techFocuses[i].name) != -1) {
+					return 1;
+				}
+				else {
+					return 0.2;
+				}
+			})
+
+		d3.selectAll('.collaborator').style('opacity', 0.1);
+	}.bind(this));
+	rect.on("mouseout", function() {
+		svg.selectAll(".dsiAreaProject").style("opacity", "1");
+		d3.selectAll('.techFocusBar').style('opacity', 1)
+		d3.selectAll('.collaborator').style('opacity', 1);
+	}.bind(this))
+}
 
 Stats.prototype.drawTechnologyAreas = function() {
 	var groupedData = this.countField("tech_focuses").filter(function(object) { return (object.count > 0); });
@@ -257,6 +288,7 @@ Stats.prototype.drawTechnologyAreas = function() {
 			.attr("y", (index + 1) * height);
 
 		svg.append("rect")
+			.attr("class", "techFocusBar")
 			.attr("x", 0)
 			.attr("y", (index + 1) * height + rectMargin)
 			.attr("width", scale(group.count))
@@ -377,12 +409,13 @@ Stats.prototype.drawHex = function(selection, x, y, r, data) {
 
 	fn.sequence(0, 6).forEach(function(i) {
 		var bite = selection.append("path");
+		if (!data) bite.attr('class', 'collaborator');
 
 		bite
 			.attr("d", function(org, orgIndex) {
 				return "M" + hexBite(x, y, r, i).join("L") + "Z";
 			})
-			.attr("stroke", "#DDD")
+			.attr("stroke", "#666")
 			.attr("fill", "#FFF");
 	}.bind(this));
 
