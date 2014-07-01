@@ -18,7 +18,7 @@ function Intro(introVizContainer, clickCb) {
   var dsiIntroText = [
     'We are setting up a network of organisations that use the Internet for the social good.',
     'Access to open data infrastructures, open knowledge platforms, open hardware, distributed sensor networks and social networking enable collective action at a large scale leading to the emergence of new DSI thematic areas.',
-    'Explore NUM_ORG organisations with NUM_PROJECTS collaborative research and innovation projects (provide number of organisations and projects that automatically update).'
+    'Explore NUM_ORG organisations with NUM_PROJECTS collaborative research and innovation projects.'
   ];
 
   dsiIntroText = dsiIntroText.map(function(line) {
