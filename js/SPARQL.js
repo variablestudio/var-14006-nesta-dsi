@@ -117,7 +117,8 @@ SPARQLQuery.prototype.compile = function() {
   return str;
 }
 
-SPARQLQuery.prototype.execute = function(callback) {
+SPARQLQuery.prototype.execute = function(verbose) {
   var queryStr = this.compile();
-  return this.dataSource.executeQuery(queryStr, callback);
+  if (verbose) console.log(queryStr);
+  return this.dataSource.executeQuery(queryStr);
 }
