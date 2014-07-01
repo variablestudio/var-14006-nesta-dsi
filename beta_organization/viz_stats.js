@@ -22,6 +22,7 @@ function Stats(divs, org, dsiColors) {
 		"Open Access": "#f274c7",
 		"Funding Acceleration and Incubation": "#f79735"
 	};
+	this.DSIAreas = Object.keys(this.DSIColors);
 }
 
 Stats.prototype.init = function() {
@@ -99,6 +100,7 @@ Stats.prototype.init = function() {
 Stats.prototype.draw = function() {
 	this.drawDSIAreas();
 	this.drawTechnologyAreas();
+	this.drawCollaborators();
 };
 
 Stats.prototype.countField = function(field) {
@@ -140,7 +142,7 @@ Stats.prototype.drawDSIAreas = function() {
 			.attr("y", (index + 1) * height)
 			.attr("fill", this.DSIColors[group.name]);
 
-		fn.sequence(0, group.count).map(function(projectIndex) {
+		fn.sequence(0, group.count).forEach(function(projectIndex) {
 			svg.append("rect")
 				.attr("x", projectIndex * (rectWidth + rectMargin))
 				.attr("y", (index + 1) * height + rectMargin)
@@ -187,5 +189,61 @@ Stats.prototype.drawTechnologyAreas = function() {
 };
 
 Stats.prototype.drawCollaborators = function() {
+	var width = 322;
+	var height = 322;
+	var hexR = 25;
 
+	var selection = this.DOM.collaborators
+		.append("svg")
+		.attr("width", width)
+		.attr("height", height);
+
+	var hexData = this.data.reduce(function(memo, object) {
+		object.adsi_labels.forEach(function(label) {
+			if (memo[label] !== undefined) {
+				memo[label]++;
+			}
+			else {
+				memo[label] = 1;
+			}
+		});
+
+		return memo;
+	}, {});
+
+	this.drawHex(width / 2, height / 2, hexR, hexData, selection);
+};
+
+Stats.prototype.drawHex = function(x, y, r,  data, selection) {
+	var hexBite = function(x, y, r, i) {
+		var a = i/6 * Math.PI * 2 + Math.PI/6;
+		var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
+		return [
+			[x, y],
+			[x + r * Math.cos(a), y + r * Math.sin(a)],
+			[x + r * Math.cos(na), y + r * Math.sin(na)]
+		];
+	}
+
+	fn.sequence(0, 6).forEach(function(i) {
+		var bite = selection.append("path");
+
+		bite
+			.attr("d", function(org, orgIndex) {
+				return "M" + hexBite(x, y, r, i).join("L") + "Z";
+			})
+			.attr("stroke", "#DDD")
+			.attr("fill", "#FFF");
+	}.bind(this));
+
+	fn.sequence(0, 6).forEach(function(i) {
+		var dsiArea = this.DSIAreas[i];
+		var bite = selection.append("path");
+
+		bite
+			.attr("d", function(org, orgIndex) {
+				return "M" + hexBite(x, y, 5 + Math.min(r - 5, Math.pow(data[dsiArea], 0.6)) || 1, i).join("L") + "Z";
+			})
+			.attr('fill', this.DSIColors[this.DSIAreas[i]]);
+	}.bind(this));
 };
