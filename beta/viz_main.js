@@ -1,20 +1,4 @@
-var mainVizInit = (function() {
-var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
-var ds = new SPARQLDataSource(SPARQL_URL);
-
-function init() {
-  getOrganisations().then(buildViz);
-  hijackSearch();
-}
-
-function hijackSearch() {
-  $('#q').parent().submit(function(e) {
-    console.log($('#q').val())
-    $('#q').hide();
-    e.preventDefault();
-    return false;
-  })
-}
+var MainMap = (function() {
 
 function hsla(h, s, l, a) {
   return 'hsla(' + h + ',' + 100 * s + '%,' + 100 * l + '%,' + a + ')';
@@ -28,22 +12,43 @@ function resultValuesToObj(result) {
   return o;
 }
 
-function getOrganisations() {
+function MainMap(mainVizContainer) {
+  this.mainVizContainer = mainVizContainer;
+  this.init();
+}
+
+MainMap.prototype.init = function() {
+  this.getOrganisations().then(this.buildViz.bind(this));
+  this.hijackSearch();
+}
+
+MainMap.prototype.hijackSearch = function() {
+  $('#q').parent().submit(function(e) {
+    console.log($('#q').val())
+    $('#q').hide();
+    e.preventDefault();
+    return false;
+  })
+}
+
+
+
+MainMap.prototype.getOrganisations = function() {
   var deferred = Q.defer();
-  runOrganisationsQuery().then(function(results) {
+  this.runOrganisationsQuery().then(function(results) {
     var organisations = results.map(resultValuesToObj);
     deferred.resolve(organisations);
   });
   return deferred.promise;
 }
 
-function getCollaborations() {
+MainMap.prototype.getCollaborations = function() {
   var deferred = Q.defer();
   var collaborations = {
     byProject: {},
     byOrganisation: {}
   };
-  runCollaboratorsQuery().then(function(results) {
+  this.runCollaboratorsQuery().then(function(results) {
     results.forEach(function(c) {
       var org = c.org.value;
       var projects = c.activity_values.value.split(',');
@@ -59,7 +64,10 @@ function getCollaborations() {
   return deferred.promise;
 }
 
-function runOrganisationsQuery() {
+MainMap.prototype.runOrganisationsQuery = function() {
+  var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
+  var ds = new SPARQLDataSource(SPARQL_URL);
+
   return ds.query()
     .prefix('o:', '<http://www.w3.org/ns/org#>')
     .prefix('rdfs:', '<http://www.w3.org/2000/01/rdf-schema#>')
@@ -85,7 +93,10 @@ function runOrganisationsQuery() {
     .execute();
 }
 
-function runCollaboratorsQuery() {
+MainMap.prototype.runCollaboratorsQuery = function() {
+  var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
+  var ds = new SPARQLDataSource(SPARQL_URL);
+
   return ds.query()
     .prefix('o:', '<http://www.w3.org/ns/org#>')
     .prefix('rdfs:', '<http://www.w3.org/2000/01/rdf-schema#>')
@@ -101,13 +112,13 @@ function runCollaboratorsQuery() {
     .execute();
 }
 
-function buildViz(organisations) {
+MainMap.prototype.buildViz = function(organisations) {
   var w = window.innerWidth;
   var h = window.innerHeight - 360;
   h = Math.min(h, 500);
   h = Math.max(300, h);
 
-  var svg = d3.select('#mainViz')
+  var svg = d3.select(this.mainVizContainer)
     .append('svg')
     .attr('width', w)
     .attr('height', h);
@@ -135,14 +146,14 @@ function buildViz(organisations) {
 
   var g = svg.append('g');
 
-  var collaboratorsPromise = getCollaborations();
+  var collaboratorsPromise = this.getCollaborations();
 
-  var zoom = addZoom(svg, g, w, h);
-  showOrganisations(svg, g, projection, center, organisations, zoom, collaboratorsPromise);
-  showIsoLines(svg, g, organisations, w, h, zoom);
+  var zoom = this.addZoom(svg, g, w, h);
+  this.showOrganisations(svg, g, projection, center, organisations, zoom, collaboratorsPromise);
+  this.showIsoLines(svg, g, organisations, w, h, zoom);
 }
 
-function addZoom(svg, g, w, h) {
+MainMap.prototype.addZoom = function(svg, g, w, h) {
   var rectSize = 30;
   var margin = 10;
   var spacing = 2;
@@ -231,7 +242,7 @@ function addZoom(svg, g, w, h) {
   return zoom;
 }
 
-function showOrganisations(svg, g, projection, center, organisations, zoom, collaboratorsPromise) {
+MainMap.prototype.showOrganisations = function(svg, g, projection, center, organisations, zoom, collaboratorsPromise) {
   var circles = g.selectAll('circle.org').data(organisations);
 
   var networkGroup = g.append('g');
@@ -331,7 +342,7 @@ function showOrganisations(svg, g, projection, center, organisations, zoom, coll
 //function showNetwork(org, collaboratorsPromise) {
 //}
 
-function showIsoLines(svg, g, organisations, w, h, zoom) {
+MainMap.prototype.showIsoLines = function(svg, g, organisations, w, h, zoom) {
   var randomPoints;
   var numPoints = 4002;
 
@@ -462,12 +473,6 @@ function showIsoLines(svg, g, organisations, w, h, zoom) {
 }
 
 
-function filter(dsiArea, color) {
-  console.log('filter', dsiArea, color)
-  buildViz(allResults.filter(function(org) {
-    return org.dsiAreas.indexOf(dsiArea) !== -1;
-  }), color);
-}
+return MainMap;
 
-return init;
 })();

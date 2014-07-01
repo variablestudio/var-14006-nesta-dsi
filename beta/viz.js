@@ -39,7 +39,7 @@
     var mainViz = $('<div id="mainViz"></div>');
     vizContainer.append(mainViz);
 
-    mainVizInit();
+    new MainMap("#mainViz");
   }
 
   function initCaseStudies(vizContainer) {
