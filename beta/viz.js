@@ -1,23 +1,27 @@
 (function() {
   function init() {
+    if (document.location.pathname != '/' && document.location.pathname.indexOf('beta') == -1) {
+      return;
+    }
     var mainContainer = document.getElementById('main');
     mainContainer.removeChild(mainContainer.childNodes[0]);
     mainContainer.removeChild(mainContainer.childNodes[0]);
 
     var vizContainer = $('#viz');
 
-    //initIntroViz(vizContainer);
-    initMainViz(vizContainer);
-    initCaseStudies(vizContainer);
-    initEUCountries(vizContainer);
-    initChoropleth(vizContainer);
-    initExplorer(vizContainer);
+    initIntroViz(vizContainer, function() {
+      initMainViz(vizContainer);
+      initCaseStudies(vizContainer);
+      initEUCountries(vizContainer);
+      initChoropleth(vizContainer);
+      initExplorer(vizContainer);
+    });
   }
 
-  function initIntroViz(vizContainer) {
+  function initIntroViz(vizContainer, cb) {
     var introViz = $('<div id="introViz"></div>');
     vizContainer.append(introViz);
-    var intro = new Intro(introViz);
+    var intro = new Intro(introViz, cb);
   }
 
   function initMainViz(vizContainer) {
@@ -51,7 +55,7 @@
   }
 
   function initEUCountries(vizContainer) {
-    var euCountriesTitle = $('<h1>Projects by EU Country</h1>');
+    var euCountriesTitle = $('<h1>EU Countries with most DSI Projects</h1>');
     vizContainer.append(euCountriesTitle);
 
     var countriesViz = $('<div id="countriesViz"></div>');

@@ -112,6 +112,8 @@ Countries.prototype.init = function() {
 				return -(a.projects_count - b.projects_count);
 			});
 
+			data = data.slice(0, 8);
+
 			// add empty labels
 			data = data.map(function(object) {
 				this.ADSILabels.forEach(function(adsiLabel) {
