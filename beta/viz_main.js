@@ -24,10 +24,39 @@ function getOrganisations() {
     var organisations = results.map(resultValuesToObj);
     deferred.resolve(organisations);
   });
+  runCollaboratorsQuery().then(function(results) {
+    console.log(results);
+  });
   return deferred.promise;
 }
 
 function runOrganisationsQuery() {
+  return ds.query()
+    .prefix('o:', '<http://www.w3.org/ns/org#>')
+    .prefix('rdfs:', '<http://www.w3.org/2000/01/rdf-schema#>')
+    .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
+    .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
+    .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
+    .select('?org ?label ?lon ?lat ?country ?city ?org_type ?tf ?activity ?activity_label')
+    .where('?org', 'a', 'o:Organization')
+    //.where('?org', 'ds:organizationType', '?org_type')
+    //.where('?org', 'rdfs:label', '?label')
+    .where('?org', 'o:hasPrimarySite', '?org_site')
+    .where('?org_site', 'geo:long', '?lon')
+    .where('?org_site', 'geo:lat', '?lat')
+    //.where('?org_site', 'o:siteAddress', '?org_address')
+    //.where('?org_address', 'vcard:country-name', '?country')
+    //.where('?org_address', 'vcard:locality', '?city')
+    //.where("?am", "a", "ds:ActivityMembership")
+    //.where("?am", "ds:organization", "?org")
+    //.where("?am", "ds:activity", "?activity")
+    //.where("?activity", "rdfs:label", "?activity_label")
+    //.where("?activity", "ds:technologyMethod", "?tm")
+    //  .where("?activity", "ds:technologyFocus", "?tf")
+    .execute();
+}
+
+function runCollaboratorsQuery() {
   return ds.query()
     .prefix('o:', '<http://www.w3.org/ns/org#>')
     .prefix('rdfs:', '<http://www.w3.org/2000/01/rdf-schema#>')
@@ -93,7 +122,7 @@ function buildViz(organisations) {
 
   var zoom = addZoom(svg, g, w, h);
   showOrganisations(svg, g, projection, center, organisations, zoom);
-  showIsoLines(svg, g, organisations, w, h);
+  showIsoLines(svg, g, organisations, w, h, zoom);
 }
 
 function addZoom(svg, g, w, h) {
@@ -215,16 +244,16 @@ function showOrganisations(svg, g, projection, center, organisations, zoom) {
 
   zoom.on('zoom.circles', function() {
     circles.attr('r', function() {
-      return 2 /  d3.event.scale;
+      return 2 * 1/d3.event.scale * Math.pow(d3.event.scale, 0.29);
     })
   });
 }
 
-function showIsoLines(svg, g, organisations, w, h) {
+function showIsoLines(svg, g, organisations, w, h, zoom) {
   var randomPoints;
   var numPoints = 4002;
 
-  var color = hsla(0, 0, 0, 0.2);
+  var color = hsla(0, 0, 0, 0.1);
 
   if (localStorage['randomPoints'] && localStorage['randomPoints'] != 'null') {
     randomPoints = JSON.parse(localStorage['randomPoints']);
@@ -241,7 +270,7 @@ function showIsoLines(svg, g, organisations, w, h) {
     localStorage['randomPoints'] = JSON.stringify(randomPoints);
   }
 
-  var minR = 100;
+  var minR = 30;
   var minR2 = minR * minR;
 
   randomPoints.forEach(function(p) {
@@ -254,6 +283,8 @@ function showIsoLines(svg, g, organisations, w, h) {
     })
   })
 
+  /*
+  //Debug circles
   var points = g.selectAll('circle.triPoint').data(randomPoints);
   points.enter()
     .append('circle')
@@ -270,6 +301,7 @@ function showIsoLines(svg, g, organisations, w, h) {
     //.attr('r', function(d) { return Math.pow(d[2], 0.47); })
     .attr('r', minR)
     //.style('display', 'none');
+  */
 
   var triangles = d3.geom.delaunay(randomPoints);
   var toArrayOfPoints = function(p) { return [p[0], p[1]]; };
@@ -317,9 +349,9 @@ function showIsoLines(svg, g, organisations, w, h) {
     var p0 = triangle[0];
     var p1 = triangle[1];
     var p2 = triangle[2];
-    var sections0 = sections(p0, p1, 6, p2);
-    var sections1 = sections(p0, p2, 6, p1);
-    var sections2 = sections(p1, p2, 6, p0);
+    var sections0 = sections(p0, p1, 5, p2);
+    var sections1 = sections(p0, p2, 5, p1);
+    var sections2 = sections(p1, p2, 5, p0);
     addLines(sections0, sections1);
     addLines(sections0, sections2);
     addLines(sections1, sections2);
@@ -339,6 +371,12 @@ function showIsoLines(svg, g, organisations, w, h) {
     .attr('stroke', color)
     .attr("d", function(d) { return d.data });
   path.style('fill', 'none');
+
+  zoom.on('zoom.isolines', function() {
+    path.attr('stroke-width', function() {
+      return 2 /  d3.event.scale;
+    })
+  });
 }
 
 
