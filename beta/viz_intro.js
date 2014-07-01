@@ -1,8 +1,8 @@
 function Intro(introVizContainer, clickCb) {
   var w = window.innerWidth;
-  var h = window.innerHeight - 260;
-  h = Math.min(h, 600);
-  h = Math.max(300, h);
+  var h = window.innerHeight - 140;
+  //h = Math.min(h, 600);
+  //h = Math.max(300, h);
 
   var contentWidth = 994;
   introVizContainer.css('height', h);
@@ -13,7 +13,6 @@ function Intro(introVizContainer, clickCb) {
 
   var numOrganizations = 516;
   var numProjects = 319;
-
 
   var dsiIntroText = [
     'We are setting up a network of organisations that use the Internet for the social good.',
