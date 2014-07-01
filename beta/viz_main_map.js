@@ -18,7 +18,28 @@ function MainMap(mainVizContainer) {
   this.init();
 }
 
+MainMap.prototype.initSVG = function() {
+  this.w = window.innerWidth;
+  this.h = window.innerHeight - 360;
+  this.h = Math.min(this.h, 500);
+  this.h = Math.max(300, this.h);
+  var svg = d3.select(this.mainVizContainer)
+    .append('svg')
+    .attr('width', this.w)
+    .attr('height', this.h);
+
+  svg.append('rect')
+    .attr('fill', '#FAFAFA')
+    .attr('class', 'bg')
+    .attr('x', 0)
+    .attr('y', 0)
+    .attr('width', this.w)
+    .attr('height', this.h);
+}
+
 MainMap.prototype.init = function() {
+  this.initSVG();
+
   this.getOrganisations().then(function(organisations) {
 
     this.organisations = organisations;
@@ -134,23 +155,10 @@ MainMap.prototype.runCollaboratorsQuery = function() {
 }
 
 MainMap.prototype.buildViz = function(organisations) {
-  var w = window.innerWidth;
-  var h = window.innerHeight - 360;
-  h = Math.min(h, 500);
-  h = Math.max(300, h);
-
-  var svg = d3.select(this.mainVizContainer)
-    .append('svg')
-    .attr('width', w)
-    .attr('height', h);
-
-  svg.append('rect')
-    .attr('fill', '#FAFAFA')
-    .attr('class', 'bg')
-    .attr('x', 0)
-    .attr('y', 0)
-    .attr('width', w)
-    .attr('height', h);
+  var w = this.w;
+  var h = this.h;
+  var svg = this.svg;
+  
 
   var scale  = 700;
   var offset = [w/2, h/2];
@@ -179,7 +187,7 @@ MainMap.prototype.buildViz = function(organisations) {
   var zoom = this.addZoom(svg, this.DOM.g, w, h);
   this.showWorldMap(svg, this.DOM.g, projection);
   this.showOrganisations(svg, this.DOM.g, projection, center, organisations, zoom);
-  this.showIsoLines(svg, this.DOM.g, organisations, w, h, zoom);
+  //this.showIsoLines(svg, this.DOM.g, organisations, w, h, zoom);
 }
 
 MainMap.prototype.addZoom = function(svg, g, w, h) {
