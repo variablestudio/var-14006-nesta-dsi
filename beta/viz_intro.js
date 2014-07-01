@@ -11,8 +11,8 @@ function Intro(introVizContainer, clickCb) {
   var dsiTitle = '6 DSI AREAS:';
   var techTitle = '4 DSI TECHNOLOGY FOCUSES:';
 
-  var numOrganizations = 300;
-  var numProjects = 450;
+  var numOrganizations = 516;
+  var numProjects = 319;
 
 
   var dsiIntroText = [

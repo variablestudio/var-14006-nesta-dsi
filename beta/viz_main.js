@@ -1,10 +1,219 @@
 var mainVizInit = (function() {
-  var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
+var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
 var ds = new SPARQLDataSource(SPARQL_URL);
-var useCache = false;
-var allResults;
 
 function init() {
+  getOrganisations().then(handleResults);
+}
+
+function resultValuesToObj(result) {
+  var o = {};
+  for (var prop in result) {
+    o[prop] = result[prop].value;
+  }
+  return o;
+}
+
+function getOrganisations() {
+  var deferred = Q.defer();
+  runOrganisationsQuery().then(function(results) {
+    var organisations = results.map(resultValuesToObj);
+    deferred.resolve(organisations);
+  });
+  return deferred.promise;
+}
+
+function runOrganisationsQuery() {
+  return ds.query()
+    .prefix('o:', '<http://www.w3.org/ns/org#>')
+    .prefix('rdfs:', '<http://www.w3.org/2000/01/rdf-schema#>')
+    .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
+    .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
+    .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
+    .select('?org ?label ?lon ?lat ?country ?city ?org_type ?tf ?activity ?activity_label')
+    .where('?org', 'a', 'o:Organization')
+    //.where('?org', 'ds:organizationType', '?org_type')
+    //.where('?org', 'rdfs:label', '?label')
+    .where('?org', 'o:hasPrimarySite', '?org_site')
+    .where('?org_site', 'geo:long', '?lon')
+    .where('?org_site', 'geo:lat', '?lat')
+    //.where('?org_site', 'o:siteAddress', '?org_address')
+    //.where('?org_address', 'vcard:country-name', '?country')
+    //.where('?org_address', 'vcard:locality', '?city')
+    //.where("?am", "a", "ds:ActivityMembership")
+    //.where("?am", "ds:organization", "?org")
+    //.where("?am", "ds:activity", "?activity")
+    //.where("?activity", "rdfs:label", "?activity_label")
+    //.where("?activity", "ds:technologyMethod", "?tm")
+    //  .where("?activity", "ds:technologyFocus", "?tf")
+    .execute();
+}
+
+function handleResults(organisations) {
+  buildViz(organisations);
+}
+
+function buildViz(organisations) {
+  var w = window.innerWidth;
+  var h = window.innerHeight - 360;
+  h = Math.min(h, 500);
+  h = Math.max(300, h);
+
+  var svg = d3.select('#mainViz')
+    .append('svg')
+    .attr('width', w)
+    .attr('height', h);
+
+  svg.append('rect')
+    .attr('fill', '#FAFAFA')
+    .attr('class', 'bg')
+    .attr('x', 0)
+    .attr('y', 0)
+    .attr('width', w)
+    .attr('height', h);
+
+  var scale  = 700;
+  var offset = [w/2, h/2];
+  var center = [10, 50];
+  var projection = d3.geo.mercator()
+    .scale(scale).center(center)
+    .translate(offset);
+
+  organisations.forEach(function(org) {
+    var pos = projection([org.lon, org.lat]);
+    org.x = pos[0];
+    org.y = pos[1];
+  });
+
+  var g = svg.append('g');
+
+  var zoom = addZoom(svg, g, w, h);
+
+  showOrganisations(g, projection, center, organisations, zoom);
+}
+
+function addZoom(svg, g, w, h) {
+  var rectSize = 30;
+  var margin = 10;
+  var spacing = 2;
+  var zoomIn = svg.append('g');
+  zoomIn.append('rect')
+    .attr('fill', '#DDD')
+    .attr('x', w - rectSize - margin)
+    .attr('y', margin)
+    .attr('width', rectSize)
+    .attr('height', rectSize);
+  zoomIn.append('text')
+    .attr('fill', '#666')
+    .text('+')
+    .attr('x', w - rectSize*0.5 - margin)
+    .attr('y', margin + rectSize*0.65)
+    .attr('text-anchor', 'middle')
+
+  var zoomOut = svg.append('g');
+  zoomOut.append('rect')
+    .attr('fill', '#DDD')
+    .attr('x', w - rectSize - margin)
+    .attr('y', margin + rectSize + spacing)
+    .attr('width', rectSize)
+    .attr('height', rectSize);
+  zoomOut.append('text')
+    .attr('fill', '#666')
+    .text('-')
+    .attr('x', w - rectSize*0.5 - margin)
+    .attr('y', margin + rectSize + spacing + rectSize*0.65)
+    .attr('text-anchor', 'middle')
+
+  var prevScale = 1;
+
+  function updateTransform(translate, scale, animate) {
+    if (animate) {
+      prevScale = scale;
+      //g.transition().duration(200).attr('transform','translate('+translate.join(',')+')scale('+scale+')');
+      g.attr('transform','translate('+translate.join(',')+')scale('+scale+')');
+    }
+    else {
+      g.attr('transform','translate('+translate.join(',')+')scale('+scale+')');
+    }
+
+    if (scale < 0.5) {
+      zoom.scale(0.5);
+    }
+  }
+
+  var zoom = d3.behavior.zoom().on('zoom', function() {
+    updateTransform(d3.event.translate, d3.event.scale);
+  });
+
+  zoomIn.on('click', function(e) {
+    d3.event.stopPropagation()
+    d3.event.preventDefault();
+    var scale = 2;
+    var newZoom = zoom.scale() * scale;
+    var newX = ((zoom.translate()[0] - (w / 2)) * scale) + w / 2;
+    var newY = ((zoom.translate()[1] - (h / 2)) * scale) + h / 2;
+    zoom.scale(newZoom);
+    zoom.translate([newX, newY]);
+    zoom.event(svg)
+    return false;
+  })
+
+  zoomOut.on('click', function(e) {
+    d3.event.stopPropagation()
+    d3.event.preventDefault();
+    var scale = 1/2;
+    var newZoom = zoom.scale() * scale;
+    var newX = ((zoom.translate()[0] - (w / 2)) * scale) + w / 2;
+    var newY = ((zoom.translate()[1] - (h / 2)) * scale) + h / 2;
+    zoom.scale(newZoom);
+    zoom.translate([newX, newY])
+    zoom.event(svg)
+    return false;
+  })
+
+  svg.call(zoom)
+  svg.on("dblclick.zoom", null);
+
+  return zoom;
+}
+
+function showOrganisations(g, projection, center, organisations, zoom) {
+  var circles = g.selectAll('circle.org').data(organisations)
+
+  circles.enter()
+    .append('circle')
+    .attr('class', 'org')
+    .attr('r', 5)
+    .attr('cx', 0)
+    .attr('cy', 0)
+    .attr('transform', function(d) {
+      var pos = projection(center);
+      return "translate(" + pos[0] + "," + pos[1] + ")"
+    })
+
+  circles
+    .transition()
+    .duration(300)
+    .attr('transform', function(d) {
+      return "translate(" + d.x + "," + d.y + ")"
+    })
+    .attr('fill', function(org) {
+      return '#000000';
+    })
+    .attr('r', function(org) {
+      return 2;
+    })
+
+  circles.exit().transition().duration(300).attr('r', 0).remove()
+
+  zoom.on('zoom.circles', function() {
+    circles.attr('r', function() {
+      return 5 /  d3.event.scale;
+    })
+  });
+}
+
+function initOld() {
   if (useCache && localStorage['data_19']) {
     allResults = JSON.parse(localStorage['data_19']);
     buildViz(allResults);
@@ -69,18 +278,13 @@ function hsla(h, s, l, a) {
   return 'hsla(' + h + ',' + 100 * s + '%,' + 100 * l + '%,' + a + ')';
 }
 
-
 var svg;
 
-function buildViz(results, color) {
+function buildVizOld(results, color) {
   var hue = 229;
   color = color || '#DDDDDD';
   console.log('buildViz', results.length);
-  var w = window.innerWidth;
-  var h = window.innerHeight - 360;
-  h = Math.min(h, 500);
-  h = Math.max(300, h);
-
+  
 
   d3.select('#sidebar').style('height', h + 'px');
 
@@ -92,22 +296,6 @@ function buildViz(results, color) {
     org.y = latitude(org.lat.value);
   })
 
-  if (!svg) {
-    svg = d3.select('#mainViz')
-              .append('svg')
-              .attr('width', w)
-              .attr('height', h);
-
-    svg.append('rect')
-      .attr('fill', '#FAFAFA')
-      .attr('class', 'bg')
-      .attr('x', 0)
-      .attr('y', 0)
-      .attr('width', w)
-      .attr('height', h);
-
-  }
-
   var cities = [];
   var cityInfo = {};
   var orgTypes = [];
@@ -117,17 +305,17 @@ function buildViz(results, color) {
     var city = org.city.value;
     if (orgTypes.indexOf(type) == -1) orgTypes.push(type);
     if (!cityInfo[city]) {
-      cityInfo[city] = { name: city, lat: 0, long:0, organizations: [] };
+      cityInfo[city] = { name: city, lat: 0, long:0, organisations: [] };
       cities.push(cityInfo[city]);
     }
-    cityInfo[city].organizations.push(org);
+    cityInfo[city].organisations.push(org);
     cityInfo[city].lat += Number(org.lat.value);
     cityInfo[city].long += Number(org.long.value);
   });
 
   cities.forEach(function(city) {
-    city.lat /= city.organizations.length;
-    city.long /= city.organizations.length;
+    city.lat /= city.organisations.length;
+    city.long /= city.organisations.length;
     if (city.name == 'London') {
 
     }
@@ -137,39 +325,7 @@ function buildViz(results, color) {
   });
 
   buildIsoLines(results, svg, longitude, latitude, color);
-
-  var circles = svg.selectAll('circle.org').data(results)
-    circles.enter()
-      .append('circle')
-      .attr('class', 'org')
-      .attr('r', 0)
-
-    circles
-      .transition()
-      .duration(300)
-      .attr('cx', function(org) {
-        var city = cityInfo[org.city.value];
-        return longitude(city.long);
-      })
-      .attr('cy', function(org) {
-        var city = cityInfo[org.city.value];
-        return latitude(city.lat);
-      })
-      .attr('fill', function(org) {
-        var typeIndex = orgTypes.indexOf(org.org_type.value);
-        //return hsla(typeIndex/orgTypes.length*360 + 50, 0.8, 0.6, 0.12)
-        //return hsla(hue, 0.52, 0.6, 0.29)
-        //return '#7A92FD'
-        return '#000000';
-        //return color;
-      })
-      .attr('r', function(org) {
-        var city = cityInfo[org.city.value];
-        return 2 + Math.pow(city.organizations.length, 0.5);
-      })
-
-    circles.exit().transition().duration(300).attr('r', 0).remove()
-  }
+}
 
   //gen random points
   //triangulate

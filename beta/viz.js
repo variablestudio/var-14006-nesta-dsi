@@ -1,4 +1,6 @@
 (function() {
+  var showIntro = false;
+
   function init() {
     if (document.location.pathname != '/' && document.location.pathname.indexOf('beta') == -1) {
       return;
@@ -9,13 +11,22 @@
 
     var vizContainer = $('#viz');
 
-    initIntroViz(vizContainer, function() {
-      initMainViz(vizContainer);
-      initCaseStudies(vizContainer);
-      initEUCountries(vizContainer);
-      initChoropleth(vizContainer);
-      initExplorer(vizContainer);
-    });
+    if (showIntro) {
+      initIntroViz(vizContainer, initVisualizations);
+    }
+    else {
+      initVisualizations();
+    }
+  }
+
+  function initVisualizations() {
+    var vizContainer = $('#viz');
+
+    initMainViz(vizContainer);
+    //initCaseStudies(vizContainer);
+    //initEUCountries(vizContainer);
+    //initChoropleth(vizContainer);
+    //initExplorer(vizContainer);
   }
 
   function initIntroViz(vizContainer, cb) {
