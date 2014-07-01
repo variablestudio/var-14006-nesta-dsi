@@ -315,9 +315,9 @@ MainMap.prototype.showOrganisations = function(svg, g, projection, center, organ
 
   circles.exit().transition().duration(300).attr('r', 0).remove();
 
-  circles.on('click', function(d) {
-    console.log(d);
-  });
+  circles.on('click', function(organization) {
+    this.showNetwork(organization.org)
+  }.bind(this));
 
   zoom.on('zoom.circles', function() {
     var r = 3 * 1/d3.event.scale * Math.pow(d3.event.scale, 0.29);
@@ -340,7 +340,7 @@ MainMap.prototype.showNetwork = function(org, limit) {
     var projects = collaborations.byOrganisation[org];
     var collaborators = [];
 
-    console.time('showNetwork collab');
+    if (!projects) return;
     projects.forEach(function(project) {
       collaborations.byProject[project].forEach(function(member) {
         if (member == org) return;
@@ -349,7 +349,6 @@ MainMap.prototype.showNetwork = function(org, limit) {
         }
       })
     });
-    console.timeEnd('showNetwork collab');
 
     var ns = 'org'
     if (limit) {
