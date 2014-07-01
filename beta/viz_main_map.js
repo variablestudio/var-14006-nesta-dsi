@@ -23,12 +23,12 @@ MainMap.prototype.initSVG = function() {
   this.h = window.innerHeight - 360;
   this.h = Math.min(this.h, 500);
   this.h = Math.max(300, this.h);
-  var svg = d3.select(this.mainVizContainer)
+  this.svg = d3.select(this.mainVizContainer)
     .append('svg')
     .attr('width', this.w)
     .attr('height', this.h);
 
-  svg.append('rect')
+  this.svg.append('rect')
     .attr('fill', '#FAFAFA')
     .attr('class', 'bg')
     .attr('x', 0)
