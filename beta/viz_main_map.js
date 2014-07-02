@@ -241,7 +241,7 @@ MainMap.prototype.addZoom = function(svg, g, w, h) {
     //}
   }
 
-  var zoom = d3.behavior.zoom().on('zoom', function() {
+  var zoom = d3.behavior.zoom().scaleExtent([1, 8192]).on('zoom', function() {
     updateTransform(d3.event.translate, d3.event.scale);
   });
 
@@ -274,7 +274,10 @@ MainMap.prototype.addZoom = function(svg, g, w, h) {
   })
 
   svg.call(zoom)
-  svg.on("dblclick.zoom", null);
+  svg.on("mousewheel.zoom", null)
+  .on("DOMMouseScroll.zoom", null)
+  .on("wheel.zoom", null);
+  //svg.on("dblclick.zoom", null);
 
   return zoom;
 }
