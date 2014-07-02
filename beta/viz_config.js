@@ -18,6 +18,15 @@ VizConfig.dsiAreasById = {
   'open-access': VizConfig.dsiAreas[5]
 };
 
+VizConfig.dsiAreasByLabel = {
+  'Funding Acceleration and Incubation': VizConfig.dsiAreas[0],
+  'Collaborative Economy': VizConfig.dsiAreas[1],
+  'Open Democracy': VizConfig.dsiAreas[2],
+  'Awareness Networks': VizConfig.dsiAreas[3],
+  'New Ways of Making': VizConfig.dsiAreas[4],
+  'Open Access': VizConfig.dsiAreas[5]
+};
+
 VizConfig.technologyFocuses = [
   { title: 'Open Hardware', icon: 'assets/tech-open-hardware.png' },
   { title: 'Open Networks', icon: 'assets/tech-open-networks.png' },

@@ -221,7 +221,7 @@ Countries.prototype.drawBarChart = function(div, data) {
 			return height - scaleY(d.count);
 		})
 		.attr("fill", function(d) {
-			return this.ADSIColors[d.name];
+			return VizConfig.dsiAreasByLabel[d.name].color;
 		}.bind(this));
 };
 
