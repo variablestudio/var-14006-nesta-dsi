@@ -1886,6 +1886,9 @@ MainMap.prototype.initSVG = function() {
 MainMap.prototype.init = function() {
   this.initSVG();
 
+  this.preloader = $('<img id="vizPreloader" src="'+VizConfig.assetsPath+'/preloader.gif"/>');
+  $(this.mainVizContainer).append(this.preloader);
+
   this.getOrganisations().then(function(organisations) {
 
     this.organisations = organisations;
@@ -1893,8 +1896,10 @@ MainMap.prototype.init = function() {
     this.hijackSearch();
 
      //pre cache
-    this.getCollaborations().then(function() {
-      this.getProjectsInfo();
+    this.getCollaborations().then(function(collaborations) {
+      this.getProjectsInfo(collaborations).then(function() {
+        this.preloader.fadeOut('slow')
+      }.bind(this));
     }.bind(this));
   }.bind(this));
 }
@@ -1955,17 +1960,45 @@ MainMap.prototype.getCollaborations = function() {
   return this.collaorationsPromise;
 }
 
-MainMap.prototype.getProjectsInfo = function() {
+MainMap.prototype.getProjectsInfo = function(collaborations) {
   var deferred = Q.defer();
   this.runProjectsInfoQuery().then(function(results) {
     var projects = results.map(function(p) {
       return {
-        p: p.p,
+        p: p.p.value,
         technologyFocus: p.tf_values.value.split(',').map(function(f) { return f.substr(f.lastIndexOf('/')+1); }),
         areaOfDigitalSocialInnovation: p.adsi_values.value.split(',').map(function(f) { return f.substr(f.lastIndexOf('/')+1); })
       }
     })
-    console.log('projects', projects[0], projects[0])
+
+    projects.forEach(function(project) {
+      var orgs = collaborations.byProject[project.p] || [];
+      //if (Math.random() > 0.99) console.log(project.p)
+      orgs.forEach(function(orgId) {
+        //if (Math.random() > 0.99) console.log(orgId)
+        var org = this.organisationsById[orgId];
+        if (!org) {
+          return;
+        }
+        if (!org.technologyFocus) org.technologyFocus = [];
+        if (!org.areaOfDigitalSocialInnovation) org.areaOfDigitalSocialInnovation = [];
+        project.technologyFocus.forEach(function(technologyFocus) {
+          if (org.technologyFocus.indexOf(technologyFocus) == -1) {
+            org.technologyFocus.push(technologyFocus);
+          }
+        })
+        project.areaOfDigitalSocialInnovation.forEach(function(areaOfDigitalSocialInnovation) {
+          if (org.areaOfDigitalSocialInnovation.indexOf(areaOfDigitalSocialInnovation) == -1) {
+            org.areaOfDigitalSocialInnovation.push(areaOfDigitalSocialInnovation);
+          }
+        })
+      }.bind(this))
+    }.bind(this));
+    //projects
+    //console.log('collaborations', collaborations)
+    console.log('org', this.organisations[0]);
+
+    deferred.resolve(projects);
   }.bind(this));
   return deferred.promise;
 }
@@ -2069,44 +2102,76 @@ MainMap.prototype.buildViz = function(organisations) {
   this.showWorldMap(svg, this.DOM.g, projection);
   this.showOrganisations(svg, this.DOM.g, projection, center, organisations, zoom);
 
-  console.log('org', organisations[0]);
+  //console.log('org', organisations[0]);
 
   VizConfig.events.addEventListener('filter', function(e) {
-    console.log(e);
-  })
+    console.log(e.property, organisations[0])
+    var filteredOrganisations = organisations.filter(function(o) {
+      var value = o[e.property] || '';
+      return value.indexOf(e.id) != -1;
+    });
+    var color = '#000000'
+    if (e.property == 'areaOfDigitalSocialInnovation') {
+      color = VizConfig.dsiAreasById[e.id].color;
+    }
+    this.showOrganisations(svg, this.DOM.g, projection, center, filteredOrganisations, zoom, color);
+    //console.log(e, organisations.length, filteredOrganisations.length);
+  }.bind(this))
   //this.showIsoLines(svg, this.DOM.g, organisations, w, h, zoom);
 }
 
 MainMap.prototype.addZoom = function(svg, g, w, h) {
   var rectSize = 30;
-  var margin = 10;
+  var margin = 20;
   var spacing = 2;
-  var zoomIn = svg.append('g');
-  zoomIn.append('rect')
+
+  var zoomReset = svg.append('g');
+  zoomReset.append('rect')
     .attr('fill', '#DDD')
     .attr('x', w - rectSize - margin)
     .attr('y', margin)
     .attr('width', rectSize)
     .attr('height', rectSize);
+  zoomReset.append('circle')
+    .attr('stroke', '#666')
+    .attr('fill', 'none')
+    .attr('cx', w - rectSize - margin + rectSize/2)
+    .attr('cy', margin + rectSize/2)
+    .attr('r', rectSize/4)
+  zoomReset.append('circle')
+    .attr('fill', '666')
+    .attr('cx', w - rectSize - margin + rectSize/2)
+    .attr('cy', margin + rectSize/2)
+    .attr('r', 1)
+
+
+  var zoomIn = svg.append('g');
+  zoomIn.append('rect')
+    .attr('fill', '#DDD')
+    .attr('x', w - rectSize - margin)
+    .attr('y', margin+ (rectSize + spacing)*1 + margin)
+    .attr('width', rectSize)
+    .attr('height', rectSize);
+
   zoomIn.append('text')
     .attr('fill', '#666')
     .text('+')
     .attr('x', w - rectSize*0.5 - margin)
-    .attr('y', margin + rectSize*0.65)
+    .attr('y', margin + (rectSize + spacing)*1 + rectSize*0.65 + margin)
     .attr('text-anchor', 'middle')
 
   var zoomOut = svg.append('g');
   zoomOut.append('rect')
     .attr('fill', '#DDD')
     .attr('x', w - rectSize - margin)
-    .attr('y', margin + rectSize + spacing)
+    .attr('y', margin + (rectSize + spacing)*2 + margin)
     .attr('width', rectSize)
     .attr('height', rectSize);
   zoomOut.append('text')
     .attr('fill', '#666')
     .text('-')
     .attr('x', w - rectSize*0.5 - margin)
-    .attr('y', margin + rectSize + spacing + rectSize*0.65)
+    .attr('y', margin + (rectSize + spacing)*2 + rectSize*0.65 + margin)
     .attr('text-anchor', 'middle')
 
   var prevScale = 1;
@@ -2131,6 +2196,15 @@ MainMap.prototype.addZoom = function(svg, g, w, h) {
   var zoom = d3.behavior.zoom().scaleExtent([1, 8192]).on('zoom', function() {
     updateTransform(d3.event.translate, d3.event.scale);
   });
+
+  zoomReset.on('click', function(e) {
+    d3.event.stopPropagation()
+    d3.event.preventDefault();
+    zoom.scale(1);
+    zoom.translate([0, 0]);
+    zoom.event(svg)
+    return false;
+  })
 
   zoomIn.on('click', function(e) {
     d3.event.stopPropagation()
@@ -2162,10 +2236,10 @@ MainMap.prototype.addZoom = function(svg, g, w, h) {
 
   svg.call(zoom)
   svg
-  .on("mousewheel.zoom", null)
-  .on("DOMMouseScroll.zoom", null)
-  .on("wheel.zoom", null);
-  //.on("dblclick.zoom", null);
+  //.on("mousewheel.zoom", null)
+  //.on("DOMMouseScroll.zoom", null)
+  //.on("wheel.zoom", null)
+  .on("dblclick.zoom", null);
 
   return zoom;
 }
@@ -2188,8 +2262,10 @@ MainMap.prototype.showWorldMap = function(svg, g, projection) {
   }.bind(this));
 }
 
-MainMap.prototype.showOrganisations = function(svg, g, projection, center, organisations, zoom) {
+MainMap.prototype.showOrganisations = function(svg, g, projection, center, organisations, zoom, color) {
   var circles = this.DOM.orgGroup.selectAll('circle.org').data(organisations);
+
+  color = color || '#000000';
 
   circles.enter()
     .append('circle')
@@ -2208,8 +2284,11 @@ MainMap.prototype.showOrganisations = function(svg, g, projection, center, organ
     .attr('transform', function(d) {
       return "translate(" + d.x + "," + d.y + ")"
     })
-    .attr('fill', 'rgba(0,20,0,0.1)')
-    .attr('stroke', 'rgba(0,20,0,0.3)')
+    //.attr('fill', 'rgba(0,20,0,0.1)')
+    //.attr('stroke', 'rgba(0,20,0,0.3)')
+    .attr('fill', color)
+    .attr('stroke', color)
+    .attr('opacity', 0.5)
     .attr('r', 3)
 
   circles.exit().transition().duration(300).attr('r', 0).remove();
@@ -2697,7 +2776,7 @@ Stats.prototype.highlightProject = function(svg, rect, group, projectIndex) {
 
 	rect.on("click", function() {
 		var url = "http://digitalsocial.eu/projects/" + group.values[projectIndex].url;
-		window.open(url, "_blank");
+		document.location.href = url;
 	});
 };
 
@@ -2909,13 +2988,13 @@ Stats.prototype.drawHex = function(selection, x, y, r, data, collaboratorData) {
 
 	hex.on("click", function() {
 		var url = "http://digitalsocial.eu/organisations/" + collaboratorData.org_url;
-		window.open(url, "_blank");
+		document.location.href = url;
 	});
 };
 
 var VizConfig = {};
 
-if (window.location.href.match(/\/organisations\//) !== null) {
+if (window.location.href.match(/\/organisations\//) !== null || window.location.href.match(/\/digitalsocial\//) !== null) {
   VizConfig.assetsPath = "http://variable.io/p/nestadsi/beta/assets";
 }
 else {
@@ -2926,7 +3005,7 @@ VizConfig.dsiAreas = [
   { title: 'Funding acceleration<br/> and incubation', id: 'funding-acceleration-and-incubation', color: '#FDE302', icon: VizConfig.assetsPath + '/triangle-funding-acceleration-and-incubation.png' },
   { title: 'Collaborative economy', id: 'collaborative-economy', color: '#A6CE39', icon: VizConfig.assetsPath + '/triangle-collaborative-economy.png' },
   { title: 'Open democracy', id: 'open-democracy', color: '#F173AC', icon: VizConfig.assetsPath + '/triangle-open-democracy.png' },
-  { title: 'Awarness networks', id: 'awarness-networks', color: '#ED1A3B', icon: VizConfig.assetsPath + '/triangle-awarness-networks.png' },
+  { title: 'Awareness networks', id: 'awareness-networks', color: '#ED1A3B', icon: VizConfig.assetsPath + '/triangle-awareness-networks.png' },
   { title: 'New ways of making', id: 'new-ways-of-making', color: '#F58220', icon: VizConfig.assetsPath + '/triangle-new-ways-of-making.png' },
   { title: 'Open access', id: 'open-access', color: '#7BAFDE', icon: VizConfig.assetsPath + '/triangle-open-access.png' }
 ];
@@ -2935,7 +3014,7 @@ VizConfig.dsiAreasById = {
   'funding-acceleration-and-incubation': VizConfig.dsiAreas[0],
   'collaborative-economy': VizConfig.dsiAreas[1],
   'open-democracy': VizConfig.dsiAreas[2],
-  'awarness-networks': VizConfig.dsiAreas[3],
+  'awareness-networks': VizConfig.dsiAreas[3],
   'new-ways-of-making': VizConfig.dsiAreas[4],
   'open-access': VizConfig.dsiAreas[5]
 };
@@ -2943,7 +3022,7 @@ VizConfig.dsiAreasById = {
 VizConfig.dsiAreasById['funding-acceleration-and-incubation'].info = '';
 VizConfig.dsiAreasById['collaborative-economy'].info = 'Collaborative economy: New collaborative socio-economic models that present novel characteristics, and enable people to share skills, knowledge, food, clothes, housing and so on. It includes crypto digital currencies, new forms of crowdfunding and financing, new platforms for exchanges and sharing resources based on reputation and trust.';
 VizConfig.dsiAreasById['open-democracy'].info = 'Open democracy is transforming the traditional models of representative democracy. Digital technology can enable collective participation at a scale that was impossible before enabling citizens to be engaged in decision-making processes, collective deliberation, and mass mobilisation. ';
-VizConfig.dsiAreasById['awarness-networks'].info = 'Platforms for collaboration are able to aggregate data coming from people and the environment and are used to solve environmental issues and promote sustainable behavioral changes, or to mobilize collective action and respond to community emergencies. ';
+VizConfig.dsiAreasById['awareness-networks'].info = 'Platforms for collaboration are able to aggregate data coming from people and the environment and are used to solve environmental issues and promote sustainable behavioral changes, or to mobilize collective action and respond to community emergencies. ';
 VizConfig.dsiAreasById['new-ways-of-making'].info = 'An ecosystem of makers is revolutionising open design and manufacturing. 3D manufactur­ing tools, free CAD/CAM software and open source designs are now giving innovators better access to tools, products, skills and capabilities they need to enhance collaborative making.';
 VizConfig.dsiAreasById['open-access'].info = 'The Open Access Ecosystem approach has the potential to empower citizens and increase participation, while preserving privacy-aware and decentralised infrastructures. It includes projects that facilitate the diffusion of knowledge systems in the Public Domain, open standards, open licensing, knowledge commons and digital rights.';
 
@@ -2988,6 +3067,8 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     var urlIsLocalhost = (url.match(/localhost/) !== null);
     var urlIsVariableIO = (url.match(/variable\.io/) !== null);
     var urlIsOrganisation = (url.match(/\/organisations\//) !== null);
+    var urlIsBeta = (url.match(/\/beta/) !== null);
+
 
     if (urlIsOrganisation) {
       // get organisation id
@@ -2996,7 +3077,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
       // draw organisation stats
       initOrgStats(orgId);
     }
-    else if (urlIsLocalhost || urlIsVariableIO) {
+    else if (urlIsLocalhost || urlIsVariableIO || urlIsBeta) {
       if (document.location.pathname != '/' && document.location.pathname.indexOf('beta') == -1) {
         return;
       }
@@ -3106,7 +3187,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
   }
 
   function initExplorer(vizContainer) {
-    var explorerTitle = $('<h1>Organizations explorer</h1>');
+    var explorerTitle = $('<h1>Technology focus areas and methods</h1>');
     vizContainer.append(explorerTitle);
 
     var explorerViz = $('<div id="explorerViz"></div>');
@@ -3128,13 +3209,13 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
       "collaborators": ".viz-3"
     };
 
-    initTooltip();
-
     var openVizKey = false;
     var vizKey = new VizKey(openVizKey);
 
     var stats = new Stats(divs, orgId);
     stats.init();
+
+    initTooltip();
   }
 
   window.addEventListener('DOMContentLoaded', init);

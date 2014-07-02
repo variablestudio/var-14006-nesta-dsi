@@ -6,6 +6,8 @@
     var urlIsLocalhost = (url.match(/localhost/) !== null);
     var urlIsVariableIO = (url.match(/variable\.io/) !== null);
     var urlIsOrganisation = (url.match(/\/organisations\//) !== null);
+    var urlIsBeta = (url.match(/\/beta/) !== null);
+
 
     if (urlIsOrganisation) {
       // get organisation id
@@ -14,7 +16,7 @@
       // draw organisation stats
       initOrgStats(orgId);
     }
-    else if (urlIsLocalhost || urlIsVariableIO) {
+    else if (urlIsLocalhost || urlIsVariableIO || urlIsBeta) {
       if (document.location.pathname != '/' && document.location.pathname.indexOf('beta') == -1) {
         return;
       }
@@ -24,14 +26,14 @@
 
       var vizContainer = $('#viz');
 
+      initEvents();
+
       if (showIntro) {
         initIntroViz(vizContainer, initVisualizations);
       }
       else {
         initVisualizations();
       }
-
-      initEvents();
     }
   }
 
@@ -50,6 +52,7 @@
     initChoropleth(vizContainer);
     initExplorer(vizContainer);
     initVizKey();
+    initPopup();
     initTooltip();
   }
 
@@ -61,6 +64,10 @@
 
   function initTooltip() {
     VizConfig.tooltip = new VizTooltip();
+  }
+
+  function initPopup() {
+    VizConfig.popup = new VizPopup();
   }
 
   function initMainViz(vizContainer) {
@@ -146,13 +153,14 @@
       "collaborators": ".viz-3"
     };
 
-    initTooltip();
-
     var openVizKey = false;
     var vizKey = new VizKey(openVizKey);
 
     var stats = new Stats(divs, orgId);
     stats.init();
+
+    initPopup();
+    initTooltip();
   }
 
   window.addEventListener('DOMContentLoaded', init);
