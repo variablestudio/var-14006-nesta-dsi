@@ -1,4 +1,4 @@
-/*global SPARQLDataSource, d3 */
+/*global VizConfig, SPARQLDataSource, d3 */
 
 var indexOfProp = function(data, prop, val) {
 	return data.map(function(o) { return o[prop]; }).indexOf(val);
@@ -188,6 +188,7 @@ Explorer.prototype.draw = function(data) {
 
 Explorer.prototype.drawBar = function(svg, currentSum, count, index, scale, color, title, depth, callback) {
 	var text = null;
+	var fillColor = color(index);
 
 	svg.append("rect")
 		.attr("class", "grouping")
@@ -199,12 +200,19 @@ Explorer.prototype.drawBar = function(svg, currentSum, count, index, scale, colo
 			return scale(count);
 		})
 		.attr("height", this.size.height)
-		.attr("fill", color(index))
+		.attr("fill", fillColor)
 		.on("click", function() {
 			text.style("fill", "#333");
 
 			callback(title, depth);
-		}.bind(this));
+		}.bind(this))
+		.on("mouseover", function(d) {
+			VizConfig.tooltip.show();
+			VizConfig.tooltip.html(title + " : " + count, "#FFF", fillColor);
+		})
+		.on("mouseout", function(d) {
+			VizConfig.tooltip.hide();
+		})
 
 	text = svg.append("text")
 		.attr("x", function() {
