@@ -6,6 +6,10 @@
 
 /*---------------------------------- viz -------------------------------------*/
 
+#main {
+  position: relative;
+}
+
 #viz {
   margin: 0 auto;
 }
@@ -40,6 +44,8 @@
 
 #introViz {
   position: absolute;
+  top: 0;
+  left: 0;
 }
 
 #introViz {

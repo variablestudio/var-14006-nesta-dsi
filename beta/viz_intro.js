@@ -93,7 +93,7 @@ function Intro(introVizContainer, clickCb) {
     d3.select(introVizContainer.get(0))
     .transition()
     .duration(2000)
-    .style('opacity', 0.0);
+    .style('opacity', 0);
 
     setTimeout(function() {
       $(introVizContainer).hide();
