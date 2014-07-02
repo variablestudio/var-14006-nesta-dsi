@@ -3,12 +3,12 @@ var VizConfig = {};
 VizConfig.assetsPath = 'assets';
 
 VizConfig.dsiAreas = [
-  { title: 'Funding acceleration<br/> and incubation', color: '#FDE302', icon: VizConfig.assetsPath + '/triangle-funding-acceleration-and-incubation.png' },
-  { title: 'Collaborative economy', color: '#A6CE39', icon: VizConfig.assetsPath + '/triangle-collaborative-economy.png' },
-  { title: 'Open democracy', color: '#F173AC', icon: VizConfig.assetsPath + '/triangle-open-democracy.png' },
-  { title: 'Awarness networks', color: '#ED1A3B', icon: VizConfig.assetsPath + '/triangle-awarness-networks.png' },
-  { title: 'New ways of making', color: '#F58220', icon: VizConfig.assetsPath + '/triangle-new-ways-of-making.png' },
-  { title: 'Open access', color: '#7BAFDE', icon: VizConfig.assetsPath + '/triangle-open-access.png' }
+  { title: 'Funding acceleration<br/> and incubation', id: 'funding-acceleration-and-incubation', color: '#FDE302', icon: VizConfig.assetsPath + '/triangle-funding-acceleration-and-incubation.png' },
+  { title: 'Collaborative economy', id: 'collaborative-economy', color: '#A6CE39', icon: VizConfig.assetsPath + '/triangle-collaborative-economy.png' },
+  { title: 'Open democracy', id: 'open-democracy', color: '#F173AC', icon: VizConfig.assetsPath + '/triangle-open-democracy.png' },
+  { title: 'Awarness networks', id: 'awarness-networks', color: '#ED1A3B', icon: VizConfig.assetsPath + '/triangle-awarness-networks.png' },
+  { title: 'New ways of making', id: 'new-ways-of-making', color: '#F58220', icon: VizConfig.assetsPath + '/triangle-new-ways-of-making.png' },
+  { title: 'Open access', id: 'open-access', color: '#7BAFDE', icon: VizConfig.assetsPath + '/triangle-open-access.png' }
 ];
 
 VizConfig.dsiAreasById = {
@@ -37,10 +37,10 @@ VizConfig.dsiAreasByLabel = {
 };
 
 VizConfig.technologyFocuses = [
-  { title: 'Open Hardware', icon: VizConfig.assetsPath + '/tech-open-hardware.png' },
-  { title: 'Open Networks', icon: VizConfig.assetsPath + '/tech-open-networks.png' },
-  { title: 'Open Knowledge', icon: VizConfig.assetsPath + '/tech-open-knowledge.png' },
-  { title: 'Open Data', icon: VizConfig.assetsPath + '/tech-open-data.png' }
+  { title: 'Open Hardware', id: 'open-hardware', icon: VizConfig.assetsPath + '/tech-open-hardware.png' },
+  { title: 'Open Networks', id: 'open-networks', icon: VizConfig.assetsPath + '/tech-open-networks.png' },
+  { title: 'Open Knowledge', id: 'open-knowledge', icon: VizConfig.assetsPath + '/tech-open-knowledge.png' },
+  { title: 'Open Data', id: 'open-data', icon: VizConfig.assetsPath + '/tech-open-data.png' }
 ];
 
 VizConfig.technologyFocusesById = {
@@ -49,6 +49,11 @@ VizConfig.technologyFocusesById = {
   'open-knowledge': VizConfig.technologyFocuses[2],
   'open-data': VizConfig.technologyFocuses[3]
 };
+
+
+
+
+
 
 VizConfig.technologyFocusesById['open-hardware'].info = 'New ways of making and using open hard­ware solutions and moving towards and Open Source Internet of Things';
 VizConfig.technologyFocusesById['open-networks'].info = 'Innovative combinations of network solutions and infrastructures, e.g. sensor net­works, free interoperable network services, open Wifi, bottom-up-broadband, distribut­ed social networks, p2p infrastructures';

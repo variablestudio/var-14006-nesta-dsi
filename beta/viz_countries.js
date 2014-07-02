@@ -215,7 +215,14 @@ Countries.prototype.drawBarChart = function(div, data) {
 		})
 		.attr("fill", function(d) {
 			return VizConfig.dsiAreasByLabel[d.name].color;
-		}.bind(this));
+		}.bind(this))
+		.on('mouseover', function(d) {
+			VizConfig.tooltip.show();
+			VizConfig.tooltip.html(d.name + ' : ' + d.count, '#FFF', VizConfig.dsiAreasByLabel[d.name].color);
+		})
+		.on('mouseout', function(d) {
+			VizConfig.tooltip.hide();
+		})
 };
 
 Countries.prototype.drawProjectCount = function(div, data) {

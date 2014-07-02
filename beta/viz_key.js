@@ -1,11 +1,12 @@
-function VizKey() {
-  console.log('VizKey')
+function VizKey(open) {
   var vizKeyContainer = $('<div id="vizKeyContainer"></div>');
   var sideBar = $('<div id="vizKeySideBar"></div>');
   var thumb = $('<div id="vizKeyThumb"><span>Open Key</span></div>');
   vizKeyContainer.append(sideBar);
   vizKeyContainer.append(thumb);
   $('body').append(vizKeyContainer);
+
+  if (open) vizKeyContainer.addClass('open');
 
   var organizationsTitle = 'Organisations';
   var projectsTitle = 'Projects';
@@ -24,6 +25,9 @@ function VizKey() {
     areaLink.on('mouseout', function() {
       VizConfig.tooltip.hide();
     })
+    areaLink.click(function() {
+      VizConfig.events.fire('filter', { property: 'areaOfDigitalSocialInnovation', id: dsiArea.id })
+    });
     sideBar.append(areaLink);
   })
 
@@ -32,12 +36,15 @@ function VizKey() {
   VizConfig.technologyFocuses.map(function(technologyFocus, technologyFocusIndex) {
     var technologyLink = $('<a><img src="' + technologyFocus.icon + '" height="12"/><span>' + technologyFocus.title + '</span></a>');
     technologyLink.on('mouseover', function() {
-      tooltip.show();
-      tooltip.html('<h4>' + technologyFocus.title +'</h4>' + technologyFocus.info);
+      VizConfig.tooltip.show();
+      VizConfig.tooltip.html('<h4>' + technologyFocus.title +'</h4>' + technologyFocus.info);
     })
     technologyLink.on('mouseout', function() {
-      tooltip.hide();
-    })
+      VizConfig.tooltip.hide();
+    });
+    technologyLink.click(function() {
+      VizConfig.events.fire('filter', { property: 'technologyFocus', id: technologyFocus.id })
+    });
     sideBar.append(technologyLink);
   });
 

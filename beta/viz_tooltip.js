@@ -19,6 +19,10 @@ VizTooltip.prototype.hide = function() {
   this.vizTooltip.hide();
 }
 
-VizTooltip.prototype.html = function(content) {
+VizTooltip.prototype.html = function(content, textColor, bgColor) {
+  textColor = textColor ? textColor : '';
+  bgColor = bgColor ? bgColor : '';
+  this.vizTooltip.css('color', textColor);
+  this.vizTooltip.css('background', bgColor);
   this.vizTooltip.html(content);
 }
