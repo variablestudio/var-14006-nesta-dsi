@@ -2,23 +2,34 @@
   var showIntro = !(document.location.hash == '#nointro');
 
   function init() {
-    if (document.location.pathname != '/' && document.location.pathname.indexOf('beta') == -1) {
-      return;
-    }
-    var mainContainer = document.getElementById('main');
-    mainContainer.removeChild(mainContainer.childNodes[0]);
-    mainContainer.removeChild(mainContainer.childNodes[0]);
+    var url = window.location.href;
+    var urlIsLocalhost = (url.match(/localhost/) !== null);
+    var urlIsVariableIO = (url.match(/variable\.io/) !== null);
+    var urlIsOrganisation = (url.match(/\/organisations\//) !== null);
 
-    var vizContainer = $('#viz');
-
-    if (showIntro) {
-      initIntroViz(vizContainer, initVisualizations);
+    if (urlIsOrganisation) {
+      var orgId = url.split("/").pop().replace(/\.html$/, "");
+      initOrgStats(orgId);
     }
-    else {
-      initVisualizations();
-    }
+    else if (urlIsLocalhost || urlIsVariableIO) {
+      if (document.location.pathname != '/' && document.location.pathname.indexOf('beta') == -1) {
+        return;
+      }
+      var mainContainer = document.getElementById('main');
+      mainContainer.removeChild(mainContainer.childNodes[0]);
+      mainContainer.removeChild(mainContainer.childNodes[0]);
 
-    initEvents();
+      var vizContainer = $('#viz');
+
+      if (showIntro) {
+        initIntroViz(vizContainer, initVisualizations);
+      }
+      else {
+        initVisualizations();
+      }
+
+      initEvents();
+    }
   }
 
   function initEvents() {
@@ -123,6 +134,17 @@
   function initVizKey() {
     var openOnInit = !showIntro;
     var vizKey = new VizKey(openOnInit);
+  }
+
+  function initOrgStats(orgId) {
+    var divs = {
+      "dsi": ".viz-1",
+      "tech": ".viz-2",
+      "collaborators": ".viz-3"
+    };
+
+    var stats = new Stats(divs, orgId);
+    stats.init();
   }
 
   window.addEventListener('DOMContentLoaded', init);
