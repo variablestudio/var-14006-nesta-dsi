@@ -110,7 +110,7 @@
   }
 
   function initExplorer(vizContainer) {
-    var explorerTitle = $('<h1>Organizations explorer</h1>');
+    var explorerTitle = $('<h1>Technology focus areas and methods</h1>');
     vizContainer.append(explorerTitle);
 
     var explorerViz = $('<div id="explorerViz"></div>');
