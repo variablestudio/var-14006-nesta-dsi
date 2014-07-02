@@ -455,6 +455,8 @@
 
 #vizPopupContent a {
   color: white;
+  display: block;
+  line-height: 150%;
 }
 
 /*---------------------------------- preloader ----------------------------------------*/

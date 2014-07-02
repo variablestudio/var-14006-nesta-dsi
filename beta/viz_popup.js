@@ -31,7 +31,7 @@ VizPopup.prototype.html = function(content, textColor, bgColor) {
 
 VizPopup.prototype.setPosition = function(x, y) {
   this.vizPopup.css('left', x - this.vizPopup.outerWidth()/2);
-  this.vizPopup.css('top', y - 60);
+  this.vizPopup.css('top', y - this.vizPopup.outerHeight() - 15);
 }
 
 VizPopup.prototype.isOpen = function() {

@@ -120,10 +120,13 @@ MainMap.prototype.getProjectsInfo = function(collaborations) {
     var projects = results.map(function(p) {
       return {
         p: p.p.value,
+        label: p.label_values.value,
         technologyFocus: p.tf_values.value.split(',').map(function(f) { return f.substr(f.lastIndexOf('/')+1); }),
         areaOfDigitalSocialInnovation: p.adsi_values.value.split(',').map(function(f) { return f.substr(f.lastIndexOf('/')+1); })
       }
     })
+
+    console.log('project', projects[0])
 
     projects.forEach(function(project) {
       var orgs = collaborations.byProject[project.p] || [];
@@ -134,8 +137,10 @@ MainMap.prototype.getProjectsInfo = function(collaborations) {
         if (!org) {
           return;
         }
+        if (!org.projects) org.projects = [];
         if (!org.technologyFocus) org.technologyFocus = [];
         if (!org.areaOfDigitalSocialInnovation) org.areaOfDigitalSocialInnovation = [];
+        org.projects.push(project);
         project.technologyFocus.forEach(function(technologyFocus) {
           if (org.technologyFocus.indexOf(technologyFocus) == -1) {
             org.technologyFocus.push(technologyFocus);
@@ -215,9 +220,10 @@ MainMap.prototype.runProjectsInfoQuery = function() {
     .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
     .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
     .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
-    .select('?p (group_concat(distinct ?adsi ; separator = ",") AS ?adsi_values) (group_concat(distinct ?tf ; separator = ",") AS ?tf_values)')
+    .select('?p (group_concat(distinct ?label ; separator = ",") AS ?label_values) (group_concat(distinct ?adsi ; separator = ",") AS ?adsi_values) (group_concat(distinct ?tf ; separator = ",") AS ?tf_values)')
     .where('?p', 'a', 'ds:Activity')
     .where("?p", "ds:technologyFocus", "?tf")
+    .where("?p", "rdfs:label", "?label")
     .where("?p", "ds:areaOfDigitalSocialInnovation", "?adsi")
     .groupBy("?p")
     .execute(false);
@@ -452,7 +458,14 @@ MainMap.prototype.showOrganisations = function(svg, g, projection, center, organ
 
     var url = 'http://digitalsocial.eu/organisations/';
     url += organization.org.substr(organization.org.lastIndexOf('/') + 1);
-    VizConfig.popup.html($('<a href="' + url + '">'+organization.label+'</a>'));
+    var popupContent = '<h4><a href="' + url + '">'+organization.label+'</a></h4>Projects:';
+    console.log(organization)
+    if (organization.projects) {
+      organization.projects.forEach(function(project) {
+        popupContent += '<a href="' + project.p + '">'+project.label+'</a>'
+      })
+    }
+    VizConfig.popup.html($(popupContent));
     var offset = [0, 0];
     var windowOffset = $(svg[0]).offset();
     offset[0] += windowOffset.left;
