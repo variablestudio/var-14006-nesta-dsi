@@ -8,15 +8,6 @@ function Countries(div) {
 	this.ADSILabels = [];  // will be filled on SPARQL query
 	this.ADSIMaxCount = 0; // will be filled on SPARQL query
 
-	this.ADSIColors = {
-		"Open Democracy": "#F9EB40",
-		"New Ways of Making": "#f53944",
-		"Awareness Networks": "#31ac33",
-		"Collaborative Economy": "#1DAEEC",
-		"Open Access": "#f274c7",
-		"Funding Acceleration and Incubation": "#f79735"
-	};
-
 	this.data = []; // will be filled on SPARQL query
 
 	// cache DOM elements
@@ -111,8 +102,6 @@ Countries.prototype.init = function() {
 			data.sort(function(a, b) {
 				return -(a.projects_count - b.projects_count);
 			});
-
-			data = data.slice(0, 8);
 
 			// add empty labels
 			data = data.map(function(object) {
