@@ -19,6 +19,7 @@ module.exports = function(grunt) {
           'viz_tooltip.js',
           'viz_key.js',
           'viz_main_map.js',
+          "viz_organisation.js",
           "viz.js"
         ],
         dest: "viz.dist.js"
