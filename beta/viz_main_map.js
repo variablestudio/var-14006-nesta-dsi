@@ -29,7 +29,7 @@ MainMap.prototype.initSVG = function() {
     .attr('height', this.h);
 
   this.svg.append('rect')
-    .attr('fill', '#FAFAFA')
+    .attr('fill', '#808080')
     .attr('class', 'bg')
     .attr('x', 0)
     .attr('y', 0)
@@ -158,7 +158,6 @@ MainMap.prototype.buildViz = function(organisations) {
   var w = this.w;
   var h = this.h;
   var svg = this.svg;
-  
 
   var scale  = 700;
   var offset = [w/2, h/2];
@@ -274,16 +273,17 @@ MainMap.prototype.addZoom = function(svg, g, w, h) {
   })
 
   svg.call(zoom)
-  svg.on("mousewheel.zoom", null)
+  svg
+  .on("mousewheel.zoom", null)
   .on("DOMMouseScroll.zoom", null)
   .on("wheel.zoom", null);
-  //svg.on("dblclick.zoom", null);
+  //.on("dblclick.zoom", null);
 
   return zoom;
 }
 
 MainMap.prototype.showWorldMap = function(svg, g, projection) {
-  d3.json("assets/world-110m.json", function(error, world) {
+  d3.json("assets/world-50m.json", function(error, world) {
     var countries = topojson.feature(world, world.objects.countries).features;
     var neighbors = topojson.neighbors(world.objects.countries.geometries);
 
@@ -296,7 +296,7 @@ MainMap.prototype.showWorldMap = function(svg, g, projection) {
       .attr("class", "country")
       .attr("d", path)
       .attr("stroke", "none")
-      .attr("fill", "#EEE");
+      .attr("fill", "#FFF");
   }.bind(this));
 }
 
@@ -320,8 +320,8 @@ MainMap.prototype.showOrganisations = function(svg, g, projection, center, organ
     .attr('transform', function(d) {
       return "translate(" + d.x + "," + d.y + ")"
     })
-    .attr('fill', 'rgba(0,0,0,0.1)')
-    .attr('stroke', 'rgba(0,0,0,0.3)')
+    .attr('fill', 'rgba(0,20,0,0.1)')
+    .attr('stroke', 'rgba(0,20,0,0.3)')
     .attr('r', 3)
 
   circles.exit().transition().duration(300).attr('r', 0).remove();
