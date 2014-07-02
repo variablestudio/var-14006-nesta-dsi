@@ -86,7 +86,7 @@ Choropleth.prototype.draw = function() {
 	var height = (this.adsiNames.length + 1) * this.rect.height + this.margin.top;
 
 	var svg = this.DOM.div.append("svg")
-		.attr("width", width)
+		.attr("width", 994)
 		.attr("height", height);
 
 	this.techNames.forEach(function(tech, techIndex) {
@@ -147,7 +147,7 @@ Choropleth.prototype.drawTitle = function(svg, name, orient, index) {
 
 Choropleth.prototype.drawRect = function(svg, x, y, num) {
 	var color = d3.scale.threshold()
-		.domain([0.2, 0.4, 0.6, 0.8, 1.0])
+		.domain([0.1, 0.4, 0.7, 1.0, 1.3])
 		.range(this.colorScale);
 
 	svg
@@ -157,4 +157,11 @@ Choropleth.prototype.drawRect = function(svg, x, y, num) {
 		.attr("width", this.rect.width)
 		.attr("height", this.rect.height)
 		.attr("fill", color(num / this.maxCount));
+
+	svg
+		.append("text")
+		.attr("x", (x + 1) * this.rect.width + this.margin.left + this.rect.width*0.45)
+		.attr("y", y * this.rect.height + this.margin.top + this.rect.height*0.7)
+		.attr("fill", color(num / this.maxCount))
+		.text(num)
 };

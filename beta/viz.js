@@ -83,7 +83,7 @@
   }
 
   function initChoropleth(vizContainer) {
-    var choroplethTitle = $('<h1>Projects by tech focus and method</h1>');
+    var choroplethTitle = $('<h1>Number of projects by technology focus and DSI area</h1>');
     vizContainer.append(choroplethTitle);
 
     var choroplethViz = $('<div id="choroplethViz"></div>');
