@@ -199,7 +199,7 @@ Stats.prototype.countField = function(field) {
 Stats.prototype.drawDSIAreas = function() {
 	var groupedData = this.countField("adsi_labels").filter(function(object) { return (object.count > 0); });
 
-	var width = 322;
+	var width = 228;
 	var height = 40;
 	var rectWidth = 30;
 	var rectHeight = 15;
@@ -266,7 +266,7 @@ Stats.prototype.drawTechnologyAreas = function() {
 		return memo > object.count ? memo : object.count;
 	}, -Infinity);
 
-	var width = 322;
+	var width = 228;
 	var height = 40;
 	var rectHeight = 5;
 	var rectMargin = 4;
@@ -297,8 +297,8 @@ Stats.prototype.drawTechnologyAreas = function() {
 };
 
 Stats.prototype.drawCollaborators = function() {
-	var width = 322;
-	var height = 322;
+	var width = 352;
+	var height = width;
 	var hexR = 25;
 	var smallHexR = 15;
 
