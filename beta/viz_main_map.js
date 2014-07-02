@@ -46,7 +46,10 @@ MainMap.prototype.init = function() {
     this.buildViz(organisations);
     this.hijackSearch();
 
-    this.getCollaborations(); //pre cache
+     //pre cache
+    this.getCollaborations().then(function() {
+      this.getProjectsInfo();
+    }.bind(this));
   }.bind(this));
 }
 
@@ -106,6 +109,21 @@ MainMap.prototype.getCollaborations = function() {
   return this.collaorationsPromise;
 }
 
+MainMap.prototype.getProjectsInfo = function() {
+  var deferred = Q.defer();
+  this.runProjectsInfoQuery().then(function(results) {
+    var projects = results.map(function(p) {
+      return {
+        p: p.p,
+        technologyFocus: p.tf_values.value.split(',').map(function(f) { return f.substr(f.lastIndexOf('/')+1); }),
+        areaOfDigitalSocialInnovation: p.adsi_values.value.split(',').map(function(f) { return f.substr(f.lastIndexOf('/')+1); })
+      }
+    })
+    console.log('projects', projects[0], projects[0])
+  }.bind(this));
+  return deferred.promise;
+}
+
 MainMap.prototype.runOrganisationsQuery = function() {
   var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
   var ds = new SPARQLDataSource(SPARQL_URL);
@@ -152,6 +170,24 @@ MainMap.prototype.runCollaboratorsQuery = function() {
     .where("?am", "ds:activity", "?activity")
     .groupBy("?org")
     .execute();
+}
+
+MainMap.prototype.runProjectsInfoQuery = function() {
+  var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
+  var ds = new SPARQLDataSource(SPARQL_URL);
+
+  return ds.query()
+    .prefix('o:', '<http://www.w3.org/ns/org#>')
+    .prefix('rdfs:', '<http://www.w3.org/2000/01/rdf-schema#>')
+    .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
+    .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
+    .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
+    .select('?p (group_concat(distinct ?adsi ; separator = ",") AS ?adsi_values) (group_concat(distinct ?tf ; separator = ",") AS ?tf_values)')
+    .where('?p', 'a', 'ds:Activity')
+    .where("?p", "ds:technologyFocus", "?tf")
+    .where("?p", "ds:areaOfDigitalSocialInnovation", "?adsi")
+    .groupBy("?p")
+    .execute(false);
 }
 
 MainMap.prototype.buildViz = function(organisations) {

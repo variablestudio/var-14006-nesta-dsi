@@ -18,7 +18,6 @@
       initVisualizations();
     }
 
-    initTooltip();
     initEvents();
   }
 
@@ -37,6 +36,7 @@
     initChoropleth(vizContainer);
     initExplorer(vizContainer);
     initVizKey();
+    initTooltip();
   }
 
   function initIntroViz(vizContainer, cb) {
