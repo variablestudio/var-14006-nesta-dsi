@@ -2648,32 +2648,32 @@ Stats.prototype.drawDSIAreas = function() {
 
 Stats.prototype.highlightProject = function(svg, rect, groupName, projectIndex) {
 	rect.on("mouseover", function() {
-		svg.selectAll(".dsiAreaProject").transition().duration(200).style("opacity", "0.25")
+		svg.selectAll(".dsiAreaProject").transition().duration(200).style("opacity", "0.25");
 		rect.transition().duration(0).style("opacity", "1");
 
-		var projects = this.data.filter(function(p) { return p.adsi_labels.indexOf(groupName) != -1; });
+		var projects = this.data.filter(function(p) { return p.adsi_labels.indexOf(groupName) !== -1; });
 		var project = projects[projectIndex];
 
 		var techFocuses = this.countField("tech_focuses").filter(function(object) { return (object.count > 0); });
 
 		d3.selectAll('.techFocusBar')
 			.style('opacity', function(d, i) {
-				if (project.tech_focuses.indexOf(techFocuses[i].name) != -1) {
+				if (project.tech_focuses.indexOf(techFocuses[i].name) !== -1) {
 					return 1;
 				}
 				else {
 					return 0.2;
 				}
-			})
+			});
 
 		d3.selectAll('.collaborator').style('opacity', 0.1);
 	}.bind(this));
 	rect.on("mouseout", function() {
 		svg.selectAll(".dsiAreaProject").style("opacity", "1");
-		d3.selectAll('.techFocusBar').style('opacity', 1)
+		d3.selectAll('.techFocusBar').style('opacity', 1);
 		d3.selectAll('.collaborator').style('opacity', 1);
-	}.bind(this))
-}
+	}.bind(this));
+};
 
 Stats.prototype.drawTechnologyAreas = function() {
 	var groupedData = this.countField("tech_focuses").filter(function(object) { return (object.count > 0); });
@@ -2773,6 +2773,10 @@ Stats.prototype.drawCollaborators = function() {
 		(bounds[1][0] - bounds[0][0]) / width,
 		(bounds[1][1] - bounds[0][1]) / height
 	);
+
+	// fix for situation where organisation doesn't have collaborators
+	if (scale === Infinity) { scale = 1.0; }
+
 	var translate = [
 		(width - scale * (bounds[1][0] + bounds[0][0])) / 2,
 		(height - scale * (bounds[1][1] + bounds[0][1])) / 2
@@ -2820,14 +2824,14 @@ Stats.prototype.drawHex = function(selection, x, y, r, data) {
 			[x + r * Math.cos(a), y + r * Math.sin(a)],
 			[x + r * Math.cos(na), y + r * Math.sin(na)]
 		];
-	}
+	};
 
 	fn.sequence(0, 6).forEach(function(i) {
 		var bite = selection.append("path");
-		if (!data) bite.attr('class', 'collaborator');
+		if (!data) { bite.attr('class', 'collaborator'); }
 
 		bite
-			.attr("d", function(org, orgIndex) {
+			.attr("d", function() {
 				return "M" + hexBite(x, y, r, i).join("L") + "Z";
 			})
 			.attr("stroke", "#666")
@@ -2841,7 +2845,7 @@ Stats.prototype.drawHex = function(selection, x, y, r, data) {
 			var bite = selection.append("path");
 
 			bite
-				.attr("d", function(org, orgIndex) {
+				.attr("d", function() {
 					return "M" + hexBite(x, y, 5 + Math.min(r - 5, Math.pow(data[dsiArea], 0.6)) || 1, i).join("L") + "Z";
 				})
 				.attr('fill', this.DSIColors[this.DSIAreas[i]]);
