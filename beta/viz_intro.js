@@ -24,47 +24,6 @@ function Intro(introVizContainer, clickCb) {
     return line.replace('NUM_ORG', numOrganizations).replace('NUM_PROJECTS', numProjects);
   });
 
-  var dsiAreas = [
-    'Funding acceleration<br/> and incubation',
-    'Collaborative economy',
-    'Open democracy',
-    'Awarness networks',
-    'New ways of making',
-    'Open access'
-  ];
-
-  var dsiAreaColors = [
-    '#FDE302',
-    '#A6CE39',
-    '#F173AC',
-    '#ED1A3B',
-    '#F58220',
-    '#7BAFDE'
-  ];
-
-  var dsiAreaIcons = [
-    'assets/triangle-funding-acceleration-and-incubation.png',
-    'assets/triangle-collaborative-economy.png',
-    'assets/triangle-open-democracy.png',
-    'assets/triangle-awarness-networks.png',
-    'assets/triangle-new-ways-of-making.png',
-    'assets/triangle-open-access.png'
-  ];
-
-  var dsiTechnologyFocuses = [
-    'Open Hardware',
-    'Open Networks',
-    'Open Knowledge',
-    'Open Data'
-  ];
-
-  var dsiTechnologyFocusIcons = [
-    'assets/tech-open-hardware.png',
-    'assets/tech-open-networks.png',
-    'assets/tech-open-knowledge.png',
-    'assets/tech-open-data.png'
-  ];
-
   var introVizContent = $('<div id="introVizContent"></div>');
   introVizContainer.append(introVizContent);
 
@@ -84,15 +43,12 @@ function Intro(introVizContainer, clickCb) {
   var technologiesContainer = $('<div class="col"></div>');
   content2.append(technologiesContainer);
 
-  dsiAreas.map(function(dsiArea, dsiAreaIndex) {
-    var dsiAreaColor = dsiAreaColors[dsiAreaIndex];
-    var triangleIcon = dsiAreaIcons[dsiAreaIndex];
-    areasContainer.append($('<a style="color:' + dsiAreaColor + '"><img src="' + triangleIcon + '" height="14"/><span>' + dsiArea + '</span></a>'));
+  VizConfig.dsiAreas.map(function(dsiArea, dsiAreaIndex) {
+    areasContainer.append($('<a style="color:' + dsiArea.color + '"><img src="' + dsiArea.icon + '" height="14"/><span>' + dsiArea.title + '</span></a>'));
   })
 
-  dsiTechnologyFocuses.map(function(technologyFocus, technologyFocusIndex) {
-    var techIcon = dsiTechnologyFocusIcons[technologyFocusIndex];
-    technologiesContainer.append($('<a><img src="' + techIcon + '" height="16"/><span>' + technologyFocus + '</span></a>'));
+  VizConfig.technologyFocuses.map(function(technologyFocus, technologyFocusIndex) {
+    technologiesContainer.append($('<a><img src="' + technologyFocus.icon + '" height="16"/><span>' + technologyFocus.title + '</span></a>'));
   });
 
   var mapBtn = $('<div id="introVizMapBtn"><img src="assets/intro-map.jpg"/></div>');
