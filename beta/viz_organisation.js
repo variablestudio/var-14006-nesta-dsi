@@ -281,7 +281,7 @@ Stats.prototype.highlightProject = function(svg, rect, group, projectIndex) {
 
 	rect.on("click", function() {
 		var url = "http://digitalsocial.eu/projects/" + group.values[projectIndex].url;
-		window.open(url, "_blank");
+		window.open(url);
 	});
 };
 
