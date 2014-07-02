@@ -22,11 +22,12 @@
   function initVisualizations() {
     var vizContainer = $('#viz');
 
-    //initMainViz(vizContainer);
+    initMainViz(vizContainer);
     initCaseStudies(vizContainer);
     initEUCountries(vizContainer);
     initChoropleth(vizContainer);
     initExplorer(vizContainer);
+    initVizKey();
   }
 
   function initIntroViz(vizContainer, cb) {
@@ -104,6 +105,10 @@
 
     var explorer = new Explorer("#explorerViz");
     explorer.init();
+  }
+
+  function initVizKey() {
+    var vizKey = new VizKey();
   }
 
   window.addEventListener('DOMContentLoaded', init);

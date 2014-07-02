@@ -326,3 +326,70 @@
 	margin: 0 auto;
 	padding-bottom: 10px;
 }
+
+/*---------------------------------- key ----------------------------------------*/
+
+#vizKeyContainer {
+  background: #000;
+  width: 180px;
+  position: absolute;
+  top: 146px;
+  left: -180px;
+  transition: left 0.5s; -webkit-transition: left 0.5s; -moz-transition: left 0.5s; -ms-transition: left 0.5s;
+}
+
+#vizKeyContainer:hover {
+  left: -170px;
+}
+
+#vizKeyContainer.open {
+  left: 0;
+}
+
+#vizKeyContainer #vizKeySideBar {
+  padding: 0 1em 1em 1em;
+  font-size: 12px;
+}
+
+#vizKeyContainer h3 {
+  color: white;
+  font-weight: normal;
+  margin: 2em 0 1em 0;
+  font-size: 100%;
+}
+
+#vizKeyContainer h3 img {
+  vertical-align: middle;
+  margin-bottom: 0.1em;
+}
+
+#vizKeyContainer a {
+  font-size: 90%;
+  display: block;
+  margin-bottom: 1.2em;
+  line-height: 150%;
+  color: #FFF;
+  float: none;
+}
+
+#vizKeyContainer img {
+  vertical-align: top;
+  margin-right: 1em;
+}
+
+#vizKeyThumb {
+  background: black;
+  color: white;
+  transform: rotate(-90deg); -webkit-transform: rotate(-90deg); -moz-transform: rotate(-90deg); -ms-transform: rotate(-90deg);
+  position: absolute;
+  top: 86px;
+  left: 94px;
+  width: 200px;
+  cursor: pointer;
+}
+
+#vizKeyThumb span {
+  display: block;
+  padding: 0.5em 0.5em;
+  font-size: 14px;
+}
