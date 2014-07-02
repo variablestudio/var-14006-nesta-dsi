@@ -281,7 +281,7 @@ Stats.prototype.highlightProject = function(svg, rect, group, projectIndex) {
 
 	rect.on("click", function() {
 		var url = "http://digitalsocial.eu/projects/" + group.values[projectIndex].url;
-		window.open(url);
+		document.location.href = url;
 	});
 };
 
@@ -493,6 +493,6 @@ Stats.prototype.drawHex = function(selection, x, y, r, data, collaboratorData) {
 
 	hex.on("click", function() {
 		var url = "http://digitalsocial.eu/organisations/" + collaboratorData.org_url;
-		window.open(url, "_blank");
+		document.location.href = url;
 	});
 };
