@@ -448,7 +448,7 @@ MainMap.prototype.showOrganisations = function(svg, g, projection, center, organ
   circles.exit().transition().duration(300).attr('r', 0).remove();
 
   circles.on('click', function(organization) {
-    //this.showNetwork(organization.org);
+    this.showNetwork(organization.org);
 
     var url = 'http://digitalsocial.eu/organisations/';
     url += organization.org.substr(organization.org.lastIndexOf('/') + 1);
