@@ -145,6 +145,9 @@
 
     var stats = new Stats(divs, orgId);
     stats.init();
+
+    var openVizKey = true;
+    var vizKey = new VizKey(openVizKey);
   }
 
   window.addEventListener('DOMContentLoaded', init);
