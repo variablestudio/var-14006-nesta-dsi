@@ -239,34 +239,56 @@ MainMap.prototype.buildViz = function(organisations) {
 
 MainMap.prototype.addZoom = function(svg, g, w, h) {
   var rectSize = 30;
-  var margin = 10;
+  var margin = 20;
   var spacing = 2;
-  var zoomIn = svg.append('g');
-  zoomIn.append('rect')
+
+  var zoomReset = svg.append('g');
+  zoomReset.append('rect')
     .attr('fill', '#DDD')
     .attr('x', w - rectSize - margin)
     .attr('y', margin)
     .attr('width', rectSize)
     .attr('height', rectSize);
+  zoomReset.append('circle')
+    .attr('stroke', '#666')
+    .attr('fill', 'none')
+    .attr('cx', w - rectSize - margin + rectSize/2)
+    .attr('cy', margin + rectSize/2)
+    .attr('r', rectSize/4)
+  zoomReset.append('circle')
+    .attr('fill', '666')
+    .attr('cx', w - rectSize - margin + rectSize/2)
+    .attr('cy', margin + rectSize/2)
+    .attr('r', 1)
+
+
+  var zoomIn = svg.append('g');
+  zoomIn.append('rect')
+    .attr('fill', '#DDD')
+    .attr('x', w - rectSize - margin)
+    .attr('y', margin+ (rectSize + spacing)*1 + margin)
+    .attr('width', rectSize)
+    .attr('height', rectSize);
+
   zoomIn.append('text')
     .attr('fill', '#666')
     .text('+')
     .attr('x', w - rectSize*0.5 - margin)
-    .attr('y', margin + rectSize*0.65)
+    .attr('y', margin + (rectSize + spacing)*1 + rectSize*0.65 + margin)
     .attr('text-anchor', 'middle')
 
   var zoomOut = svg.append('g');
   zoomOut.append('rect')
     .attr('fill', '#DDD')
     .attr('x', w - rectSize - margin)
-    .attr('y', margin + rectSize + spacing)
+    .attr('y', margin + (rectSize + spacing)*2 + margin)
     .attr('width', rectSize)
     .attr('height', rectSize);
   zoomOut.append('text')
     .attr('fill', '#666')
     .text('-')
     .attr('x', w - rectSize*0.5 - margin)
-    .attr('y', margin + rectSize + spacing + rectSize*0.65)
+    .attr('y', margin + (rectSize + spacing)*2 + rectSize*0.65 + margin)
     .attr('text-anchor', 'middle')
 
   var prevScale = 1;
@@ -291,6 +313,15 @@ MainMap.prototype.addZoom = function(svg, g, w, h) {
   var zoom = d3.behavior.zoom().scaleExtent([1, 8192]).on('zoom', function() {
     updateTransform(d3.event.translate, d3.event.scale);
   });
+
+  zoomReset.on('click', function(e) {
+    d3.event.stopPropagation()
+    d3.event.preventDefault();
+    zoom.scale(1);
+    zoom.translate([0, 0]);
+    zoom.event(svg)
+    return false;
+  })
 
   zoomIn.on('click', function(e) {
     d3.event.stopPropagation()
@@ -322,10 +353,10 @@ MainMap.prototype.addZoom = function(svg, g, w, h) {
 
   svg.call(zoom)
   svg
-  .on("mousewheel.zoom", null)
-  .on("DOMMouseScroll.zoom", null)
-  .on("wheel.zoom", null);
-  //.on("dblclick.zoom", null);
+  //.on("mousewheel.zoom", null)
+  //.on("DOMMouseScroll.zoom", null)
+  //.on("wheel.zoom", null)
+  .on("dblclick.zoom", null);
 
   return zoom;
 }
