@@ -419,3 +419,16 @@
 #vizTooltip h4 {
   margin: 0 0 1em 0;
 }
+
+/*---------------------------------- preloader ----------------------------------------*/
+
+#vizPreloader {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  top: 200px;
+  height: 80px;
+  width: auto;
+  margin-left: -40px;
+  margin-top: -40px;
+}

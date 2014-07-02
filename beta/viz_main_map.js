@@ -40,6 +40,9 @@ MainMap.prototype.initSVG = function() {
 MainMap.prototype.init = function() {
   this.initSVG();
 
+  this.preloader = $('<img id="vizPreloader" src="assets/preloader.gif"/>');
+  $(this.mainVizContainer).append(this.preloader);
+
   this.getOrganisations().then(function(organisations) {
 
     this.organisations = organisations;
@@ -48,7 +51,9 @@ MainMap.prototype.init = function() {
 
      //pre cache
     this.getCollaborations().then(function() {
-      this.getProjectsInfo();
+      this.getProjectsInfo().then(function() {
+        this.preloader.fadeOut('slow')
+      }.bind(this));
     }.bind(this));
   }.bind(this));
 }
@@ -119,6 +124,7 @@ MainMap.prototype.getProjectsInfo = function() {
         areaOfDigitalSocialInnovation: p.adsi_values.value.split(',').map(function(f) { return f.substr(f.lastIndexOf('/')+1); })
       }
     })
+    deferred.resolve(projects);
     console.log('projects', projects[0], projects[0])
   }.bind(this));
   return deferred.promise;

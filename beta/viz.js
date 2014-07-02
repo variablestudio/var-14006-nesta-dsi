@@ -133,6 +133,7 @@
 
   function initVizKey() {
     var openOnInit = !showIntro;
+    openOnInit = false;
     var vizKey = new VizKey(openOnInit);
   }
 
