@@ -152,7 +152,7 @@ Countries.prototype.init = function() {
 };
 
 Countries.prototype.draw = function() {
-	this.data.forEach(function(data) {
+	this.data.forEach(function(data, dataIndex) {
 		var div = this.DOM.div.append("div").attr("class", "map " + data.country_code);
 
 		var barChartDiv = div.append("div").attr("class", "area-chart");
@@ -166,6 +166,10 @@ Countries.prototype.draw = function() {
 
 		var mapDiv = div.append("div").attr("class", "country");
 		this.drawMap(mapDiv, data);
+
+		if (dataIndex >= 8) {
+			$(div[0]).hide();
+		}
 	}.bind(this));
 };
 

@@ -16,7 +16,7 @@
 
 #viz h1 {
   width: 994px;
-  margin: 2em auto 0.5em auto;
+  margin: 2em auto 1.5em auto;
   clear: both;
 }
 
@@ -234,6 +234,17 @@
 }
 
 /*---------------------------------- eu countries -------------------------------------*/
+
+#countriesVizTitle a {
+  font-family: "Scene Pro Light", "Helvetica", sans-serif;
+  font-weight: 100;
+  color: #999;
+  text-decoration: none;
+}
+
+#countriesVizTitle a:hover {
+  color: #000;
+}
 
 #countriesViz {
   width: 994px;

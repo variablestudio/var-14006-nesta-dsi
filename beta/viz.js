@@ -66,8 +66,14 @@
   }
 
   function initEUCountries(vizContainer) {
-    var euCountriesTitle = $('<h1>EU Countries with most DSI Projects</h1>');
+    var euCountriesTitle = $('<h1 id="countriesVizTitle">EU Countries with the most DSI Projects <a href="#">(Show all)</a></h1>');
     vizContainer.append(euCountriesTitle);
+
+    euCountriesTitle.select('a').click(function(e) {
+      $('div.map').show();
+      e.preventDefault();
+      return false;
+    })
 
     var countriesViz = $('<div id="countriesViz"></div>');
     vizContainer.append(countriesViz);
