@@ -40,6 +40,9 @@ MainMap.prototype.initSVG = function() {
 MainMap.prototype.init = function() {
   this.initSVG();
 
+  this.preloader = $('<img id="vizPreloader" src="assets/preloader.gif"/>');
+  $(this.mainVizContainer).append(this.preloader);
+
   this.getOrganisations().then(function(organisations) {
 
     this.organisations = organisations;
@@ -47,8 +50,10 @@ MainMap.prototype.init = function() {
     this.hijackSearch();
 
      //pre cache
-    this.getCollaborations().then(function() {
-      this.getProjectsInfo();
+    this.getCollaborations().then(function(collaborations) {
+      this.getProjectsInfo(collaborations).then(function() {
+        this.preloader.fadeOut('slow')
+      }.bind(this));
     }.bind(this));
   }.bind(this));
 }
@@ -109,17 +114,45 @@ MainMap.prototype.getCollaborations = function() {
   return this.collaorationsPromise;
 }
 
-MainMap.prototype.getProjectsInfo = function() {
+MainMap.prototype.getProjectsInfo = function(collaborations) {
   var deferred = Q.defer();
   this.runProjectsInfoQuery().then(function(results) {
     var projects = results.map(function(p) {
       return {
-        p: p.p,
+        p: p.p.value,
         technologyFocus: p.tf_values.value.split(',').map(function(f) { return f.substr(f.lastIndexOf('/')+1); }),
         areaOfDigitalSocialInnovation: p.adsi_values.value.split(',').map(function(f) { return f.substr(f.lastIndexOf('/')+1); })
       }
     })
-    console.log('projects', projects[0], projects[0])
+
+    projects.forEach(function(project) {
+      var orgs = collaborations.byProject[project.p] || [];
+      //if (Math.random() > 0.99) console.log(project.p)
+      orgs.forEach(function(orgId) {
+        //if (Math.random() > 0.99) console.log(orgId)
+        var org = this.organisationsById[orgId];
+        if (!org) {
+          return;
+        }
+        if (!org.technologyFocus) org.technologyFocus = [];
+        if (!org.areaOfDigitalSocialInnovation) org.areaOfDigitalSocialInnovation = [];
+        project.technologyFocus.forEach(function(technologyFocus) {
+          if (org.technologyFocus.indexOf(technologyFocus) == -1) {
+            org.technologyFocus.push(technologyFocus);
+          }
+        })
+        project.areaOfDigitalSocialInnovation.forEach(function(areaOfDigitalSocialInnovation) {
+          if (org.areaOfDigitalSocialInnovation.indexOf(areaOfDigitalSocialInnovation) == -1) {
+            org.areaOfDigitalSocialInnovation.push(areaOfDigitalSocialInnovation);
+          }
+        })
+      }.bind(this))
+    }.bind(this));
+    //projects
+    //console.log('collaborations', collaborations)
+    console.log('org', this.organisations[0]);
+
+    deferred.resolve(projects);
   }.bind(this));
   return deferred.promise;
 }
@@ -223,44 +256,72 @@ MainMap.prototype.buildViz = function(organisations) {
   this.showWorldMap(svg, this.DOM.g, projection);
   this.showOrganisations(svg, this.DOM.g, projection, center, organisations, zoom);
 
-  console.log('org', organisations[0]);
+  //console.log('org', organisations[0]);
 
   VizConfig.events.addEventListener('filter', function(e) {
-    console.log(e);
-  })
+    console.log(e.property, organisations[0])
+    var filteredOrganisations = organisations.filter(function(o) {
+      var value = o[e.property] || '';
+      return value.indexOf(e.id) != -1;
+    });
+    this.showOrganisations(svg, this.DOM.g, projection, center, filteredOrganisations, zoom);
+    //console.log(e, organisations.length, filteredOrganisations.length);
+  }.bind(this))
   //this.showIsoLines(svg, this.DOM.g, organisations, w, h, zoom);
 }
 
 MainMap.prototype.addZoom = function(svg, g, w, h) {
   var rectSize = 30;
-  var margin = 10;
+  var margin = 20;
   var spacing = 2;
-  var zoomIn = svg.append('g');
-  zoomIn.append('rect')
+
+  var zoomReset = svg.append('g');
+  zoomReset.append('rect')
     .attr('fill', '#DDD')
     .attr('x', w - rectSize - margin)
     .attr('y', margin)
     .attr('width', rectSize)
     .attr('height', rectSize);
+  zoomReset.append('circle')
+    .attr('stroke', '#666')
+    .attr('fill', 'none')
+    .attr('cx', w - rectSize - margin + rectSize/2)
+    .attr('cy', margin + rectSize/2)
+    .attr('r', rectSize/4)
+  zoomReset.append('circle')
+    .attr('fill', '666')
+    .attr('cx', w - rectSize - margin + rectSize/2)
+    .attr('cy', margin + rectSize/2)
+    .attr('r', 1)
+
+
+  var zoomIn = svg.append('g');
+  zoomIn.append('rect')
+    .attr('fill', '#DDD')
+    .attr('x', w - rectSize - margin)
+    .attr('y', margin+ (rectSize + spacing)*1 + margin)
+    .attr('width', rectSize)
+    .attr('height', rectSize);
+
   zoomIn.append('text')
     .attr('fill', '#666')
     .text('+')
     .attr('x', w - rectSize*0.5 - margin)
-    .attr('y', margin + rectSize*0.65)
+    .attr('y', margin + (rectSize + spacing)*1 + rectSize*0.65 + margin)
     .attr('text-anchor', 'middle')
 
   var zoomOut = svg.append('g');
   zoomOut.append('rect')
     .attr('fill', '#DDD')
     .attr('x', w - rectSize - margin)
-    .attr('y', margin + rectSize + spacing)
+    .attr('y', margin + (rectSize + spacing)*2 + margin)
     .attr('width', rectSize)
     .attr('height', rectSize);
   zoomOut.append('text')
     .attr('fill', '#666')
     .text('-')
     .attr('x', w - rectSize*0.5 - margin)
-    .attr('y', margin + rectSize + spacing + rectSize*0.65)
+    .attr('y', margin + (rectSize + spacing)*2 + rectSize*0.65 + margin)
     .attr('text-anchor', 'middle')
 
   var prevScale = 1;
@@ -285,6 +346,15 @@ MainMap.prototype.addZoom = function(svg, g, w, h) {
   var zoom = d3.behavior.zoom().scaleExtent([1, 8192]).on('zoom', function() {
     updateTransform(d3.event.translate, d3.event.scale);
   });
+
+  zoomReset.on('click', function(e) {
+    d3.event.stopPropagation()
+    d3.event.preventDefault();
+    zoom.scale(1);
+    zoom.translate([0, 0]);
+    zoom.event(svg)
+    return false;
+  })
 
   zoomIn.on('click', function(e) {
     d3.event.stopPropagation()
@@ -316,10 +386,10 @@ MainMap.prototype.addZoom = function(svg, g, w, h) {
 
   svg.call(zoom)
   svg
-  .on("mousewheel.zoom", null)
-  .on("DOMMouseScroll.zoom", null)
-  .on("wheel.zoom", null);
-  //.on("dblclick.zoom", null);
+  //.on("mousewheel.zoom", null)
+  //.on("DOMMouseScroll.zoom", null)
+  //.on("wheel.zoom", null)
+  .on("dblclick.zoom", null);
 
   return zoom;
 }
