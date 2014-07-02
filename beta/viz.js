@@ -8,7 +8,10 @@
     var urlIsOrganisation = (url.match(/\/organisations\//) !== null);
 
     if (urlIsOrganisation) {
+      // get organisation id
       var orgId = url.split("/").pop().replace(/\.html$/, "");
+
+      // draw organisation stats
       initOrgStats(orgId);
     }
     else if (urlIsLocalhost || urlIsVariableIO) {
@@ -142,6 +145,11 @@
       "tech": ".viz-2",
       "collaborators": ".viz-3"
     };
+
+    initTooltip();
+
+    var openVizKey = false;
+    var vizKey = new VizKey(openVizKey);
 
     var stats = new Stats(divs, orgId);
     stats.init();

@@ -388,9 +388,9 @@
   color: white;
   transform: rotate(-90deg); -webkit-transform: rotate(-90deg); -moz-transform: rotate(-90deg); -ms-transform: rotate(-90deg);
   position: absolute;
-  top: 86px;
+  top: 85px;
   left: 94px;
-  width: 200px;
+  width: 197px;
   cursor: pointer;
 }
 
@@ -431,4 +431,17 @@
   width: auto;
   margin-left: -40px;
   margin-top: -40px;
+
+/*---------------------------------- organisation -----------------------------------*/
+
+.viz-1 h2,
+.viz-2 h2,
+.viz-3 h2 {
+	margin-bottom: 4px;
+}
+
+.viz-1 svg .title,
+.viz-2 svg .title {
+	font-family: "Helvetica";
+	font-size: 12px;
 }

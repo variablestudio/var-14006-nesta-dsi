@@ -1,4 +1,4 @@
-/*global fn, d3, SPARQLDataSource */
+/*global window, fn, d3, SPARQLDataSource, VizConfig */
 
 var indexOfProp = function(data, prop, val) {
 	return data.map(function(o) { return o[prop]; }).indexOf(val);
@@ -32,6 +32,7 @@ function Stats(divs, org, dsiColors) {
 
 Stats.prototype.cleanResults = function(results) {
 	var numericKeys = [ "lat", "long" ];
+	var idForUrls = [ "activity", "org" ];
 
 	return results.map(function(object) {
 		var newObject = {};
@@ -42,7 +43,12 @@ Stats.prototype.cleanResults = function(results) {
 					newObject[key] = +object[key].value;
 				}
 				else {
-					newObject[key] = object[key].value;
+					if (idForUrls.indexOf(key) >= 0) {
+						newObject[key + "_url"] = object[key].value.split("/").pop();
+					}
+					else {
+						newObject[key] = object[key].value;
+					}
 				}
 			}
 		}
@@ -61,7 +67,7 @@ Stats.prototype.init = function() {
 		.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
 		.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
 		.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
-		.select("?org_label ?activity_label ?adsi_label ?tech_label ?lat ?long")
+		.select("?org_label ?activity_label ?adsi_label ?tech_label ?lat ?long ?activity")
 		.where("?org", "a", "o:Organization")
 		.where("FILTER regex(str(?org), \"" + this.org + "\")", "", "")
 		.where("?am", "a", "ds:ActivityMembership")
@@ -88,6 +94,7 @@ Stats.prototype.init = function() {
 				if (index < 0) {
 					memo.push({
 						"activity_label": object.activity_label,
+						"activity_url": object.activity_url,
 						"adsi_labels": [ object.adsi_label ],
 						"tech_focuses": [ object.tech_label ],
 						"lat": object.lat,
@@ -135,7 +142,7 @@ Stats.prototype.queryCollaborators = function(projects, parentOrg, callback) {
 		.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
 		.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
 		.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
-		.select("DISTINCT ?org_label ?activity_label ?lat ?long")
+		.select("DISTINCT ?org_label ?activity_label ?lat ?long ?org")
 		.where("?org", "a", "o:Organization")
 		.where("?org", "rdfs:label", "?org_label")
 		.where("?am", "a", "ds:ActivityMembership")
@@ -185,10 +192,15 @@ Stats.prototype.countField = function(field) {
 			var index = indexOfProp(memo, "name", label);
 
 			if (index < 0) {
-				memo.push({ "name": label, "count": 1 });
+				memo.push({
+					"name": label,
+					"count": 1,
+					"values": [ { "name": object.activity_label, "url": object.activity_url } ],
+				});
 			}
 			else {
 				memo[index].count++;
+				memo[index].values.push({ "name": object.activity_label, "url": object.activity_url });
 			}
 		});
 
@@ -199,7 +211,7 @@ Stats.prototype.countField = function(field) {
 Stats.prototype.drawDSIAreas = function() {
 	var groupedData = this.countField("adsi_labels").filter(function(object) { return (object.count > 0); });
 
-	var width = 322;
+	var width = 228;
 	var height = 40;
 	var rectWidth = 30;
 	var rectHeight = 15;
@@ -226,39 +238,52 @@ Stats.prototype.drawDSIAreas = function() {
 				.attr("width", rectWidth)
 				.attr("height", rectHeight)
 				.attr("fill", this.DSIColors[group.name]);
-			this.highlightProject(svg, rect, group.name, projectIndex);
+
+			this.highlightProject(svg, rect, group, projectIndex);
 		}.bind(this));
 	}.bind(this));
 };
 
-Stats.prototype.highlightProject = function(svg, rect, groupName, projectIndex) {
+Stats.prototype.highlightProject = function(svg, rect, group, projectIndex) {
 	rect.on("mouseover", function() {
-		svg.selectAll(".dsiAreaProject").transition().duration(200).style("opacity", "0.25")
+		VizConfig.tooltip.show();
+		VizConfig.tooltip.html(group.values[projectIndex].name, "#FFF", this.DSIColors[group.name]);
+
+		svg.selectAll(".dsiAreaProject").transition().duration(200).style("opacity", "0.25");
 		rect.transition().duration(0).style("opacity", "1");
 
-		var projects = this.data.filter(function(p) { return p.adsi_labels.indexOf(groupName) != -1; });
+		var projects = this.data.filter(function(p) { return p.adsi_labels.indexOf(group.name) !== -1; });
 		var project = projects[projectIndex];
 
 		var techFocuses = this.countField("tech_focuses").filter(function(object) { return (object.count > 0); });
 
 		d3.selectAll('.techFocusBar')
 			.style('opacity', function(d, i) {
-				if (project.tech_focuses.indexOf(techFocuses[i].name) != -1) {
-					return 1;
+				var opacity = 0.2;
+
+				if (project.tech_focuses.indexOf(techFocuses[i].name) !== -1) {
+					opacity = 1;
 				}
-				else {
-					return 0.2;
-				}
-			})
+
+				return opacity;
+			});
 
 		d3.selectAll('.collaborator').style('opacity', 0.1);
 	}.bind(this));
+
 	rect.on("mouseout", function() {
+		VizConfig.tooltip.hide();
+
 		svg.selectAll(".dsiAreaProject").style("opacity", "1");
-		d3.selectAll('.techFocusBar').style('opacity', 1)
+		d3.selectAll('.techFocusBar').style('opacity', 1);
 		d3.selectAll('.collaborator').style('opacity', 1);
-	}.bind(this))
-}
+	}.bind(this));
+
+	rect.on("click", function() {
+		var url = "http://digitalsocial.eu/projects/" + group.values[projectIndex].url;
+		window.open(url, "_blank");
+	});
+};
 
 Stats.prototype.drawTechnologyAreas = function() {
 	var groupedData = this.countField("tech_focuses").filter(function(object) { return (object.count > 0); });
@@ -266,7 +291,7 @@ Stats.prototype.drawTechnologyAreas = function() {
 		return memo > object.count ? memo : object.count;
 	}, -Infinity);
 
-	var width = 322;
+	var width = 228;
 	var height = 40;
 	var rectHeight = 5;
 	var rectMargin = 4;
@@ -297,8 +322,8 @@ Stats.prototype.drawTechnologyAreas = function() {
 };
 
 Stats.prototype.drawCollaborators = function() {
-	var width = 322;
-	var height = 322;
+	var width = 352;
+	var height = width;
 	var hexR = 25;
 	var smallHexR = 15;
 
@@ -354,10 +379,14 @@ Stats.prototype.drawCollaborators = function() {
 
 	// calculate bounds, scale and translation
 	var bounds = path.bounds(multiPoints);
-	var scale = 0.8 / Math.max(
+	var scale = 0.65 / Math.max(
 		(bounds[1][0] - bounds[0][0]) / width,
 		(bounds[1][1] - bounds[0][1]) / height
 	);
+
+	// fix for situation where organisation doesn't have collaborators
+	if (scale === Infinity) { scale = 1.0; }
+
 	var translate = [
 		(width - scale * (bounds[1][0] + bounds[0][0])) / 2,
 		(height - scale * (bounds[1][1] + bounds[0][1])) / 2
@@ -369,16 +398,32 @@ Stats.prototype.drawCollaborators = function() {
 	// get position for parent company
 	var orgPos = projection([ this.data[0].lat, this.data[0].long ]);
 
+	// project positions
+	collaborators = collaborators.map(function(collaborator) {
+		var pos = projection([ collaborator.lat, collaborator.long ]);
+
+		var vec = [ pos[0] - orgPos[0], pos[1] - orgPos[1] ];
+		var length = Math.sqrt(vec[0] * vec[0] + vec[1] * vec[1]);
+		vec[0] /= length;
+		vec[1] /= length;
+
+		pos[0] += vec[0] * (hexR + smallHexR) * 1.05;
+		pos[1] += vec[1] * (hexR + smallHexR) * 1.05;
+
+		collaborator.pos = pos;
+		return collaborator;
+	});
+
 	// draw all connecting lines
 	collaborators.forEach(function(collaborator) {
-		var pos = projection([ collaborator.lat, collaborator.long ]);
+		var pos = collaborator.pos;
 		this.drawLine(selection, orgPos[0], orgPos[1], pos[0], pos[1]);
 	}.bind(this));
 
 	// draw all collaborators
 	collaborators.forEach(function(collaborator) {
-		var pos = projection([ collaborator.lat, collaborator.long ]);
-		this.drawHex(selection, pos[0], pos[1], smallHexR, null);
+		var pos = collaborator.pos;
+		this.drawHex(selection, pos[0], pos[1], smallHexR, null, collaborator);
 	}.bind(this));
 
 	// draw main company
@@ -396,7 +441,7 @@ Stats.prototype.drawLine = function(selection, x1, y1, x2, y2) {
 		.attr("fill", "none");
 };
 
-Stats.prototype.drawHex = function(selection, x, y, r, data) {
+Stats.prototype.drawHex = function(selection, x, y, r, data, collaboratorData) {
 	var hexBite = function(x, y, r, i) {
 		var a = i/6 * Math.PI * 2 + Math.PI/6;
 		var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
@@ -405,14 +450,16 @@ Stats.prototype.drawHex = function(selection, x, y, r, data) {
 			[x + r * Math.cos(a), y + r * Math.sin(a)],
 			[x + r * Math.cos(na), y + r * Math.sin(na)]
 		];
-	}
+	};
+
+	var hex = selection.append("g").attr("class", "hex");
 
 	fn.sequence(0, 6).forEach(function(i) {
-		var bite = selection.append("path");
-		if (!data) bite.attr('class', 'collaborator');
+		var bite = hex.append("path");
+		if (!data) { bite.attr('class', 'collaborator'); }
 
 		bite
-			.attr("d", function(org, orgIndex) {
+			.attr("d", function() {
 				return "M" + hexBite(x, y, r, i).join("L") + "Z";
 			})
 			.attr("stroke", "#666")
@@ -423,13 +470,29 @@ Stats.prototype.drawHex = function(selection, x, y, r, data) {
 	if (data) {
 		fn.sequence(0, 6).forEach(function(i) {
 			var dsiArea = this.DSIAreas[i];
-			var bite = selection.append("path");
+			var bite = hex.append("path");
 
 			bite
-				.attr("d", function(org, orgIndex) {
+				.attr("d", function() {
 					return "M" + hexBite(x, y, 5 + Math.min(r - 5, Math.pow(data[dsiArea], 0.6)) || 1, i).join("L") + "Z";
 				})
 				.attr('fill', this.DSIColors[this.DSIAreas[i]]);
 		}.bind(this));
 	}
+
+	hex.on("mouseover", function() {
+		if (collaboratorData) {
+			VizConfig.tooltip.show();
+			VizConfig.tooltip.html(collaboratorData.org_label, "#FFF", "#666");
+		}
+	});
+
+	hex.on("mouseout", function() {
+		VizConfig.tooltip.hide();
+	});
+
+	hex.on("click", function() {
+		var url = "http://digitalsocial.eu/organisations/" + collaboratorData.org_url;
+		window.open(url, "_blank");
+	});
 };

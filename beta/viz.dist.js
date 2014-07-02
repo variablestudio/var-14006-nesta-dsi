@@ -1843,6 +1843,7 @@ function VizKey(open) {
     }
   });
 }
+
 var MainMap = (function() {
 
 function hsla(h, s, l, a) {
@@ -2413,7 +2414,7 @@ MainMap.prototype.showIsoLines = function(svg, g, organisations, w, h, zoom) {
 return MainMap;
 
 })();
-/*global fn, d3, SPARQLDataSource */
+/*global window, fn, d3, SPARQLDataSource, VizConfig */
 
 var indexOfProp = function(data, prop, val) {
 	return data.map(function(o) { return o[prop]; }).indexOf(val);
@@ -2447,6 +2448,7 @@ function Stats(divs, org, dsiColors) {
 
 Stats.prototype.cleanResults = function(results) {
 	var numericKeys = [ "lat", "long" ];
+	var idForUrls = [ "activity", "org" ];
 
 	return results.map(function(object) {
 		var newObject = {};
@@ -2457,7 +2459,12 @@ Stats.prototype.cleanResults = function(results) {
 					newObject[key] = +object[key].value;
 				}
 				else {
-					newObject[key] = object[key].value;
+					if (idForUrls.indexOf(key) >= 0) {
+						newObject[key + "_url"] = object[key].value.split("/").pop();
+					}
+					else {
+						newObject[key] = object[key].value;
+					}
 				}
 			}
 		}
@@ -2476,7 +2483,7 @@ Stats.prototype.init = function() {
 		.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
 		.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
 		.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
-		.select("?org_label ?activity_label ?adsi_label ?tech_label ?lat ?long")
+		.select("?org_label ?activity_label ?adsi_label ?tech_label ?lat ?long ?activity")
 		.where("?org", "a", "o:Organization")
 		.where("FILTER regex(str(?org), \"" + this.org + "\")", "", "")
 		.where("?am", "a", "ds:ActivityMembership")
@@ -2503,6 +2510,7 @@ Stats.prototype.init = function() {
 				if (index < 0) {
 					memo.push({
 						"activity_label": object.activity_label,
+						"activity_url": object.activity_url,
 						"adsi_labels": [ object.adsi_label ],
 						"tech_focuses": [ object.tech_label ],
 						"lat": object.lat,
@@ -2550,7 +2558,7 @@ Stats.prototype.queryCollaborators = function(projects, parentOrg, callback) {
 		.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
 		.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
 		.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
-		.select("DISTINCT ?org_label ?activity_label ?lat ?long")
+		.select("DISTINCT ?org_label ?activity_label ?lat ?long ?org")
 		.where("?org", "a", "o:Organization")
 		.where("?org", "rdfs:label", "?org_label")
 		.where("?am", "a", "ds:ActivityMembership")
@@ -2600,10 +2608,15 @@ Stats.prototype.countField = function(field) {
 			var index = indexOfProp(memo, "name", label);
 
 			if (index < 0) {
-				memo.push({ "name": label, "count": 1 });
+				memo.push({
+					"name": label,
+					"count": 1,
+					"values": [ { "name": object.activity_label, "url": object.activity_url } ],
+				});
 			}
 			else {
 				memo[index].count++;
+				memo[index].values.push({ "name": object.activity_label, "url": object.activity_url });
 			}
 		});
 
@@ -2614,7 +2627,7 @@ Stats.prototype.countField = function(field) {
 Stats.prototype.drawDSIAreas = function() {
 	var groupedData = this.countField("adsi_labels").filter(function(object) { return (object.count > 0); });
 
-	var width = 322;
+	var width = 228;
 	var height = 40;
 	var rectWidth = 30;
 	var rectHeight = 15;
@@ -2641,39 +2654,52 @@ Stats.prototype.drawDSIAreas = function() {
 				.attr("width", rectWidth)
 				.attr("height", rectHeight)
 				.attr("fill", this.DSIColors[group.name]);
-			this.highlightProject(svg, rect, group.name, projectIndex);
+
+			this.highlightProject(svg, rect, group, projectIndex);
 		}.bind(this));
 	}.bind(this));
 };
 
-Stats.prototype.highlightProject = function(svg, rect, groupName, projectIndex) {
+Stats.prototype.highlightProject = function(svg, rect, group, projectIndex) {
 	rect.on("mouseover", function() {
-		svg.selectAll(".dsiAreaProject").transition().duration(200).style("opacity", "0.25")
+		VizConfig.tooltip.show();
+		VizConfig.tooltip.html(group.values[projectIndex].name, "#FFF", this.DSIColors[group.name]);
+
+		svg.selectAll(".dsiAreaProject").transition().duration(200).style("opacity", "0.25");
 		rect.transition().duration(0).style("opacity", "1");
 
-		var projects = this.data.filter(function(p) { return p.adsi_labels.indexOf(groupName) != -1; });
+		var projects = this.data.filter(function(p) { return p.adsi_labels.indexOf(group.name) !== -1; });
 		var project = projects[projectIndex];
 
 		var techFocuses = this.countField("tech_focuses").filter(function(object) { return (object.count > 0); });
 
 		d3.selectAll('.techFocusBar')
 			.style('opacity', function(d, i) {
-				if (project.tech_focuses.indexOf(techFocuses[i].name) != -1) {
-					return 1;
+				var opacity = 0.2;
+
+				if (project.tech_focuses.indexOf(techFocuses[i].name) !== -1) {
+					opacity = 1;
 				}
-				else {
-					return 0.2;
-				}
-			})
+
+				return opacity;
+			});
 
 		d3.selectAll('.collaborator').style('opacity', 0.1);
 	}.bind(this));
+
 	rect.on("mouseout", function() {
+		VizConfig.tooltip.hide();
+
 		svg.selectAll(".dsiAreaProject").style("opacity", "1");
-		d3.selectAll('.techFocusBar').style('opacity', 1)
+		d3.selectAll('.techFocusBar').style('opacity', 1);
 		d3.selectAll('.collaborator').style('opacity', 1);
-	}.bind(this))
-}
+	}.bind(this));
+
+	rect.on("click", function() {
+		var url = "http://digitalsocial.eu/projects/" + group.values[projectIndex].url;
+		window.open(url, "_blank");
+	});
+};
 
 Stats.prototype.drawTechnologyAreas = function() {
 	var groupedData = this.countField("tech_focuses").filter(function(object) { return (object.count > 0); });
@@ -2681,7 +2707,7 @@ Stats.prototype.drawTechnologyAreas = function() {
 		return memo > object.count ? memo : object.count;
 	}, -Infinity);
 
-	var width = 322;
+	var width = 228;
 	var height = 40;
 	var rectHeight = 5;
 	var rectMargin = 4;
@@ -2712,8 +2738,8 @@ Stats.prototype.drawTechnologyAreas = function() {
 };
 
 Stats.prototype.drawCollaborators = function() {
-	var width = 322;
-	var height = 322;
+	var width = 352;
+	var height = width;
 	var hexR = 25;
 	var smallHexR = 15;
 
@@ -2769,10 +2795,14 @@ Stats.prototype.drawCollaborators = function() {
 
 	// calculate bounds, scale and translation
 	var bounds = path.bounds(multiPoints);
-	var scale = 0.8 / Math.max(
+	var scale = 0.65 / Math.max(
 		(bounds[1][0] - bounds[0][0]) / width,
 		(bounds[1][1] - bounds[0][1]) / height
 	);
+
+	// fix for situation where organisation doesn't have collaborators
+	if (scale === Infinity) { scale = 1.0; }
+
 	var translate = [
 		(width - scale * (bounds[1][0] + bounds[0][0])) / 2,
 		(height - scale * (bounds[1][1] + bounds[0][1])) / 2
@@ -2784,16 +2814,32 @@ Stats.prototype.drawCollaborators = function() {
 	// get position for parent company
 	var orgPos = projection([ this.data[0].lat, this.data[0].long ]);
 
+	// project positions
+	collaborators = collaborators.map(function(collaborator) {
+		var pos = projection([ collaborator.lat, collaborator.long ]);
+
+		var vec = [ pos[0] - orgPos[0], pos[1] - orgPos[1] ];
+		var length = Math.sqrt(vec[0] * vec[0] + vec[1] * vec[1]);
+		vec[0] /= length;
+		vec[1] /= length;
+
+		pos[0] += vec[0] * (hexR + smallHexR) * 1.05;
+		pos[1] += vec[1] * (hexR + smallHexR) * 1.05;
+
+		collaborator.pos = pos;
+		return collaborator;
+	});
+
 	// draw all connecting lines
 	collaborators.forEach(function(collaborator) {
-		var pos = projection([ collaborator.lat, collaborator.long ]);
+		var pos = collaborator.pos;
 		this.drawLine(selection, orgPos[0], orgPos[1], pos[0], pos[1]);
 	}.bind(this));
 
 	// draw all collaborators
 	collaborators.forEach(function(collaborator) {
-		var pos = projection([ collaborator.lat, collaborator.long ]);
-		this.drawHex(selection, pos[0], pos[1], smallHexR, null);
+		var pos = collaborator.pos;
+		this.drawHex(selection, pos[0], pos[1], smallHexR, null, collaborator);
 	}.bind(this));
 
 	// draw main company
@@ -2811,7 +2857,7 @@ Stats.prototype.drawLine = function(selection, x1, y1, x2, y2) {
 		.attr("fill", "none");
 };
 
-Stats.prototype.drawHex = function(selection, x, y, r, data) {
+Stats.prototype.drawHex = function(selection, x, y, r, data, collaboratorData) {
 	var hexBite = function(x, y, r, i) {
 		var a = i/6 * Math.PI * 2 + Math.PI/6;
 		var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
@@ -2820,14 +2866,16 @@ Stats.prototype.drawHex = function(selection, x, y, r, data) {
 			[x + r * Math.cos(a), y + r * Math.sin(a)],
 			[x + r * Math.cos(na), y + r * Math.sin(na)]
 		];
-	}
+	};
+
+	var hex = selection.append("g").attr("class", "hex");
 
 	fn.sequence(0, 6).forEach(function(i) {
-		var bite = selection.append("path");
-		if (!data) bite.attr('class', 'collaborator');
+		var bite = hex.append("path");
+		if (!data) { bite.attr('class', 'collaborator'); }
 
 		bite
-			.attr("d", function(org, orgIndex) {
+			.attr("d", function() {
 				return "M" + hexBite(x, y, r, i).join("L") + "Z";
 			})
 			.attr("stroke", "#666")
@@ -2838,16 +2886,99 @@ Stats.prototype.drawHex = function(selection, x, y, r, data) {
 	if (data) {
 		fn.sequence(0, 6).forEach(function(i) {
 			var dsiArea = this.DSIAreas[i];
-			var bite = selection.append("path");
+			var bite = hex.append("path");
 
 			bite
-				.attr("d", function(org, orgIndex) {
+				.attr("d", function() {
 					return "M" + hexBite(x, y, 5 + Math.min(r - 5, Math.pow(data[dsiArea], 0.6)) || 1, i).join("L") + "Z";
 				})
 				.attr('fill', this.DSIColors[this.DSIAreas[i]]);
 		}.bind(this));
 	}
+
+	hex.on("mouseover", function() {
+		if (collaboratorData) {
+			VizConfig.tooltip.show();
+			VizConfig.tooltip.html(collaboratorData.org_label, "#FFF", "#666");
+		}
+	});
+
+	hex.on("mouseout", function() {
+		VizConfig.tooltip.hide();
+	});
+
+	hex.on("click", function() {
+		var url = "http://digitalsocial.eu/organisations/" + collaboratorData.org_url;
+		window.open(url, "_blank");
+	});
 };
+
+var VizConfig = {};
+
+if (window.location.href.match(/\/organisations\//) !== null) {
+  VizConfig.assetsPath = "http://variable.io/p/nestadsi/beta/assets";
+}
+else {
+  VizConfig.assetsPath = 'assets';
+}
+
+VizConfig.dsiAreas = [
+  { title: 'Funding acceleration<br/> and incubation', id: 'funding-acceleration-and-incubation', color: '#FDE302', icon: VizConfig.assetsPath + '/triangle-funding-acceleration-and-incubation.png' },
+  { title: 'Collaborative economy', id: 'collaborative-economy', color: '#A6CE39', icon: VizConfig.assetsPath + '/triangle-collaborative-economy.png' },
+  { title: 'Open democracy', id: 'open-democracy', color: '#F173AC', icon: VizConfig.assetsPath + '/triangle-open-democracy.png' },
+  { title: 'Awarness networks', id: 'awarness-networks', color: '#ED1A3B', icon: VizConfig.assetsPath + '/triangle-awarness-networks.png' },
+  { title: 'New ways of making', id: 'new-ways-of-making', color: '#F58220', icon: VizConfig.assetsPath + '/triangle-new-ways-of-making.png' },
+  { title: 'Open access', id: 'open-access', color: '#7BAFDE', icon: VizConfig.assetsPath + '/triangle-open-access.png' }
+];
+
+VizConfig.dsiAreasById = {
+  'funding-acceleration-and-incubation': VizConfig.dsiAreas[0],
+  'collaborative-economy': VizConfig.dsiAreas[1],
+  'open-democracy': VizConfig.dsiAreas[2],
+  'awarness-networks': VizConfig.dsiAreas[3],
+  'new-ways-of-making': VizConfig.dsiAreas[4],
+  'open-access': VizConfig.dsiAreas[5]
+};
+
+VizConfig.dsiAreasById['funding-acceleration-and-incubation'].info = '';
+VizConfig.dsiAreasById['collaborative-economy'].info = 'Collaborative economy: New collaborative socio-economic models that present novel characteristics, and enable people to share skills, knowledge, food, clothes, housing and so on. It includes crypto digital currencies, new forms of crowdfunding and financing, new platforms for exchanges and sharing resources based on reputation and trust.';
+VizConfig.dsiAreasById['open-democracy'].info = 'Open democracy is transforming the traditional models of representative democracy. Digital technology can enable collective participation at a scale that was impossible before enabling citizens to be engaged in decision-making processes, collective deliberation, and mass mobilisation. ';
+VizConfig.dsiAreasById['awarness-networks'].info = 'Platforms for collaboration are able to aggregate data coming from people and the environment and are used to solve environmental issues and promote sustainable behavioral changes, or to mobilize collective action and respond to community emergencies. ';
+VizConfig.dsiAreasById['new-ways-of-making'].info = 'An ecosystem of makers is revolutionising open design and manufacturing. 3D manufactur­ing tools, free CAD/CAM software and open source designs are now giving innovators better access to tools, products, skills and capabilities they need to enhance collaborative making.';
+VizConfig.dsiAreasById['open-access'].info = 'The Open Access Ecosystem approach has the potential to empower citizens and increase participation, while preserving privacy-aware and decentralised infrastructures. It includes projects that facilitate the diffusion of knowledge systems in the Public Domain, open standards, open licensing, knowledge commons and digital rights.';
+
+VizConfig.dsiAreasByLabel = {
+  'Funding Acceleration and Incubation': VizConfig.dsiAreas[0],
+  'Collaborative Economy': VizConfig.dsiAreas[1],
+  'Open Democracy': VizConfig.dsiAreas[2],
+  'Awareness Networks': VizConfig.dsiAreas[3],
+  'New Ways of Making': VizConfig.dsiAreas[4],
+  'Open Access': VizConfig.dsiAreas[5]
+};
+
+VizConfig.technologyFocuses = [
+  { title: 'Open Hardware', id: 'open-hardware', icon: VizConfig.assetsPath + '/tech-open-hardware.png' },
+  { title: 'Open Networks', id: 'open-networks', icon: VizConfig.assetsPath + '/tech-open-networks.png' },
+  { title: 'Open Knowledge', id: 'open-knowledge', icon: VizConfig.assetsPath + '/tech-open-knowledge.png' },
+  { title: 'Open Data', id: 'open-data', icon: VizConfig.assetsPath + '/tech-open-data.png' }
+];
+
+VizConfig.technologyFocusesById = {
+  'open-hardware': VizConfig.technologyFocuses[0],
+  'open-networks': VizConfig.technologyFocuses[1],
+  'open-knowledge': VizConfig.technologyFocuses[2],
+  'open-data': VizConfig.technologyFocuses[3]
+};
+
+
+
+
+
+
+VizConfig.technologyFocusesById['open-hardware'].info = 'New ways of making and using open hard­ware solutions and moving towards and Open Source Internet of Things';
+VizConfig.technologyFocusesById['open-networks'].info = 'Innovative combinations of network solutions and infrastructures, e.g. sensor net­works, free interoperable network services, open Wifi, bottom-up-broadband, distribut­ed social networks, p2p infrastructures';
+VizConfig.technologyFocusesById['open-knowledge'].info = 'Co-production of new knowledge and crowd mobilisation based on open content, open source and open access';
+VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture, use, analyse, and interpret open data coming from people and from the environment';
 
 (function() {
   var showIntro = !(document.location.hash == '#nointro');
@@ -2859,7 +2990,10 @@ Stats.prototype.drawHex = function(selection, x, y, r, data) {
     var urlIsOrganisation = (url.match(/\/organisations\//) !== null);
 
     if (urlIsOrganisation) {
+      // get organisation id
       var orgId = url.split("/").pop().replace(/\.html$/, "");
+
+      // draw organisation stats
       initOrgStats(orgId);
     }
     else if (urlIsLocalhost || urlIsVariableIO) {
@@ -2993,6 +3127,11 @@ Stats.prototype.drawHex = function(selection, x, y, r, data) {
       "tech": ".viz-2",
       "collaborators": ".viz-3"
     };
+
+    initTooltip();
+
+    var openVizKey = false;
+    var vizKey = new VizKey(openVizKey);
 
     var stats = new Stats(divs, orgId);
     stats.init();
