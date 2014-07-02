@@ -422,6 +422,12 @@
 
 /*---------------------------------- organisation -----------------------------------*/
 
+.viz-1 h2,
+.viz-2 h2,
+.viz-3 h2 {
+	margin-bottom: 4px;
+}
+
 .viz-1 svg .title,
 .viz-2 svg .title {
 	font-family: "Helvetica";
