@@ -243,12 +243,13 @@ Stats.prototype.highlightProject = function(svg, rect, groupName, projectIndex) 
 
 		d3.selectAll('.techFocusBar')
 			.style('opacity', function(d, i) {
+				var opacity = 0.2;
+
 				if (project.tech_focuses.indexOf(techFocuses[i].name) !== -1) {
-					return 1;
+					opacity = 1;
 				}
-				else {
-					return 0.2;
-				}
+
+				return opacity;
 			});
 
 		d3.selectAll('.collaborator').style('opacity', 0.1);
@@ -354,7 +355,7 @@ Stats.prototype.drawCollaborators = function() {
 
 	// calculate bounds, scale and translation
 	var bounds = path.bounds(multiPoints);
-	var scale = 0.8 / Math.max(
+	var scale = 0.65 / Math.max(
 		(bounds[1][0] - bounds[0][0]) / width,
 		(bounds[1][1] - bounds[0][1]) / height
 	);
@@ -373,15 +374,31 @@ Stats.prototype.drawCollaborators = function() {
 	// get position for parent company
 	var orgPos = projection([ this.data[0].lat, this.data[0].long ]);
 
+	// project positions
+	collaborators = collaborators.map(function(collaborator) {
+		var pos = projection([ collaborator.lat, collaborator.long ]);
+
+		var vec = [ pos[0] - orgPos[0], pos[1] - orgPos[1] ];
+		var length = Math.sqrt(vec[0] * vec[0] + vec[1] * vec[1]);
+		vec[0] /= length;
+		vec[1] /= length;
+
+		pos[0] += vec[0] * (hexR + smallHexR) * 1.05;
+		pos[1] += vec[1] * (hexR + smallHexR) * 1.05;
+
+		collaborator.pos = pos;
+		return collaborator;
+	});
+
 	// draw all connecting lines
 	collaborators.forEach(function(collaborator) {
-		var pos = projection([ collaborator.lat, collaborator.long ]);
+		var pos = collaborator.pos;
 		this.drawLine(selection, orgPos[0], orgPos[1], pos[0], pos[1]);
 	}.bind(this));
 
 	// draw all collaborators
 	collaborators.forEach(function(collaborator) {
-		var pos = projection([ collaborator.lat, collaborator.long ]);
+		var pos = collaborator.pos;
 		this.drawHex(selection, pos[0], pos[1], smallHexR, null);
 	}.bind(this));
 
