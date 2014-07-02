@@ -2601,10 +2601,11 @@ Stats.prototype.countField = function(field) {
 			var index = indexOfProp(memo, "name", label);
 
 			if (index < 0) {
-				memo.push({ "name": label, "count": 1 });
+				memo.push({ "name": label, "count": 1, "values": [ object.activity_label ] });
 			}
 			else {
 				memo[index].count++;
+				memo[index].values.push(object.activity_label);
 			}
 		});
 
@@ -2642,17 +2643,21 @@ Stats.prototype.drawDSIAreas = function() {
 				.attr("width", rectWidth)
 				.attr("height", rectHeight)
 				.attr("fill", this.DSIColors[group.name]);
-			this.highlightProject(svg, rect, group.name, projectIndex);
+
+			this.highlightProject(svg, rect, group, projectIndex);
 		}.bind(this));
 	}.bind(this));
 };
 
-Stats.prototype.highlightProject = function(svg, rect, groupName, projectIndex) {
+Stats.prototype.highlightProject = function(svg, rect, group, projectIndex) {
 	rect.on("mouseover", function() {
+		VizConfig.tooltip.show();
+		VizConfig.tooltip.html(group.values[projectIndex], "#FFF", this.DSIColors[group.name]);
+
 		svg.selectAll(".dsiAreaProject").transition().duration(200).style("opacity", "0.25");
 		rect.transition().duration(0).style("opacity", "1");
 
-		var projects = this.data.filter(function(p) { return p.adsi_labels.indexOf(groupName) !== -1; });
+		var projects = this.data.filter(function(p) { return p.adsi_labels.indexOf(group.name) !== -1; });
 		var project = projects[projectIndex];
 
 		var techFocuses = this.countField("tech_focuses").filter(function(object) { return (object.count > 0); });
@@ -2670,11 +2675,18 @@ Stats.prototype.highlightProject = function(svg, rect, groupName, projectIndex) 
 
 		d3.selectAll('.collaborator').style('opacity', 0.1);
 	}.bind(this));
+
 	rect.on("mouseout", function() {
+		VizConfig.tooltip.hide();
+
 		svg.selectAll(".dsiAreaProject").style("opacity", "1");
 		d3.selectAll('.techFocusBar').style('opacity', 1);
 		d3.selectAll('.collaborator').style('opacity', 1);
 	}.bind(this));
+
+	rect.on("click", function() {
+
+	});
 };
 
 Stats.prototype.drawTechnologyAreas = function() {
@@ -2815,7 +2827,7 @@ Stats.prototype.drawCollaborators = function() {
 	// draw all collaborators
 	collaborators.forEach(function(collaborator) {
 		var pos = collaborator.pos;
-		this.drawHex(selection, pos[0], pos[1], smallHexR, null);
+		this.drawHex(selection, pos[0], pos[1], smallHexR, null, collaborator);
 	}.bind(this));
 
 	// draw main company
@@ -2833,7 +2845,7 @@ Stats.prototype.drawLine = function(selection, x1, y1, x2, y2) {
 		.attr("fill", "none");
 };
 
-Stats.prototype.drawHex = function(selection, x, y, r, data) {
+Stats.prototype.drawHex = function(selection, x, y, r, data, collaboratorData) {
 	var hexBite = function(x, y, r, i) {
 		var a = i/6 * Math.PI * 2 + Math.PI/6;
 		var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
@@ -2844,8 +2856,10 @@ Stats.prototype.drawHex = function(selection, x, y, r, data) {
 		];
 	};
 
+	var hex = selection.append("g").attr("class", "hex");
+
 	fn.sequence(0, 6).forEach(function(i) {
-		var bite = selection.append("path");
+		var bite = hex.append("path");
 		if (!data) { bite.attr('class', 'collaborator'); }
 
 		bite
@@ -2860,7 +2874,7 @@ Stats.prototype.drawHex = function(selection, x, y, r, data) {
 	if (data) {
 		fn.sequence(0, 6).forEach(function(i) {
 			var dsiArea = this.DSIAreas[i];
-			var bite = selection.append("path");
+			var bite = hex.append("path");
 
 			bite
 				.attr("d", function() {
@@ -2869,6 +2883,19 @@ Stats.prototype.drawHex = function(selection, x, y, r, data) {
 				.attr('fill', this.DSIColors[this.DSIAreas[i]]);
 		}.bind(this));
 	}
+
+	hex.on("mouseover", function() {
+		VizConfig.tooltip.show();
+		VizConfig.tooltip.html(collaboratorData.org_label, "#FFF", "#666");
+	});
+
+	hex.on("mouseout", function() {
+		VizConfig.tooltip.hide();
+	});
+
+	hex.on("click", function() {
+
+	});
 };
 
 var VizConfig = {};
