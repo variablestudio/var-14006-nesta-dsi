@@ -144,6 +144,7 @@
 /*---------------------------------- carousel -------------------------------------*/
 
 #caseStudiesViz {
+  margin-top: -1em;
 }
 
 #carousel {
@@ -372,6 +373,11 @@
   float: none;
 }
 
+#vizKeyContainer a:hover {
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 #vizKeyContainer img {
   vertical-align: top;
   margin-right: 1em;
@@ -392,4 +398,23 @@
   display: block;
   padding: 0.5em 0.5em;
   font-size: 14px;
+}
+
+/*---------------------------------- tooltip ----------------------------------------*/
+
+#vizTooltip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 1.2em;
+  background: #333;
+  color: white;
+  font-size: 80%;
+  max-width: 300px;
+  font-size: 12px;
+  line-height: 140%;
+}
+
+#vizTooltip h4 {
+  margin: 0 0 1em 0;
 }
