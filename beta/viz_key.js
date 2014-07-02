@@ -15,16 +15,14 @@ function VizKey() {
   sideBar.append($('<h3><img src="' + VizConfig.assetsPath + '/key-project-solid.png' + '" height="40"/>' + projectsTitle + '</h3>'));
   sideBar.append($('<h3>' + dsiTitle + '</h3>'));
 
-  var tooltip = this.makeTooltip();
-
   VizConfig.dsiAreas.map(function(dsiArea, dsiAreaIndex) {
     var areaLink = $('<a style="color2:' + dsiArea.color + '"><img src="' + dsiArea.icon + '" height="10"/><span>' + dsiArea.title + '</span></a>');
     areaLink.on('mouseover', function() {
-      tooltip.show();
-      tooltip.html('<h4>' + dsiArea.title +'</h4>' + dsiArea.info);
+      VizConfig.tooltip.show();
+      VizConfig.tooltip.html('<h4>' + dsiArea.title +'</h4>' + dsiArea.info);
     })
     areaLink.on('mouseout', function() {
-      tooltip.hide();
+      VizConfig.tooltip.hide();
     })
     sideBar.append(areaLink);
   })
@@ -55,17 +53,4 @@ function VizKey() {
       thumb.children('span').text('Hide Key');
     }
   });
-}
-
-VizKey.prototype.makeTooltip = function() {
-  var vizTooltip = $('<div id="vizTooltip"></div>');
-  $('body').append(vizTooltip);
-  vizTooltip.text('tooool tip');
-
-  $(window).on('mousemove', function(e) {
-    vizTooltip.css('left', e.pageX + 10);
-    vizTooltip.css('top', e.pageY);
-  });
-
-  return vizTooltip;
 }

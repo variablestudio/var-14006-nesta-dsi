@@ -413,6 +413,7 @@
   max-width: 300px;
   font-size: 12px;
   line-height: 140%;
+  display: none;
 }
 
 #vizTooltip h4 {

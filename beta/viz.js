@@ -17,6 +17,8 @@
     else {
       initVisualizations();
     }
+
+    initTooltip();
   }
 
   function initVisualizations() {
@@ -34,6 +36,11 @@
     var introViz = $('<div id="introViz"></div>');
     vizContainer.append(introViz);
     var intro = new Intro(introViz, cb);
+  }
+
+  function initTooltip() {
+    VizConfig.tooltip = new VizTooltip();
+    console.log('VizConfig.tooltip', VizConfig.tooltip)
   }
 
   function initMainViz(vizContainer) {
