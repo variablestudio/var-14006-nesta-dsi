@@ -7,13 +7,13 @@ var indexOfProp = function(data, prop, val) {
 function Explorer(dom) {
 	this.data = []; // will be filled on SPARQL query
 
-	this.fieldProgression = [ "tech_focuses", "adsi_labels", "tech_methods" ];
+	this.fieldProgression = [ "tech_focuses", "tech_methods", "country", "activity_label" ];
 	this.fieldIndex = 0;
 
 	this.size = {
 		"width": 994,
 		"height": 100
-	}
+	};
 
 	this.DOM = { "div": d3.select(dom) };
 }
@@ -99,26 +99,38 @@ Explorer.prototype.init = function() {
 	}.bind(this));
 };
 
-Explorer.prototype.draw = function(data) {
-	var groupArrayByField = function(data, field) {
-		return data.reduce(function(memo, object) {
-			if (object[field] !== undefined) {
+Explorer.prototype.groupByField = function(data, field) {
+	var updateMemo = function(memo, value, object) {
+		if (memo[value] !== undefined) {
+			memo[value].push(object);
+		}
+		else {
+			memo[value] = [ object ];
+		}
+	};
+
+	return data.reduce(function(memo, object) {
+		if (object[field] !== undefined) {
+
+			if (object[field] instanceof Array) {
+
 				object[field].forEach(function(value) {
-					if (memo[value] !== undefined) {
-						memo[value].push(object);
-					}
-					else {
-						memo[value] = [ object ];
-					}
+					updateMemo(memo, value, object);
 				});
+
 			}
+			else {
+				updateMemo(memo, object[field], object);
+			}
+		}
 
-			return memo;
-		}, {});
-	}.bind(this);
+		return memo;
+	}, {});
+};
 
-	data = groupArrayByField(data, this.fieldProgression[this.fieldIndex]);
-	console.log(data, this.fieldProgression[this.fieldIndex]);
+Explorer.prototype.draw = function(data) {
+	data = this.groupByField(data, this.fieldProgression[this.fieldIndex]);
+	// console.log(data, this.fieldProgression[this.fieldIndex]);
 
 	var svg = this.DOM.div.append("svg")
 		.attr("width", this.size.width)
@@ -141,30 +153,32 @@ Explorer.prototype.draw = function(data) {
 
 	var currentSum = 0;
 	var index = 0;
+	var localData;
+
+	var drawNextBar = function(name, depth) {
+		depth += 1;
+
+		// clear previous depths
+		if (depth <= this.fieldIndex) {
+			for (index = depth; index <= this.fieldIndex; index++) {
+				this.DOM.div.selectAll(".depth-" + index).remove();
+			}
+		}
+
+		// update field index
+		this.fieldIndex = depth;
+
+		// draw next depth
+		if (this.fieldIndex < this.fieldProgression.length) {
+			this.draw(data[name]);
+		}
+	};
 
 	for (key in data) {
 		if (data.hasOwnProperty(key)) {
-			var localData = data[key];
+			localData = data[key];
 
-			this.drawBar(svg, currentSum, localData.length, index, scale, color, key, this.fieldIndex, function(name, depth) {
-				depth += 1;
-
-				// clear previous depths
-				if (depth <= this.fieldIndex) {
-					var index;
-					for (index = depth; index <= this.fieldIndex; index++) {
-						this.DOM.div.selectAll(".depth-" + index).remove();
-					}
-				}
-
-				// update field index
-				this.fieldIndex = depth;
-
-				// draw next depth
-				if (this.fieldIndex < this.fieldProgression.length) {
-					this.draw(data[name]);
-				}
-			}.bind(this));
+			this.drawBar(svg, currentSum, localData.length, index, scale, color, key, this.fieldIndex, drawNextBar.bind(this));
 
 			currentSum += data[key].length;
 			index++;
