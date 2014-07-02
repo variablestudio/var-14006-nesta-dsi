@@ -218,6 +218,8 @@ Stats.prototype.drawDSIAreas = function() {
 	var rectHeight = 15;
 	var rectMargin = 4;
 
+	var highlightOnActivityUrl = this.highlightOnActivityUrl;
+
 	var svg = this.DOM.dsi
 		.append("svg")
 		.attr("width", width)
@@ -268,36 +270,12 @@ Stats.prototype.drawDSIAreas = function() {
 					VizConfig.tooltip.show();
 					VizConfig.tooltip.html(d.name, "#FFF", DSIColors[name]);
 
-					// query transitions by url
-					var localUrl = d.url;
-
-					// handle opacity for visualizations with simple accesors
-					[ { "query": ".dsi-rect", "accesor": "url" },
-						{ "query": ".collaborator", "accesor": "activity_url" },
-						{ "query": ".connection", "accesor": "activity_url" } ].forEach(function(object) {
-						d3.selectAll(object.query)
-							.transition()
-							.duration(200)
-							.style("opacity", function(d) {
-								return (d[object.accesor] === localUrl) ? 1.0 : 0.2;
-							});
-					});
-
-					// more complicated technology bar opacity transition
-					d3.selectAll(".tech-bar")
-						.transition()
-						.duration(200)
-						.style("opacity", function(d) {
-							return (indexOfProp(d.values, "url", localUrl) >= 0) ? 1.0 : 0.2;
-						});
+					highlightOnActivityUrl("over", d.url);
 				})
 				.on("mouseout", function() {
 					VizConfig.tooltip.hide();
 
-					// transition everything back to 1.0
-					[ ".dsi-rect", ".tech-bar", ".connection", ".collaborator" ].forEach(function(query) {
-						d3.selectAll(query).transition().duration(200).style("opacity", 1.0);
-					});
+					highlightOnActivityUrl("out");
 				})
 				.on("click", function(d) {
 					var url = "http://digitalsocial.eu/projects/" + d.url;
@@ -316,6 +294,8 @@ Stats.prototype.drawTechnologyAreas = function() {
 	var height = 40;
 	var rectHeight = 5;
 	var rectMargin = 4;
+
+	var highlightOnActivityUrl = this.highlightOnActivityUrl;
 
 	var scale = d3.scale.linear()
 		.domain([0, maxCount])
@@ -351,7 +331,13 @@ Stats.prototype.drawTechnologyAreas = function() {
 		.attr("width", function(d) {
 			return scale(d.count);
 		})
-		.attr("height", rectHeight);
+		.attr("height", rectHeight)
+		.on("mouseover", function(d) {
+			highlightOnActivityUrl("over", d.values.map(function(object) { return object.url; }));
+		})
+		.on("mouseout", function() {
+			highlightOnActivityUrl("out");
+		});
 };
 
 Stats.prototype.drawCollaborators = function() {
@@ -528,17 +514,62 @@ Stats.prototype.drawHex = function(selection, data) {
 		}.bind(this));
 	}
 
-	hex.on("mouseover", function() {
+	var highlightOnActivityUrl = this.highlightOnActivityUrl;
+
+	hex.on("mouseover", function(d) {
 		VizConfig.tooltip.show();
-		VizConfig.tooltip.html(data.org_label, "#FFF", "#666");
+		VizConfig.tooltip.html(d.org_label, "#FFF", "#666");
+
+		highlightOnActivityUrl("over", d.activity_url);
 	});
 
 	hex.on("mouseout", function() {
 		VizConfig.tooltip.hide();
+
+		highlightOnActivityUrl("out");
 	});
 
-	hex.on("click", function() {
-		var url = "http://digitalsocial.eu/organisations/" + data.org_url;
+	hex.on("click", function(d) {
+		var url = "http://digitalsocial.eu/organisations/" + d.org_url;
 		window.open(url, "_blank");
 	});
+};
+
+// highlight using state (over/out), and single, or list of activity urls
+Stats.prototype.highlightOnActivityUrl = function(state, urls) {
+	state = (state === "over") ? "over" : "out";
+	urls = (urls instanceof Array) ? urls : [ urls ];
+
+	if (state === "over") {
+		// handle opacity for visualizations with simple accesors
+		[ { "query": ".dsi-rect", "accesor": "url" },
+			{ "query": ".collaborator", "accesor": "activity_url" },
+			{ "query": ".connection", "accesor": "activity_url" } ].forEach(function(object) {
+				d3.selectAll(object.query)
+					.transition()
+					.duration(200)
+					.style("opacity", function(d) {
+						return (urls.indexOf(d[object.accesor]) >= 0) ? 1.0 : 0.2;
+					});
+			});
+
+			// more complicated technology bar opacity transition
+			d3.selectAll(".tech-bar")
+				.transition()
+				.duration(200)
+				.style("opacity", function(d) {
+					var urlMatches = urls.reduce(function(memo, url) {
+						if (!memo) { memo = (indexOfProp(d.values, "url", url) >= 0); }
+						return memo;
+					}, false);
+
+					return urlMatches ? 1.0 : 0.2;
+				});
+	}
+	else {
+		// transition everything back to 1.0
+		[ ".dsi-rect", ".tech-bar", ".connection", ".collaborator" ].forEach(function(query) {
+			d3.selectAll(query).transition().duration(200).style("opacity", 1.0);
+		});
+	}
 };
