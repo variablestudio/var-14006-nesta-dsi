@@ -9,13 +9,16 @@ module.exports = function(grunt) {
           "../lib/topojson.v1.min.js",
           "../lib/q.min.js",
           "../js/SPARQL.js",
+          '../js/EventDispatcher.js',
           'viz_carousel.js',
           'viz_countries.js',
           'viz_intro.js',
           'viz_choropleth.js',
           'viz_explorer.js',
           'data/new_schema_list_min.js',
-          'viz_main.js',
+          'viz_tooltip.js',
+          'viz_key.js',
+          'viz_main_map.js',
           "viz.js"
         ],
         dest: "viz.dist.js"

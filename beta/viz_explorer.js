@@ -118,7 +118,6 @@ Explorer.prototype.draw = function(data) {
 	}.bind(this);
 
 	data = groupArrayByField(data, this.fieldProgression[this.fieldIndex]);
-	console.log(data, this.fieldProgression[this.fieldIndex]);
 
 	var svg = this.DOM.div.append("svg")
 		.attr("width", this.size.width)

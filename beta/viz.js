@@ -19,6 +19,13 @@
     }
 
     initTooltip();
+    initEvents();
+  }
+
+  function initEvents() {
+    VizConfig.events = EventDispatcher  .extend({
+
+    });
   }
 
   function initVisualizations() {
@@ -40,7 +47,6 @@
 
   function initTooltip() {
     VizConfig.tooltip = new VizTooltip();
-    console.log('VizConfig.tooltip', VizConfig.tooltip)
   }
 
   function initMainViz(vizContainer) {
@@ -115,7 +121,8 @@
   }
 
   function initVizKey() {
-    var vizKey = new VizKey();
+    var openOnInit = !showIntro;
+    var vizKey = new VizKey(openOnInit);
   }
 
   window.addEventListener('DOMContentLoaded', init);

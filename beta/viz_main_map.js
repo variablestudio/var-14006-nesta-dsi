@@ -186,6 +186,12 @@ MainMap.prototype.buildViz = function(organisations) {
   var zoom = this.addZoom(svg, this.DOM.g, w, h);
   this.showWorldMap(svg, this.DOM.g, projection);
   this.showOrganisations(svg, this.DOM.g, projection, center, organisations, zoom);
+
+  console.log('org', organisations[0]);
+
+  VizConfig.events.addEventListener('filter', function(e) {
+    console.log(e);
+  })
   //this.showIsoLines(svg, this.DOM.g, organisations, w, h, zoom);
 }
 
