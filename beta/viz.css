@@ -419,3 +419,11 @@
 #vizTooltip h4 {
   margin: 0 0 1em 0;
 }
+
+/*---------------------------------- organisation -----------------------------------*/
+
+.viz-1 svg .title,
+.viz-2 svg .title {
+	font-family: "Helvetica";
+	font-size: 12px;
+}
