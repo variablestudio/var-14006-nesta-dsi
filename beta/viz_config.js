@@ -1,6 +1,11 @@
 var VizConfig = {};
 
-VizConfig.assetsPath = 'assets';
+if (window.location.href.match(/\/organisations\//) !== null) {
+  VizConfig.assetsPath = "http://variable.io/p/nestadsi/beta/assets";
+}
+else {
+  VizConfig.assetsPath = 'assets';
+}
 
 VizConfig.dsiAreas = [
   { title: 'Funding acceleration<br/> and incubation', id: 'funding-acceleration-and-incubation', color: '#FDE302', icon: VizConfig.assetsPath + '/triangle-funding-acceleration-and-incubation.png' },

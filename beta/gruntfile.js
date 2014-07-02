@@ -11,7 +11,6 @@ module.exports = function(grunt) {
           "../js/SPARQL.js",
           "../js/fn.js",
           '../js/EventDispatcher.js',
-          'viz_config.js',
           'viz_carousel.js',
           'viz_countries.js',
           'viz_intro.js',
@@ -22,6 +21,7 @@ module.exports = function(grunt) {
           'viz_key.js',
           'viz_main_map.js',
           "viz_organisation.js",
+          'viz_config.js',
           "viz.js"
         ],
         dest: "viz.dist.js"
