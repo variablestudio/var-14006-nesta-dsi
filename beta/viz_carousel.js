@@ -117,8 +117,10 @@ Carousel.prototype.buildItem = function(data) {
 	var carouselItem = "<div class=\"carousel-item\" style=\"position: absolute\">";
 	carouselItem += "<a href=\"" + data.url + "\" + alt=\"" + data.name + "\">";
 	if (data.coverImage) carouselItem += "<img src=\"" + data.coverImage + "\">";
-	//if (data.logoImage) carouselItem += "<img src=\"" + data.logoImage + "\">";
-	carouselItem += "<span><img src='"+data.logoImage+"'/>" + data.name + "</span>";
+	carouselItem += "<span>";
+	if (data.logoImage) carouselItem += "<img src='"+data.logoImage+"'/>";
+	carouselItem += data.name;
+	carouselItem += "</span>";
 	carouselItem += "</a>";
 	carouselItem += "</div>";
 
@@ -145,15 +147,18 @@ Carousel.prototype.parseData = function(data) {
 			var coverImage = null;
 			var logoImage = null;
 			if (data.attachments.length > 0) {
-				console.log(data.attachments)
-				coverImage = data.attachments[0].images.medium.url;
+				var bigImages = data.attachments.filter(function(img) {
+					return img.images.full.width > 110 && img.images.full.height > 125;
+				});
+				if (bigImages.length > 0) {
+					coverImage = bigImages[0].images.medium.url;
+				}
 				var logos = data.attachments.filter(function(img) {
 					return img.images.full.width == 110 && img.images.full.height == 125;
 				});
 				if (logos.length > 0) {
 					logoImage = logos[0].images.full.url;
 				}
-				console.log(logoImage);
 			}
 
 
@@ -184,16 +189,18 @@ Carousel.prototype.parseData = function(data) {
 				"logoImage": logoImage
 			};
 		})
-		/*
+		//TODO: temporarily skip case studies with missing images
+		.filter(function(caseStudy) {
+			return caseStudy.coverImage && caseStudy.logoImage;
+		})
 		.sort(function(a, b) {
 			// sort using cover image
 			var returnVal = 0;
 
 			if (a.coverImage && !b.coverImage) { returnVal = -1; }
 			if (!a.coverImage && b.coverImage) { returnVal = 1; }
-			if (a.coverImage && b.coverImage) { returnVal = Math.random() > 0.5 ? 1 : -1; }
+			if (a.coverImage && b.coverImage) { returnVal = Math.random() > 0.5 ? 1 : -1; } //randomize a bit
 
 			return returnVal;
 		});
-		*/
 };
