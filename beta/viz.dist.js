@@ -2414,7 +2414,7 @@ MainMap.prototype.showIsoLines = function(svg, g, organisations, w, h, zoom) {
 return MainMap;
 
 })();
-/*global fn, d3, SPARQLDataSource */
+/*global window, fn, d3, SPARQLDataSource, VizConfig */
 
 var indexOfProp = function(data, prop, val) {
 	return data.map(function(o) { return o[prop]; }).indexOf(val);
@@ -2448,6 +2448,7 @@ function Stats(divs, org, dsiColors) {
 
 Stats.prototype.cleanResults = function(results) {
 	var numericKeys = [ "lat", "long" ];
+	var idForUrls = [ "activity", "org" ];
 
 	return results.map(function(object) {
 		var newObject = {};
@@ -2458,7 +2459,12 @@ Stats.prototype.cleanResults = function(results) {
 					newObject[key] = +object[key].value;
 				}
 				else {
-					newObject[key] = object[key].value;
+					if (idForUrls.indexOf(key) >= 0) {
+						newObject[key + "_url"] = object[key].value.split("/").pop();
+					}
+					else {
+						newObject[key] = object[key].value;
+					}
 				}
 			}
 		}
@@ -2477,7 +2483,7 @@ Stats.prototype.init = function() {
 		.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
 		.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
 		.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
-		.select("?org_label ?activity_label ?adsi_label ?tech_label ?lat ?long")
+		.select("?org_label ?activity_label ?adsi_label ?tech_label ?lat ?long ?activity")
 		.where("?org", "a", "o:Organization")
 		.where("FILTER regex(str(?org), \"" + this.org + "\")", "", "")
 		.where("?am", "a", "ds:ActivityMembership")
@@ -2504,6 +2510,7 @@ Stats.prototype.init = function() {
 				if (index < 0) {
 					memo.push({
 						"activity_label": object.activity_label,
+						"activity_url": object.activity_url,
 						"adsi_labels": [ object.adsi_label ],
 						"tech_focuses": [ object.tech_label ],
 						"lat": object.lat,
@@ -2551,7 +2558,7 @@ Stats.prototype.queryCollaborators = function(projects, parentOrg, callback) {
 		.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
 		.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
 		.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
-		.select("DISTINCT ?org_label ?activity_label ?lat ?long")
+		.select("DISTINCT ?org_label ?activity_label ?lat ?long ?org")
 		.where("?org", "a", "o:Organization")
 		.where("?org", "rdfs:label", "?org_label")
 		.where("?am", "a", "ds:ActivityMembership")
@@ -2601,11 +2608,15 @@ Stats.prototype.countField = function(field) {
 			var index = indexOfProp(memo, "name", label);
 
 			if (index < 0) {
-				memo.push({ "name": label, "count": 1, "values": [ object.activity_label ] });
+				memo.push({
+					"name": label,
+					"count": 1,
+					"values": [ { "name": object.activity_label, "url": object.activity_url } ],
+				});
 			}
 			else {
 				memo[index].count++;
-				memo[index].values.push(object.activity_label);
+				memo[index].values.push({ "name": object.activity_label, "url": object.activity_url });
 			}
 		});
 
@@ -2652,7 +2663,7 @@ Stats.prototype.drawDSIAreas = function() {
 Stats.prototype.highlightProject = function(svg, rect, group, projectIndex) {
 	rect.on("mouseover", function() {
 		VizConfig.tooltip.show();
-		VizConfig.tooltip.html(group.values[projectIndex], "#FFF", this.DSIColors[group.name]);
+		VizConfig.tooltip.html(group.values[projectIndex].name, "#FFF", this.DSIColors[group.name]);
 
 		svg.selectAll(".dsiAreaProject").transition().duration(200).style("opacity", "0.25");
 		rect.transition().duration(0).style("opacity", "1");
@@ -2685,7 +2696,8 @@ Stats.prototype.highlightProject = function(svg, rect, group, projectIndex) {
 	}.bind(this));
 
 	rect.on("click", function() {
-
+		var url = "http://digitalsocial.eu/projects/" + group.values[projectIndex].url;
+		window.open(url, "_blank");
 	});
 };
 
@@ -2885,8 +2897,10 @@ Stats.prototype.drawHex = function(selection, x, y, r, data, collaboratorData) {
 	}
 
 	hex.on("mouseover", function() {
-		VizConfig.tooltip.show();
-		VizConfig.tooltip.html(collaboratorData.org_label, "#FFF", "#666");
+		if (collaboratorData) {
+			VizConfig.tooltip.show();
+			VizConfig.tooltip.html(collaboratorData.org_label, "#FFF", "#666");
+		}
 	});
 
 	hex.on("mouseout", function() {
@@ -2894,7 +2908,8 @@ Stats.prototype.drawHex = function(selection, x, y, r, data, collaboratorData) {
 	});
 
 	hex.on("click", function() {
-
+		var url = "http://digitalsocial.eu/organisations/" + collaboratorData.org_url;
+		window.open(url, "_blank");
 	});
 };
 
