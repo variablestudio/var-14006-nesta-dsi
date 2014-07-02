@@ -67,8 +67,6 @@ MainMap.prototype.hijackSearch = function() {
       return org.label.toLowerCase().indexOf(searchTerm) != -1;
     });
 
-    console.log('foundOrgs', foundOrgs)
-
     if (foundOrgs.length > 0) {
       this.showNetwork(foundOrgs[0].org);
     }
@@ -126,8 +124,6 @@ MainMap.prototype.getProjectsInfo = function(collaborations) {
       }
     })
 
-    console.log('project', projects[0])
-
     projects.forEach(function(project) {
       var orgs = collaborations.byProject[project.p] || [];
       //if (Math.random() > 0.99) console.log(project.p)
@@ -155,7 +151,6 @@ MainMap.prototype.getProjectsInfo = function(collaborations) {
     }.bind(this));
     //projects
     //console.log('collaborations', collaborations)
-    console.log('org', this.organisations[0]);
 
     deferred.resolve(projects);
   }.bind(this));
@@ -265,7 +260,6 @@ MainMap.prototype.buildViz = function(organisations) {
   //console.log('org', organisations[0]);
 
   VizConfig.events.addEventListener('filter', function(e) {
-    console.log(e.property, organisations[0])
     var filteredOrganisations = organisations.filter(function(o) {
       var value = o[e.property] || '';
       return value.indexOf(e.id) != -1;
@@ -459,18 +453,15 @@ MainMap.prototype.showOrganisations = function(svg, g, projection, center, organ
     var url = 'http://digitalsocial.eu/organisations/';
     url += organization.org.substr(organization.org.lastIndexOf('/') + 1);
     var popupContent = '<h4><a href="' + url + '">'+organization.label+'</a></h4>Projects:';
-    console.log(organization)
     if (organization.projects) {
       organization.projects.forEach(function(project) {
-        popupContent += '<a href="' + project.p + '">'+project.label+'</a>'
+        var url = 'http://digitalsocial.eu/projects/' + project.p.substr(project.p.lastIndexOf('/')+1);
+        popupContent += '<a href="' + url + '">'+project.label+'</a>'
       })
     }
     VizConfig.popup.html($(popupContent));
-    var offset = [0, 0];
     var windowOffset = $(svg[0]).offset();
-    offset[0] += windowOffset.left;
-    offset[1] += windowOffset.top;
-    VizConfig.popup.open(organization.x + offset[0], organization.y + offset[1], zoom);
+    VizConfig.popup.open(organization.x, organization.y, windowOffset.left, windowOffset.top, zoom);
   }.bind(this));
 
   circles.on('mouseover', function(organization) {

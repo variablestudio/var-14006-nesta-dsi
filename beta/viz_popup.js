@@ -6,14 +6,18 @@ function VizPopup() {
   this.content.text('');
 }
 
-VizPopup.prototype.open = function(x, y, zoom) {
+VizPopup.prototype.open = function(x, y, dx, dy, zoom) {
   setTimeout(function() {
-    this.setPosition(x/zoom.scale() + zoom.translate()[0], y/zoom.scale() + zoom.translate()[1]);
+    var nx = x * zoom.scale() + dx + zoom.translate()[0];
+    var ny = y * zoom.scale() + dy + zoom.translate()[1];
+    this.setPosition(nx, ny);
     this.vizPopup.show();
   }.bind(this), 10);
 
   zoom.on('zoom.popup', function() {
-    this.setPosition(x/zoom.scale() + zoom.translate()[0], y/zoom.scale() + zoom.translate()[1]);
+    var nx = x * zoom.scale() + dx + zoom.translate()[0];
+    var ny = y * zoom.scale() + dy + zoom.translate()[1];
+    this.setPosition(nx, ny);
   }.bind(this));
 }
 
