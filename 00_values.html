@@ -65,24 +65,38 @@ function buildDummyChart(title, data) {
 function buildBarChart(title, data, maxCount) {
   maxValue = maxCount || data[0].count;
   var barRatio = 0.5;
-  var w = 400;
-  var h = 610;
+  var w = 500;
+  var h = 310;
+
+  var dataCount = data.length;
+
+  title = title.replace('ds:', '')
+
+  if (data.length > 30) {
+    data = data.slice(0, 30);
+    data.push({ name : '...' })
+  }
+
+  data = data.filter(function(item) {
+    return item.count >= 10;
+  })
+
+  h = 50 + data.length * 20;
   var svg = d3.select("#charts")
               .append("svg")
               .attr("width", w)
-              .attr("height", h);
+              .attr("height", h)
+              .style("float", 'left')
+              .style("clear", 'both');
 
   svg.append("text")
     .attr("fill", "#000000")
     .attr("class", "title")
     .attr("x", 0)
     .attr("y", 30)
-    .text(title + ' /' + data.length);
+    .text(title + ' /' + dataCount);
 
-  if (data.length > 30) {
-    data = data.slice(0, 30);
-    data.push({ name : '...' })
-  }
+  
 
   svg.selectAll("rect")
     .data(data)

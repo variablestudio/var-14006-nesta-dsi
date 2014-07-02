@@ -311,7 +311,7 @@ ds.query()
     results.forEach(function(entry) {
       entry.name = entry.value;
     });
-    buildBarChart('Cities', results, 180)
+    buildBarChart('cities', results, 180)
   });
 
 //ds.predicateValues('ds:organizationType', console.log);
@@ -334,4 +334,5 @@ graphPredicate('ds:activityType');
 graphPredicate('ds:areaOfSociety');
 graphPredicate('ds:technologyFocus');
 graphPredicate('ds:technologyMethod');
+graphPredicate('ds:areaOfDigitalSocialInnovation');
 
