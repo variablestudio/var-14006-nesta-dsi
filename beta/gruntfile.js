@@ -18,6 +18,7 @@ module.exports = function(grunt) {
           'viz_explorer.js',
           'data/new_schema_list_min.js',
           'viz_tooltip.js',
+          'viz_popup.js',
           'viz_key.js',
           'viz_main_map.js',
           "viz_organisation.js",

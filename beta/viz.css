@@ -420,6 +420,43 @@
   margin: 0 0 1em 0;
 }
 
+/*---------------------------------- tooltip ----------------------------------------*/
+
+#vizPopup {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 1.2em;
+  background: #333;
+  color: white;
+  font-size: 80%;
+  max-width: 300px;
+  font-size: 12px;
+  line-height: 140%;
+  x-display: none;
+  box-sizing: border-box;
+}
+
+#vizPopup h4 {
+  margin: 0 0 1em 0;
+}
+
+#vizPopupPointer {
+  width: 20px;
+  height: 20px;
+  background: #333;
+  position: absolute;
+  bottom: 0%;
+  left: 50%;
+  margin: 0 0 -10px -10px;
+
+  transform: rotate(45deg); -webkit-transform: rotate(45deg); -moz-transform: rotate(45deg);;
+}
+
+#vizPopupContent a {
+  color: white;
+}
+
 /*---------------------------------- preloader ----------------------------------------*/
 
 #vizPreloader {

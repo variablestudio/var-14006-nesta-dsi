@@ -40,7 +40,7 @@ MainMap.prototype.initSVG = function() {
 MainMap.prototype.init = function() {
   this.initSVG();
 
-  this.preloader = $('<img id="vizPreloader" src="'+VizConfig.assets+'/preloader.gif"/>');
+  this.preloader = $('<img id="vizPreloader" src="'+VizConfig.assetsPath+'/preloader.gif"/>');
   $(this.mainVizContainer).append(this.preloader);
 
   this.getOrganisations().then(function(organisations) {
@@ -264,7 +264,11 @@ MainMap.prototype.buildViz = function(organisations) {
       var value = o[e.property] || '';
       return value.indexOf(e.id) != -1;
     });
-    this.showOrganisations(svg, this.DOM.g, projection, center, filteredOrganisations, zoom);
+    var color = '#000000'
+    if (e.property == 'areaOfDigitalSocialInnovation') {
+      color = VizConfig.dsiAreasById[e.id].color;
+    }
+    this.showOrganisations(svg, this.DOM.g, projection, center, filteredOrganisations, zoom, color);
     //console.log(e, organisations.length, filteredOrganisations.length);
   }.bind(this))
   //this.showIsoLines(svg, this.DOM.g, organisations, w, h, zoom);
@@ -412,8 +416,10 @@ MainMap.prototype.showWorldMap = function(svg, g, projection) {
   }.bind(this));
 }
 
-MainMap.prototype.showOrganisations = function(svg, g, projection, center, organisations, zoom) {
+MainMap.prototype.showOrganisations = function(svg, g, projection, center, organisations, zoom, color) {
   var circles = this.DOM.orgGroup.selectAll('circle.org').data(organisations);
+
+  color = color || '#000000';
 
   circles.enter()
     .append('circle')
@@ -432,14 +438,35 @@ MainMap.prototype.showOrganisations = function(svg, g, projection, center, organ
     .attr('transform', function(d) {
       return "translate(" + d.x + "," + d.y + ")"
     })
-    .attr('fill', 'rgba(0,20,0,0.1)')
-    .attr('stroke', 'rgba(0,20,0,0.3)')
+    //.attr('fill', 'rgba(0,20,0,0.1)')
+    //.attr('stroke', 'rgba(0,20,0,0.3)')
+    .attr('fill', color)
+    .attr('stroke', color)
+    .attr('opacity', 0.5)
     .attr('r', 3)
 
   circles.exit().transition().duration(300).attr('r', 0).remove();
 
   circles.on('click', function(organization) {
-    this.showNetwork(organization.org)
+    //this.showNetwork(organization.org);
+
+    var url = 'http://digitalsocial.eu/organisations/';
+    url += organization.org.substr(organization.org.lastIndexOf('/') + 1);
+    VizConfig.popup.html($('<a href="' + url + '">'+organization.label+'</a>'));
+    var offset = [0, 0];
+    var windowOffset = $(svg[0]).offset();
+    offset[0] += windowOffset.left;
+    offset[1] += windowOffset.top;
+    VizConfig.popup.open(organization.x + offset[0], organization.y + offset[1], zoom);
+  }.bind(this));
+
+  circles.on('mouseover', function(organization) {
+    VizConfig.tooltip.show();
+    VizConfig.tooltip.html(organization.label);
+  }.bind(this));
+
+  circles.on('mouseout', function(organization) {
+    VizConfig.tooltip.hide();
   }.bind(this));
 
   zoom.on('zoom.circles', function() {
