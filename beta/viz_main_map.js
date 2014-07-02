@@ -50,8 +50,8 @@ MainMap.prototype.init = function() {
     this.hijackSearch();
 
      //pre cache
-    this.getCollaborations().then(function() {
-      this.getProjectsInfo().then(function() {
+    this.getCollaborations().then(function(collaborations) {
+      this.getProjectsInfo(collaborations).then(function() {
         this.preloader.fadeOut('slow')
       }.bind(this));
     }.bind(this));
@@ -114,18 +114,45 @@ MainMap.prototype.getCollaborations = function() {
   return this.collaorationsPromise;
 }
 
-MainMap.prototype.getProjectsInfo = function() {
+MainMap.prototype.getProjectsInfo = function(collaborations) {
   var deferred = Q.defer();
   this.runProjectsInfoQuery().then(function(results) {
     var projects = results.map(function(p) {
       return {
-        p: p.p,
+        p: p.p.value,
         technologyFocus: p.tf_values.value.split(',').map(function(f) { return f.substr(f.lastIndexOf('/')+1); }),
         areaOfDigitalSocialInnovation: p.adsi_values.value.split(',').map(function(f) { return f.substr(f.lastIndexOf('/')+1); })
       }
     })
+
+    projects.forEach(function(project) {
+      var orgs = collaborations.byProject[project.p] || [];
+      //if (Math.random() > 0.99) console.log(project.p)
+      orgs.forEach(function(orgId) {
+        //if (Math.random() > 0.99) console.log(orgId)
+        var org = this.organisationsById[orgId];
+        if (!org) {
+          return;
+        }
+        if (!org.technologyFocus) org.technologyFocus = [];
+        if (!org.areaOfDigitalSocialInnovation) org.areaOfDigitalSocialInnovation = [];
+        project.technologyFocus.forEach(function(technologyFocus) {
+          if (org.technologyFocus.indexOf(technologyFocus) == -1) {
+            org.technologyFocus.push(technologyFocus);
+          }
+        })
+        project.areaOfDigitalSocialInnovation.forEach(function(areaOfDigitalSocialInnovation) {
+          if (org.areaOfDigitalSocialInnovation.indexOf(areaOfDigitalSocialInnovation) == -1) {
+            org.areaOfDigitalSocialInnovation.push(areaOfDigitalSocialInnovation);
+          }
+        })
+      }.bind(this))
+    }.bind(this));
+    //projects
+    //console.log('collaborations', collaborations)
+    console.log('org', this.organisations[0]);
+
     deferred.resolve(projects);
-    console.log('projects', projects[0], projects[0])
   }.bind(this));
   return deferred.promise;
 }
@@ -229,11 +256,17 @@ MainMap.prototype.buildViz = function(organisations) {
   this.showWorldMap(svg, this.DOM.g, projection);
   this.showOrganisations(svg, this.DOM.g, projection, center, organisations, zoom);
 
-  console.log('org', organisations[0]);
+  //console.log('org', organisations[0]);
 
   VizConfig.events.addEventListener('filter', function(e) {
-    console.log(e);
-  })
+    console.log(e.property, organisations[0])
+    var filteredOrganisations = organisations.filter(function(o) {
+      var value = o[e.property] || '';
+      return value.indexOf(e.id) != -1;
+    });
+    this.showOrganisations(svg, this.DOM.g, projection, center, filteredOrganisations, zoom);
+    //console.log(e, organisations.length, filteredOrganisations.length);
+  }.bind(this))
   //this.showIsoLines(svg, this.DOM.g, organisations, w, h, zoom);
 }
 
