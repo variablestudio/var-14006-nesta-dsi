@@ -40,7 +40,7 @@ MainMap.prototype.initSVG = function() {
 MainMap.prototype.init = function() {
   this.initSVG();
 
-  this.preloader = $('<img id="vizPreloader" src="assets/preloader.gif"/>');
+  this.preloader = $('<img id="vizPreloader" src="'+VizConfig.assets+'/preloader.gif"/>');
   $(this.mainVizContainer).append(this.preloader);
 
   this.getOrganisations().then(function(organisations) {
