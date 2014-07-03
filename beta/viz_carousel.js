@@ -142,7 +142,6 @@ Carousel.prototype.buildItem = function(data) {
 // builds initial carousel
 Carousel.prototype.buildCarousel = function(settings) {
 	var isPreloading = settings ? settings.preloading : false;
-	console.log("carousel is preloading: " + isPreloading);
 
 	// empty wrapper
 	this.DOM.wrapper.empty();
