@@ -38,7 +38,7 @@
   }
 
   function initEvents() {
-    VizConfig.events = EventDispatcher  .extend({
+    VizConfig.events = EventDispatcher.extend({
 
     });
   }
