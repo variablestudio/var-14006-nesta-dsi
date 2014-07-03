@@ -1,3 +1,6 @@
+/*jslint todo: true */
+/*global fn, $ */
+
 function Carousel(DOMElements, settings) {
 	this.DOM = {
 		"wrapper": DOMElements.wrapper, // carousel wrapper
@@ -90,6 +93,9 @@ function Carousel(DOMElements, settings) {
 			});
 		}.bind(this));
 	}.bind(this));
+
+	// build carousel with preloading gif on launch
+	this.buildCarousel({ "preloading": true });
 }
 
 // filters data using callback, and redraws carousel
@@ -115,29 +121,47 @@ Carousel.prototype.filter = function(callback) {
 // creates single carousel item
 Carousel.prototype.buildItem = function(data) {
 	var carouselItem = "<div class=\"carousel-item\" style=\"position: absolute\">";
-	carouselItem += "<a href=\"" + data.url + "\" + alt=\"" + data.name + "\">";
-	if (data.coverImage) carouselItem += "<img src=\"" + data.coverImage + "\">";
-	carouselItem += "<span>";
-	if (data.logoImage) carouselItem += "<img src='"+data.logoImage+"'/>";
-	carouselItem += data.name;
-	carouselItem += "</span>";
-	carouselItem += "</a>";
+	if (data !== null) {
+		carouselItem += "<a href=\"" + data.url + "\" + alt=\"" + data.name + "\">";
+		if (data.coverImage) { carouselItem += "<img src=\"" + data.coverImage + "\">"; }
+		carouselItem += "<span>";
+		if (data.logoImage) { carouselItem += "<img src=\"" + data.logoImage + "\"/>"; }
+		carouselItem += data.name;
+		carouselItem += "</span>";
+		carouselItem += "</a>";
+	}
+	else {
+		// data === null -> preloading
+		carouselItem += "<img class=\"preloading\" src=\"" + VizConfig.assetsPath + "/preloader.gif\"/>";
+	}
 	carouselItem += "</div>";
 
 	return carouselItem;
 };
 
 // builds initial carousel
-Carousel.prototype.buildCarousel = function() {
+Carousel.prototype.buildCarousel = function(settings) {
+	var isPreloading = settings ? settings.preloading : false;
+	console.log("carousel is preloading: " + isPreloading);
+
 	// empty wrapper
 	this.DOM.wrapper.empty();
 
-	// add first three items to DOM
-	this.carousel.data.slice(0, this.carousel.numItems).forEach(function(object, index) {
-		this.DOM.wrapper.append(
-			$(this.buildItem(object)).css({ "left": index * this.width + "px" })
-		);
-	}.bind(this));
+	if (isPreloading) {
+		fn.sequence(0, this.carousel.numItems).forEach(function(index) {
+			this.DOM.wrapper.append(
+				$(this.buildItem(null)).css({ "left": index * this.width + "px" })
+			);
+		}.bind(this));
+	}
+	else {
+		// add first three items to DOM
+		this.carousel.data.slice(0, this.carousel.numItems).forEach(function(object, index) {
+			this.DOM.wrapper.append(
+				$(this.buildItem(object)).css({ "left": index * this.width + "px" })
+			);
+		}.bind(this));
+	}
 };
 
 // prepare data from WP API
@@ -150,17 +174,19 @@ Carousel.prototype.parseData = function(data) {
 				var bigImages = data.attachments.filter(function(img) {
 					return img.images.full.width > 110 && img.images.full.height > 125;
 				});
+
 				if (bigImages.length > 0) {
 					coverImage = bigImages[0].images.medium.url;
 				}
+
 				var logos = data.attachments.filter(function(img) {
-					return img.images.full.width == 110 && img.images.full.height == 125;
+					return img.images.full.width === 110 && img.images.full.height === 125;
 				});
+
 				if (logos.length > 0) {
 					logoImage = logos[0].images.full.url;
 				}
 			}
-
 
 			// prepare tech focus array
 			var techFocus = data.custom_fields["tech-focus"];
@@ -189,7 +215,7 @@ Carousel.prototype.parseData = function(data) {
 				"logoImage": logoImage
 			};
 		})
-		//TODO: temporarily skip case studies with missing images
+		// TODO: temporarily skip case studies with missing images
 		.filter(function(caseStudy) {
 			return caseStudy.coverImage && caseStudy.logoImage;
 		})
