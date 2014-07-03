@@ -260,7 +260,7 @@
 #countriesViz {
   width: 994px;
   margin: 0 auto;
-  overflow: auto;
+  overflow: hidden;
 }
 
 #countriesViz .map {

@@ -89,7 +89,7 @@ function Intro(introVizContainer, clickCb) {
     .duration(2000)
     .style('opacity', 1)
 
-  function close() {
+  function close(type) {
     d3.select(introVizContainer.get(0))
     .transition()
     .duration(2000)
@@ -100,11 +100,10 @@ function Intro(introVizContainer, clickCb) {
     }, 2000)
 
     if (clickCb) {
-      clickCb();
+      clickCb(type);
     }
   }
 
-  mapBtn.bind('click', close);
-  exploreBtn.bind('click', close);
-
+  mapBtn.bind('click', close.bind(this, "map"));
+  exploreBtn.bind('click', close.bind(this, "explore"));
 }

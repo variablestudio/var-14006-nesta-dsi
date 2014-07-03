@@ -1,5 +1,6 @@
 (function() {
-  var showIntro = !(document.location.hash == '#nointro');
+  var showIntro = (document.location.hash !== '#nointro');
+  var showExplorer = (document.location.hash === '#explorer');
 
   function init() {
     var url = window.location.href;
@@ -7,7 +8,6 @@
     var urlIsVariableIO = (url.match(/variable\.io/) !== null);
     var urlIsOrganisation = (url.match(/\/organisations\//) !== null);
     var urlIsBeta = (url.match(/\/beta/) !== null);
-
 
     if (urlIsOrganisation) {
       // get organisation id
@@ -28,25 +28,29 @@
 
       initEvents();
 
-      if (showIntro) {
+      if (showIntro && !showExplorer) {
         initIntroViz(vizContainer, initVisualizations);
       }
       else {
-        initVisualizations();
+        initVisualizations(showExplorer ? "explore" : "map");
       }
     }
   }
 
   function initEvents() {
-    VizConfig.events = EventDispatcher.extend({
-
-    });
+    VizConfig.events = EventDispatcher.extend({});
   }
 
-  function initVisualizations() {
+  function initVisualizations(type) {
     var vizContainer = $('#viz');
 
-    initMainViz(vizContainer);
+    if (type === "map") {
+      initMainViz(vizContainer);
+    }
+    else if (type === "explore") {
+      initMainHexes(vizContainer);
+    }
+
     initCaseStudies(vizContainer);
     initEUCountries(vizContainer);
     initChoropleth(vizContainer);
@@ -76,6 +80,13 @@
 
     new MainMap("#mainViz");
     //new MainHexes("#mainViz")
+  }
+
+  function initMainHexes(vizContainer) {
+    var mainHexes = $('<div id="mainHexes"></div>');
+    vizContainer.append(mainHexes);
+
+    new MainHexes("#mainHexes");
   }
 
   function initCaseStudies(vizContainer) {
