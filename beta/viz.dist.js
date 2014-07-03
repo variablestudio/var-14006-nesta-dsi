@@ -332,6 +332,9 @@ var EventDispatcher = {
     return context;
   }
 };
+/*jslint todo: true */
+/*global fn, $ */
+
 function Carousel(DOMElements, settings) {
 	this.DOM = {
 		"wrapper": DOMElements.wrapper, // carousel wrapper
@@ -424,6 +427,9 @@ function Carousel(DOMElements, settings) {
 			});
 		}.bind(this));
 	}.bind(this));
+
+	// build carousel with preloading gif on launch
+	this.buildCarousel({ "preloading": true });
 }
 
 // filters data using callback, and redraws carousel
@@ -449,29 +455,47 @@ Carousel.prototype.filter = function(callback) {
 // creates single carousel item
 Carousel.prototype.buildItem = function(data) {
 	var carouselItem = "<div class=\"carousel-item\" style=\"position: absolute\">";
-	carouselItem += "<a href=\"" + data.url + "\" + alt=\"" + data.name + "\">";
-	if (data.coverImage) carouselItem += "<img src=\"" + data.coverImage + "\">";
-	carouselItem += "<span>";
-	if (data.logoImage) carouselItem += "<img src='"+data.logoImage+"'/>";
-	carouselItem += data.name;
-	carouselItem += "</span>";
-	carouselItem += "</a>";
+	if (data !== null) {
+		carouselItem += "<a href=\"" + data.url + "\" + alt=\"" + data.name + "\">";
+		if (data.coverImage) { carouselItem += "<img src=\"" + data.coverImage + "\">"; }
+		carouselItem += "<span>";
+		if (data.logoImage) { carouselItem += "<img src=\"" + data.logoImage + "\"/>"; }
+		carouselItem += data.name;
+		carouselItem += "</span>";
+		carouselItem += "</a>";
+	}
+	else {
+		// data === null -> preloading
+		carouselItem += "<img class=\"preloading\" src=\"" + VizConfig.assetsPath + "/preloader.gif\"/>";
+	}
 	carouselItem += "</div>";
 
 	return carouselItem;
 };
 
 // builds initial carousel
-Carousel.prototype.buildCarousel = function() {
+Carousel.prototype.buildCarousel = function(settings) {
+	var isPreloading = settings ? settings.preloading : false;
+	console.log("carousel is preloading: " + isPreloading);
+
 	// empty wrapper
 	this.DOM.wrapper.empty();
 
-	// add first three items to DOM
-	this.carousel.data.slice(0, this.carousel.numItems).forEach(function(object, index) {
-		this.DOM.wrapper.append(
-			$(this.buildItem(object)).css({ "left": index * this.width + "px" })
-		);
-	}.bind(this));
+	if (isPreloading) {
+		fn.sequence(0, this.carousel.numItems).forEach(function(index) {
+			this.DOM.wrapper.append(
+				$(this.buildItem(null)).css({ "left": index * this.width + "px" })
+			);
+		}.bind(this));
+	}
+	else {
+		// add first three items to DOM
+		this.carousel.data.slice(0, this.carousel.numItems).forEach(function(object, index) {
+			this.DOM.wrapper.append(
+				$(this.buildItem(object)).css({ "left": index * this.width + "px" })
+			);
+		}.bind(this));
+	}
 };
 
 // prepare data from WP API
@@ -484,17 +508,19 @@ Carousel.prototype.parseData = function(data) {
 				var bigImages = data.attachments.filter(function(img) {
 					return img.images.full.width > 110 && img.images.full.height > 125;
 				});
+
 				if (bigImages.length > 0) {
 					coverImage = bigImages[0].images.medium.url;
 				}
+
 				var logos = data.attachments.filter(function(img) {
-					return img.images.full.width == 110 && img.images.full.height == 125;
+					return img.images.full.width === 110 && img.images.full.height === 125;
 				});
+
 				if (logos.length > 0) {
 					logoImage = logos[0].images.full.url;
 				}
 			}
-
 
 			// prepare tech focus array
 			var techFocus = data.custom_fields["tech-focus"];
@@ -523,7 +549,7 @@ Carousel.prototype.parseData = function(data) {
 				"logoImage": logoImage
 			};
 		})
-		//TODO: temporarily skip case studies with missing images
+		// TODO: temporarily skip case studies with missing images
 		.filter(function(caseStudy) {
 			return caseStudy.coverImage && caseStudy.logoImage;
 		})
@@ -2056,16 +2082,17 @@ MainMap.prototype.runOrganisationsQuery = function() {
     .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
     .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
     .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
-    .select('?org ?label ?lon ?lat ?country ?city ?org_type ?tf ?activity ?activity_label')
+    .select('?org ?label ?lon ?lat ?country ?city ?street ?org_type ?tf ?activity ?activity_label')
     .where('?org', 'a', 'o:Organization')
     //.where('?org', 'ds:organizationType', '?org_type')
     .where('?org', 'rdfs:label', '?label')
     .where('?org', 'o:hasPrimarySite', '?org_site')
     .where('?org_site', 'geo:long', '?lon')
     .where('?org_site', 'geo:lat', '?lat')
-    //.where('?org_site', 'o:siteAddress', '?org_address')
-    //.where('?org_address', 'vcard:country-name', '?country')
-    //.where('?org_address', 'vcard:locality', '?city')
+    .where('?org_site', 'o:siteAddress', '?org_address')
+    .where('?org_address', 'vcard:country-name', '?country')
+    .where('?org_address', 'vcard:street-address', '?street')
+    .where('?org_address', 'vcard:locality', '?city')
     //.where("?am", "a", "ds:ActivityMembership")
     //.where("?am", "ds:organization", "?org")
     //.where("?am", "ds:activity", "?activity")
@@ -2341,7 +2368,10 @@ MainMap.prototype.showOrganisations = function(svg, g, projection, center, organ
 
     var url = 'http://digitalsocial.eu/organisations/';
     url += organization.org.substr(organization.org.lastIndexOf('/') + 1);
-    var popupContent = '<h4><a href="' + url + '">'+organization.label+'</a></h4>Projects:';
+    var popupContent = '<h4><a href="' + url + '">'+organization.label+'</a></h4>';
+    popupContent += '<span>' + organization.street + ", " + organization.city + ", " + organization.country + '</span>';
+    popupContent += 'Projects:';
+
     if (organization.projects) {
       organization.projects.forEach(function(project) {
         var url = 'http://digitalsocial.eu/projects/' + project.p.substr(project.p.lastIndexOf('/')+1);
@@ -2558,6 +2588,52 @@ MainMap.prototype.showIsoLines = function(svg, g, organisations, w, h, zoom) {
 return MainMap;
 
 })();
+
+function MainHexes(mainVizContainer) {
+  this.DOM = {};
+  this.mainVizContainer = mainVizContainer;
+  this.init();
+}
+
+MainHexes.prototype.initSVG = function() {
+  this.w = window.innerWidth;
+  this.h = window.innerHeight - 360;
+  this.h = Math.min(this.h, 500);
+  this.h = Math.max(300, this.h);
+  this.svg = d3.select(this.mainVizContainer)
+    .append('svg')
+    .attr('width', this.w)
+    .attr('height', this.h);
+
+  this.svg.append('rect')
+    .attr('fill', '#FF8080')
+    .attr('class', 'bg')
+    .attr('x', 0)
+    .attr('y', 0)
+    .attr('width', this.w)
+    .attr('height', this.h);
+}
+
+MainHexes.prototype.init = function() {
+  this.initSVG();
+
+  this.preloader = $('<img id="vizPreloader" src="'+VizConfig.assetsPath+'/preloader.gif"/>');
+  $(this.mainVizContainer).append(this.preloader);
+
+  this.getOrganisations().then(function(organisations) {
+
+    this.organisations = organisations;
+    this.buildViz(organisations);
+    this.hijackSearch();
+
+     //pre cache
+    this.getCollaborations().then(function(collaborations) {
+      this.getProjectsInfo(collaborations).then(function() {
+        this.preloader.fadeOut('slow')
+      }.bind(this));
+    }.bind(this));
+  }.bind(this));
+}
 /*global window, fn, d3, SPARQLDataSource, VizConfig */
 
 var indexOfProp = function(data, prop, val) {
@@ -2943,12 +3019,12 @@ Stats.prototype.drawCollaborators = function() {
 	var multiPoints = {
 		"type": "MultiPoint",
 		"coordinates": collaborators.map(function(object) {
-			return [ object.lat, object.long ];
+			return [ object.long, object.lat ];
 		})
 	};
 
 	// add parent lat long to multipoints
-	multiPoints.coordinates.push([ this.data[0].lat, this.data[0].long ]);
+	multiPoints.coordinates.push([ this.data[0].long, this.data[0].lat ]);
 
 	// calculate bounds, scale and translation
 	var bounds = path.bounds(multiPoints);
@@ -2969,11 +3045,11 @@ Stats.prototype.drawCollaborators = function() {
 	projection.scale(scale).translate(translate);
 
 	// get position for parent company
-	orgData.pos = projection([ this.data[0].lat, this.data[0].long ]);
+	orgData.pos = projection([ this.data[0].long, this.data[0].lat ]);
 
 	// project positions
 	collaborators = collaborators.map(function(collaborator) {
-		var pos = projection([ collaborator.lat, collaborator.long ]);
+		var pos = projection([ collaborator.long, collaborator.lat ]);
 
 		var vec = [ pos[0] - orgData.pos[0], pos[1] - orgData.pos[1] ];
 		var length = Math.sqrt(vec[0] * vec[0] + vec[1] * vec[1]);
@@ -3241,7 +3317,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
   }
 
   function initEvents() {
-    VizConfig.events = EventDispatcher  .extend({
+    VizConfig.events = EventDispatcher.extend({
 
     });
   }
@@ -3278,6 +3354,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     vizContainer.append(mainViz);
 
     new MainMap("#mainViz");
+    //new MainHexes("#mainViz")
   }
 
   function initCaseStudies(vizContainer) {
