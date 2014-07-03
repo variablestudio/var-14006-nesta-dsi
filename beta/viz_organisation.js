@@ -383,12 +383,12 @@ Stats.prototype.drawCollaborators = function() {
 	var multiPoints = {
 		"type": "MultiPoint",
 		"coordinates": collaborators.map(function(object) {
-			return [ object.lat, object.long ];
+			return [ object.long, object.lat ];
 		})
 	};
 
 	// add parent lat long to multipoints
-	multiPoints.coordinates.push([ this.data[0].lat, this.data[0].long ]);
+	multiPoints.coordinates.push([ this.data[0].long, this.data[0].lat ]);
 
 	// calculate bounds, scale and translation
 	var bounds = path.bounds(multiPoints);
@@ -409,11 +409,11 @@ Stats.prototype.drawCollaborators = function() {
 	projection.scale(scale).translate(translate);
 
 	// get position for parent company
-	orgData.pos = projection([ this.data[0].lat, this.data[0].long ]);
+	orgData.pos = projection([ this.data[0].long, this.data[0].lat ]);
 
 	// project positions
 	collaborators = collaborators.map(function(collaborator) {
-		var pos = projection([ collaborator.lat, collaborator.long ]);
+		var pos = projection([ collaborator.long, collaborator.lat ]);
 
 		var vec = [ pos[0] - orgData.pos[0], pos[1] - orgData.pos[1] ];
 		var length = Math.sqrt(vec[0] * vec[0] + vec[1] * vec[1]);
