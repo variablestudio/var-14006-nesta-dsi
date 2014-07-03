@@ -305,27 +305,27 @@
 /*---------------------------------- choropleth --------------------------------------*/
 
 #choroplethViz svg {
-	display: block;
-	margin: 0 auto;
+  display: block;
+  margin: 0 auto;
 }
 
 #choroplethViz text {
   font-family: "Scene Pro", "Helvetica", sans-serif;
-	font-weight: 300;
-	font-size: 16px;
-	fill: #222222;
+  font-weight: 300;
+  font-size: 16px;
+  fill: #222222;
 }
 
 /*---------------------------------- explorer ----------------------------------------*/
 
 #explorerViz {
-	padding-bottom: 80px;
+  padding-bottom: 80px;
 }
 
 #explorerViz svg {
-	display: block;
-	margin: 0 auto;
-	padding-bottom: 10px;
+  display: block;
+  margin: 0 auto;
+  padding-bottom: 10px;
 }
 
 /*---------------------------------- key ----------------------------------------*/
@@ -437,7 +437,8 @@
   box-sizing: border-box;
 }
 
-#vizPopup h4 {
+#vizPopup span {
+  display: block;
   margin: 0 0 1em 0;
 }
 
@@ -450,7 +451,7 @@
   left: 50%;
   margin: 0 0 -10px -10px;
 
-  transform: rotate(45deg); -webkit-transform: rotate(45deg); -moz-transform: rotate(45deg);;
+  transform: rotate(45deg); -webkit-transform: rotate(45deg); -moz-transform: rotate(45deg);
 }
 
 #vizPopupContent a {
@@ -477,11 +478,11 @@
 .viz-1 h2,
 .viz-2 h2,
 .viz-3 h2 {
-	margin-bottom: 4px;
+  margin-bottom: 4px;
 }
 
 .viz-1 svg .title,
 .viz-2 svg .title {
-	font-family: "Helvetica";
-	font-size: 12px;
+  font-family: "Helvetica";
+  font-size: 12px;
 }

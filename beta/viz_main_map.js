@@ -167,16 +167,17 @@ MainMap.prototype.runOrganisationsQuery = function() {
     .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
     .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
     .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
-    .select('?org ?label ?lon ?lat ?country ?city ?org_type ?tf ?activity ?activity_label')
+    .select('?org ?label ?lon ?lat ?country ?city ?street ?org_type ?tf ?activity ?activity_label')
     .where('?org', 'a', 'o:Organization')
     //.where('?org', 'ds:organizationType', '?org_type')
     .where('?org', 'rdfs:label', '?label')
     .where('?org', 'o:hasPrimarySite', '?org_site')
     .where('?org_site', 'geo:long', '?lon')
     .where('?org_site', 'geo:lat', '?lat')
-    //.where('?org_site', 'o:siteAddress', '?org_address')
-    //.where('?org_address', 'vcard:country-name', '?country')
-    //.where('?org_address', 'vcard:locality', '?city')
+    .where('?org_site', 'o:siteAddress', '?org_address')
+    .where('?org_address', 'vcard:country-name', '?country')
+    .where('?org_address', 'vcard:street-address', '?street')
+    .where('?org_address', 'vcard:locality', '?city')
     //.where("?am", "a", "ds:ActivityMembership")
     //.where("?am", "ds:organization", "?org")
     //.where("?am", "ds:activity", "?activity")
@@ -452,7 +453,10 @@ MainMap.prototype.showOrganisations = function(svg, g, projection, center, organ
 
     var url = 'http://digitalsocial.eu/organisations/';
     url += organization.org.substr(organization.org.lastIndexOf('/') + 1);
-    var popupContent = '<h4><a href="' + url + '">'+organization.label+'</a></h4>Projects:';
+    var popupContent = '<h4><a href="' + url + '">'+organization.label+'</a></h4>';
+    popupContent += '<span>' + organization.street + ", " + organization.city + ", " + organization.country + '</span>';
+    popupContent += 'Projects:';
+
     if (organization.projects) {
       organization.projects.forEach(function(project) {
         var url = 'http://digitalsocial.eu/projects/' + project.p.substr(project.p.lastIndexOf('/')+1);
