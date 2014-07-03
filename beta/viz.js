@@ -47,10 +47,10 @@
     var vizContainer = $('#viz');
 
     initMainViz(vizContainer);
-    initCaseStudies(vizContainer);
-    initEUCountries(vizContainer);
-    initChoropleth(vizContainer);
-    initExplorer(vizContainer);
+    //initCaseStudies(vizContainer);
+    //initEUCountries(vizContainer);
+    //initChoropleth(vizContainer);
+    //initExplorer(vizContainer);
     initVizKey();
     initPopup();
     initTooltip();
@@ -75,6 +75,7 @@
     vizContainer.append(mainViz);
 
     new MainMap("#mainViz");
+    new MainHexes("#mainViz")
   }
 
   function initCaseStudies(vizContainer) {

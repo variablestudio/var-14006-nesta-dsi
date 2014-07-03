@@ -21,6 +21,7 @@ module.exports = function(grunt) {
           'viz_popup.js',
           'viz_key.js',
           'viz_main_map.js',
+          'viz_main_hexes.js',
           "viz_organisation.js",
           'viz_config.js',
           "viz.js"
