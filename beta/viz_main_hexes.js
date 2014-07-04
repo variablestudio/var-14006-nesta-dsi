@@ -356,6 +356,17 @@ MainHexes.prototype.buildViz = function(organizations, projects) {
 			})
 			.on("mouseout", function() {
 				VizConfig.tooltip.hide();
+			})
+			.on("click", function(item) {
+				if (item.id.indexOf('/activity/') != -1) {
+					var url = 'http://digitalsocial.eu/projects/' + item.id.substr(item.id.lastIndexOf('/')+1);
+					window.location.href = url;
+				}
+				if (item.id.indexOf('/organization/') != -1) {
+					var url = 'http://digitalsocial.eu/organisations/' + item.id.substr(item.id.lastIndexOf('/')+1);
+					window.location.href = url;
+				}
+				//VizConfig.tooltip.hide();
 			});
 	}
 
