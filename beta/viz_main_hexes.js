@@ -62,10 +62,10 @@ function MainHexes(mainVizContainer) {
 
 MainHexes.prototype.initSVG = function() {
 	this.w = window.innerWidth;
-	this.h = 700; // TODO: should be calculated from data?
-	// this.h = window.innerHeight - 360;
-	// this.h = Math.min(this.h, 800);
-	// this.h = Math.max(300, this.h);
+	//this.h = 700; // TODO: should be calculated from data?
+	this.h = window.innerHeight - 360;
+	this.h = Math.min(this.h, 800);
+	this.h = Math.max(300, this.h);
 
 	this.svg = d3.select(this.mainVizContainer)
 		.append('svg')
