@@ -405,12 +405,13 @@ MainHexes.prototype.buildViz = function(organizations, projects) {
 			return f.conceptName === conceptName && f.valueName === valueName;
 		})[0];
 
-		if (existingFilter) {
-			filters.splice(filters.indexOf(existingFilter), 1);
-		}
-		else {
-			filters.push({ conceptName: conceptName, valueName: valueName });
-		}
+		//if (existingFilter) {
+		//	filters.splice(filters.indexOf(existingFilter), 1);
+		//}
+		//else {
+		//	filters.push({ conceptName: conceptName, valueName: valueName });
+		//}
+		filters = [ { conceptName: conceptName, valueName: valueName } ];
 
 		rerenderFilteredItems.call(this);
   }.bind(this));
