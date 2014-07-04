@@ -279,7 +279,7 @@ Stats.prototype.drawDSIAreas = function() {
 				})
 				.on("click", function(d) {
 					var url = "http://digitalsocial.eu/projects/" + d.url;
-					window.open(url, "_blank");
+					document.location.href = url;
 				});
 		});
 };
@@ -531,7 +531,7 @@ Stats.prototype.drawHex = function(selection, data) {
 
 	hex.on("click", function(d) {
 		var url = "http://digitalsocial.eu/organisations/" + d.org_url;
-		window.open(url, "_blank");
+		document.location.href = url;
 	});
 };
 
