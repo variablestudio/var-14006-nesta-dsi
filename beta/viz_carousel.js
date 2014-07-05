@@ -11,7 +11,7 @@ function Carousel(DOMElements, settings) {
 	this.carousel = {
 		"data": [],
 		"parsedData": [],
-		"numItems": 4,
+		"numItems": 3,
 		"index": 0
 	};
 
@@ -20,7 +20,7 @@ function Carousel(DOMElements, settings) {
 		"prev": false
 	};
 
-	this.width = settings ? settings.width : 238 + 14; // 14px margin
+	this.width = settings ? settings.width : 322 + 14; // 14px margin
 	var apiUrl = settings ? settings.url : "http://content.digitalsocial.eu/api/get_page/?slug=case-studies&children=true";
 
 	// fetch data

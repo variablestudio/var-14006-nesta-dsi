@@ -172,7 +172,7 @@
 #carousel .carousel-wrapper {
   width: 1008px;
 
-  height: 133px;
+  height: 181px;
 
   overflow: hidden;
   position: relative;
@@ -185,8 +185,8 @@
 
 #carousel .carousel-item,
 #carousel .carousel-item img {
-  width: 238px;
-  height: 133px;
+  width: 322px;
+  height: 181px;
 }
 
 #carousel .carousel-item a {
@@ -203,18 +203,18 @@
   display: block;
   position: absolute;
 
-  top: 133px;
+  top: 181px;
   left: 0;
-  width: 238px;
-  height: 133px;
+  width: 322px;
+  height: 181px;
 
   padding-top: 20px; /* ugly text hand centering */
   text-align: center;
 
   background: rgba(234, 235, 235, 0.75);
   color: black;
-  font-size: 90%;
 
+  font-family: "Scene Std Medium", "Helvetica", sans-serif;
 
   -webkit-transition: top 300ms;
   transition: top 300ms;
@@ -232,6 +232,7 @@
   display: block;
   margin: 0 auto;
   margin-bottom: 1em;
+  margin-top: 20px;
 }
 
 #carousel img.preloading {
