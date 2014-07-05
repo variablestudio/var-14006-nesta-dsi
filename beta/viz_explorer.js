@@ -28,23 +28,20 @@ Explorer.prototype.init = function() {
 		.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
 		.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
 		.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
-		.select("?label ?country ?city ?activity_label ?tech_method ?tech_focus ?adsi_label")
+		.select("?label ?country ?activity_label ?tech_method ?tech_focus")
 		.where("?org", "a", "o:Organization")
 		.where("?am", "a", "ds:ActivityMembership")
 		.where("?am", "ds:organization", "?org")
 		.where("?am", "ds:activity", "?activity")
 		.where("?activity", "rdfs:label", "?activity_label")
-		.where("?activity", "ds:areaOfDigitalSocialInnovation", "?adsi")
 		.where("?activity", "ds:technologyMethod", "?tm")
 		.where("?activity", "ds:technologyFocus", "?tf")
-		.where("?adsi", "rdfs:label", "?adsi_label")
 		.where("?tm", "rdfs:label", "?tech_method")
 		.where("?tf", "rdfs:label", "?tech_focus")
 		.where("?org", "rdfs:label", "?label")
 		.where("?org", "o:hasPrimarySite", "?org_site")
 		.where("?org_site", "o:siteAddress", "?org_address")
 		.where("?org_address", "vcard:country-name", "?country")
-		.where("?org_address", "vcard:locality", "?city")
 		.execute()
 		.then(function(results) {
 			this.data = results
@@ -69,8 +66,7 @@ Explorer.prototype.init = function() {
 							"country": object.country,
 							"city": object.city,
 							"tech_methods": [ object.tech_method ],
-							"tech_focuses": [ object.tech_focus ],
-							"adsi_labels": [ object.adsi_label ]
+							"tech_focuses": [ object.tech_focus ]
 						});
 					}
 					else {
@@ -82,10 +78,6 @@ Explorer.prototype.init = function() {
 
 						if (memoObject.tech_focuses.indexOf(object.tech_focus) < 0) {
 							memoObject.tech_focuses.push(object.tech_focus);
-						}
-
-						if (memoObject.adsi_labels.indexOf(object.adsi_label) < 0) {
-							memoObject.adsi_labels.push(object.adsi_label);
 						}
 
 						memo[activityIndex] = memoObject;
@@ -206,13 +198,13 @@ Explorer.prototype.drawBar = function(svg, currentSum, count, index, scale, colo
 
 			callback(title, depth);
 		}.bind(this))
-		.on("mouseover", function(d) {
+		.on("mouseover", function() {
 			VizConfig.tooltip.show();
 			VizConfig.tooltip.html(title + " : " + count, "#FFF", fillColor);
 		})
-		.on("mouseout", function(d) {
+		.on("mouseout", function() {
 			VizConfig.tooltip.hide();
-		})
+		});
 
 	text = svg.append("text")
 		.attr("x", function() {
