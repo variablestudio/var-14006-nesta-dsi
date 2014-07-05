@@ -3310,7 +3310,8 @@ Stats.prototype.drawTechnologyAreas = function() {
 		.append("text")
 		.attr("class", "title")
 		.text(function(d) {
-			return d.name;
+			var percentage = (d.count / maxCount) * 100;
+			return d.name + ": " + percentage.toFixed(2) + "%";
 		})
 		.attr("y", function(d, i) {
 			return (i + 1) * height;
