@@ -1036,18 +1036,77 @@ Choropleth.prototype.init = function() {
 				return memo;
 			}, -Infinity);
 
-			// draw chart when data is ready;
-			this.draw();
+			// get case studies and draw chart
+			this.getCaseStudies(function() {
+				this.draw();
+			}.bind(this));
 		}.bind(this));
 };
 
+Choropleth.prototype.getCaseStudies = function(callback) {
+	var apiUrl = "http://content.digitalsocial.eu/api/get_page/?slug=case-studies&children=true";
+	d3.json(apiUrl, function(caseStudiesData) {
+		caseStudiesData = caseStudiesData.page.children.map(function(data) {
+				// prepare tech focus array
+				var techFocus = data.custom_fields["tech-focus"];
+
+				if (techFocus) {
+					techFocus = techFocus[0];
+
+					if (techFocus && techFocus.indexOf(",") >= 0) {
+						techFocus = techFocus.split(",").map(function(value) { return value.replace(/^\s+|\s+$/g, ""); });
+					}
+					else {
+						techFocus = [ techFocus ];
+					}
+				}
+				else {
+					techFocus = [];
+				}
+
+				// return parsed object
+				return {
+					"name": data.title,
+					"url": data.url,
+					"areaOfDSI": data.custom_fields["area-of-digital-social-innovation"][0],
+					"techFocus": techFocus
+				};
+			});
+
+		// merge case studies with this.data
+		this.data = this.data.map(function(data) {
+			var adsiKey = data.adsi.toLowerCase().replace(/\ /g, "-");
+			var techKey = data.tech.toLowerCase().replace(/\ /g, "-");
+
+			data.caseStudies = caseStudiesData.filter(function(caseStudy) {
+				var dsiMatches = caseStudy.areaOfDSI === adsiKey;
+				var techMatches = caseStudy.techFocus.indexOf(techKey) >= 0;
+
+				return dsiMatches && techMatches;
+			});
+
+			return data;
+		});
+
+		callback();
+	}.bind(this));
+};
+
 Choropleth.prototype.draw = function() {
-	var width = (this.techNames.length + 1) * this.rect.width + this.margin.left;
 	var height = (this.adsiNames.length + 1) * this.rect.height + this.margin.top;
+	var width = 994;
 
 	var svg = this.DOM.div.append("svg")
-		.attr("width", 994)
+		.attr("width", width)
 		.attr("height", height);
+
+	svg.append("rect")
+		.attr("width", width)
+		.attr("height", height)
+		.attr("fill", "#FFF")
+		.on("click", function() {
+			VizConfig.popup.close();
+		});
 
 	this.techNames.forEach(function(tech, techIndex) {
 		this.drawTitle(svg, tech, "top", techIndex);
@@ -1057,12 +1116,70 @@ Choropleth.prototype.draw = function() {
 		this.drawTitle(svg, adsi, "left", adsiIndex);
 	}.bind(this));
 
-	this.data.forEach(function(data) {
-		var techIndex = this.techNames.indexOf(data.tech);
-		var adsiIndex = this.adsiNames.indexOf(data.adsi);
+	var data = this.data.map(function(data) {
+		data.techIndex = this.techNames.indexOf(data.tech);
+		data.adsiIndex = this.adsiNames.indexOf(data.adsi);
 
-		this.drawRect(svg, techIndex, adsiIndex, data.count);
+		return data;
 	}.bind(this));
+
+	var color = d3.scale.threshold()
+		.domain([0.1, 0.4, 0.7, 1.0, 1.3])
+		.range(this.colorScale);
+
+	var rectGroups = svg.selectAll(".rect")
+		.data(data)
+		.enter()
+		.append("g")
+		.attr("class", "rect")
+		.on("click", function(d) {
+			var popupContent;
+			var windowOffset = $(svg[0]).offset();
+			var rectOffset = {
+				"x": (d.techIndex + 1.5) * this.rect.width + this.margin.left,
+				"y": d.adsiIndex * this.rect.height + this.margin.top + this.rect.height * 0.25
+			};
+
+			if (d.caseStudies.length > 0) {
+				popupContent = "<h4>Case Studies</h4>";
+				popupContent += d.caseStudies.map(function(caseStudy) {
+					return "<a href=\"" + caseStudy.url + "\">" + caseStudy.name + "</a>";
+				}).join("");
+			}
+			else {
+				popupContent = "No Case Studies for this combination yet...";
+			}
+
+			VizConfig.popup.html(popupContent);
+			VizConfig.popup.open(rectOffset.x, rectOffset.y, windowOffset.left, windowOffset.top);
+		}.bind(this));
+
+	rectGroups
+		.append("rect")
+		.attr("x", function(d) {
+			return (d.techIndex + 1) * this.rect.width + this.margin.left;
+		}.bind(this))
+		.attr("y", function(d) {
+			return d.adsiIndex * this.rect.height + this.margin.top;
+		}.bind(this))
+		.attr("width", this.rect.width)
+		.attr("height", this.rect.height)
+		.attr("fill", function(d) {
+			return color(d.count / this.maxCount);
+		}.bind(this));
+
+	rectGroups
+		.append("text")
+		.attr("x", function(d) {
+			return (d.techIndex + 1) * this.rect.width + this.margin.left + this.rect.width * 0.6;
+		}.bind(this))
+		.attr("y", function(d) {
+			return d.adsiIndex * this.rect.height + this.margin.top + this.rect.height * 0.6;
+		}.bind(this))
+		.text(function(d) {
+			return d.count;
+		})
+		.attr("text-anchor", "end");
 };
 
 Choropleth.prototype.drawTitle = function(svg, name, orient, index) {
@@ -1103,27 +1220,6 @@ Choropleth.prototype.drawTitle = function(svg, name, orient, index) {
 
 			return pos;
 		}.bind(this));
-}
-
-Choropleth.prototype.drawRect = function(svg, x, y, num) {
-	var color = d3.scale.threshold()
-		.domain([0.1, 0.4, 0.7, 1.0, 1.3])
-		.range(this.colorScale);
-
-	svg
-		.append("rect")
-		.attr("x", (x + 1) * this.rect.width + this.margin.left)
-		.attr("y", y * this.rect.height + this.margin.top)
-		.attr("width", this.rect.width)
-		.attr("height", this.rect.height)
-		.attr("fill", color(num / this.maxCount));
-
-	svg
-		.append("text")
-		.attr("x", (x + 1) * this.rect.width + this.margin.left + this.rect.width*0.45)
-		.attr("y", y * this.rect.height + this.margin.top + this.rect.height*0.7)
-		.attr("fill", color(num / this.maxCount))
-		.text(num)
 };
 
 /*global VizConfig, SPARQLDataSource, d3 */
@@ -1806,18 +1902,23 @@ function VizPopup() {
 }
 
 VizPopup.prototype.open = function(x, y, dx, dy, zoom) {
+  var scale = zoom ? zoom.scale() : 1;
+  var translate = zoom ? zoom.translate() : [ 0, 0 ];
+
   setTimeout(function() {
-    var nx = x * zoom.scale() + dx + zoom.translate()[0];
-    var ny = y * zoom.scale() + dy + zoom.translate()[1];
+    var nx = x * scale + dx + translate[0];
+    var ny = y * scale + dy + translate[1];
     this.setPosition(nx, ny);
     this.vizPopup.show();
   }.bind(this), 10);
 
-  zoom.on('zoom.popup', function() {
-    var nx = x * zoom.scale() + dx + zoom.translate()[0];
-    var ny = y * zoom.scale() + dy + zoom.translate()[1];
-    this.setPosition(nx, ny);
-  }.bind(this));
+  if (zoom) {
+    zoom.on('zoom.popup', function() {
+      var nx = x * zoom.scale() + dx + zoom.translate()[0];
+      var ny = y * zoom.scale() + dy + zoom.translate()[1];
+      this.setPosition(nx, ny);
+    }.bind(this));
+  }
 }
 
 VizPopup.prototype.close = function() {
@@ -1840,6 +1941,7 @@ VizPopup.prototype.setPosition = function(x, y) {
 VizPopup.prototype.isOpen = function() {
   return this.vizPopup.is(':visible');
 }
+
 function VizKey(open) {
   var vizKeyContainer = $('<div id="vizKeyContainer"></div>');
   var sideBar = $('<div id="vizKeySideBar"></div>');
