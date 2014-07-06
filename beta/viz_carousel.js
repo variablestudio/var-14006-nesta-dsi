@@ -1,5 +1,5 @@
 /*jslint todo: true */
-/*global fn, $ */
+/*global fn, $, VizConfig */
 
 function Carousel(DOMElements, settings) {
 	this.DOM = {
@@ -96,6 +96,22 @@ function Carousel(DOMElements, settings) {
 
 	// build carousel with preloading gif on launch
 	this.buildCarousel({ "preloading": true });
+
+	// act on filter change
+	VizConfig.events.addEventListener("filter", function(e) {
+		this.filter(function(data) {
+			var shouldDisplay = false;
+
+			if (e.property === "technologyFocus") {
+				shouldDisplay = (data.techFocus.indexOf(e.id) >= 0);
+			}
+			else if (e.property === "areaOfDigitalSocialInnovation") {
+				shouldDisplay = data.areaOfDSI === e.id;
+			}
+
+			return shouldDisplay;
+		});
+	}.bind(this));
 }
 
 // filters data using callback, and redraws carousel
