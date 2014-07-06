@@ -1,4 +1,4 @@
-/*global d3, SPARQLDataSource */
+/*global $, d3, SPARQLDataSource, VizConfig */
 
 var indexOfProp = function(data, prop, val) {
 	return data.map(function(o) { return o[prop]; }).indexOf(val);
@@ -12,6 +12,8 @@ function Countries(div) {
 
 	// cache DOM elements
 	this.DOM = { "div": d3.select(div) };
+
+	this.GEO_ASSET = "assets/eu.geo.json"; // "assets/all_countries.json"
 }
 
 // runs query, calls this.draw() when finished
@@ -122,32 +124,62 @@ Countries.prototype.init = function() {
 			}.bind(this));
 
 			// add geography to data, and callback when finished
-			d3.json("assets/all_countries.json", function(countries) {
-				data = data
-					.map(function(object) {
-						var index = indexOfProp(countries, "name", object.country);
+			if (this.GEO_ASSET === "assets/all_countries.json") {
+				d3.json("assets/all_countries.json", function(countries) {
+					data = data
+						.map(function(object) {
+							var index = indexOfProp(countries, "name", object.country);
 
-						if (index > 0) {
-							object.country_code = countries[index]["alpha-3"];
-							object.geo = JSON.parse(countries[index].geo);
+							if (index > 0) {
+								object.country_code = countries[index]["alpha-3"];
+								object.geo = JSON.parse(countries[index].geo);
+							}
+							else {
+								// remove countries that are not all_countries.json file
+								object = null;
+							}
+
+							return object;
+						})
+						.filter(function(object) {
+							return (object !== null);
+						});
+
+					// save data
+					this.data = data;
+
+					// draw when done
+					this.draw();
+				}.bind(this));
+			}
+
+			else if (this.GEO_ASSET === "assets/eu.geo.json") {
+				d3.json("assets/eu.geo.json", function(countries) {
+					countries.features.forEach(function(country) {
+						var name = country.properties.SOVEREIGNT;
+						var index = indexOfProp(data, "country", name);
+
+						if (index >= 0) {
+							data[index].geo = country;
 						}
 						else {
-							// remove countries that are not all_countries.json file
-							object = null;
+							console.log("no data for",  name);
 						}
-
-						return object;
-					})
-					.filter(function(object) {
-						return (object !== null);
 					});
 
-				// save data
-				this.data = data;
+					// remove countries not in geojson
+					data = data.filter(function(data) {
+						return data.geo;
+					});
 
-				// draw when done
-				this.draw();
-			}.bind(this));
+					// save data
+					this.data = data;
+
+					// draw when done
+					this.draw();
+				}.bind(this));
+			}
+
 		}.bind(this));
 };
 
@@ -197,7 +229,7 @@ Countries.prototype.drawBarChart = function(div, data) {
 
 	var svg = div.append("svg")
 		.attr("width", width)
-		.attr("height", height)
+		.attr("height", height);
 
 	svg.selectAll(".rect")
 		.data(rectData)
@@ -220,9 +252,9 @@ Countries.prototype.drawBarChart = function(div, data) {
 			VizConfig.tooltip.show();
 			VizConfig.tooltip.html(d.name + ' : ' + d.count, '#FFF', VizConfig.dsiAreasByLabel[d.name].color);
 		})
-		.on('mouseout', function(d) {
+		.on('mouseout', function() {
 			VizConfig.tooltip.hide();
-		})
+		});
 };
 
 Countries.prototype.drawProjectCount = function(div, data) {
