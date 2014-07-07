@@ -595,7 +595,9 @@ function Countries(div) {
 	// cache DOM elements
 	this.DOM = { "div": d3.select(div) };
 
-	this.GEO_ASSET = "assets/eu.geo.json"; // "assets/all_countries.json"
+	this.GEO_ASSET = "assets/world-countries-hires.geo.json";
+	// this.GEO_ASSET = "assets/eu.geo.json";
+	// this.GEO_ASSET = "assets/all_countries.json";
 }
 
 // runs query, calls this.draw() when finished
@@ -735,10 +737,10 @@ Countries.prototype.init = function() {
 				}.bind(this));
 			}
 
-			else if (this.GEO_ASSET === "assets/eu.geo.json") {
-				d3.json("assets/eu.geo.json", function(countries) {
+			else if (this.GEO_ASSET === "assets/eu.geo.json" || this.GEO_ASSET === "assets/world-countries-hires.geo.json") {
+				d3.json(this.GEO_ASSET, function(countries) {
 					countries.features.forEach(function(country) {
-						var name = country.properties.SOVEREIGNT;
+						var name = country.properties.NAME;
 						var index = indexOfProp(data, "country", name);
 
 						if (index >= 0) {
@@ -760,6 +762,10 @@ Countries.prototype.init = function() {
 					// draw when done
 					this.draw();
 				}.bind(this));
+			}
+
+			else {
+				console.error("no transform for asset: " + this.GEO_ASSET);
 			}
 
 		}.bind(this));
