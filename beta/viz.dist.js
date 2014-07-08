@@ -333,7 +333,7 @@ var EventDispatcher = {
   }
 };
 /*jslint todo: true */
-/*global fn, $ */
+/*global fn, $, VizConfig */
 
 function Carousel(DOMElements, settings) {
 	this.DOM = {
@@ -345,7 +345,7 @@ function Carousel(DOMElements, settings) {
 	this.carousel = {
 		"data": [],
 		"parsedData": [],
-		"numItems": 4,
+		"numItems": 3,
 		"index": 0
 	};
 
@@ -354,7 +354,7 @@ function Carousel(DOMElements, settings) {
 		"prev": false
 	};
 
-	this.width = settings ? settings.width : 238 + 14; // 14px margin
+	this.width = settings ? settings.width : 322 + 14; // 14px margin
 	var apiUrl = settings ? settings.url : "http://content.digitalsocial.eu/api/get_page/?slug=case-studies&children=true";
 
 	// fetch data
@@ -430,6 +430,22 @@ function Carousel(DOMElements, settings) {
 
 	// build carousel with preloading gif on launch
 	this.buildCarousel({ "preloading": true });
+
+	// act on filter change
+	VizConfig.events.addEventListener("filter", function(e) {
+		this.filter(function(data) {
+			var shouldDisplay = false;
+
+			if (e.property === "technologyFocus") {
+				shouldDisplay = (data.techFocus.indexOf(e.id) >= 0);
+			}
+			else if (e.property === "areaOfDigitalSocialInnovation") {
+				shouldDisplay = data.areaOfDSI === e.id;
+			}
+
+			return shouldDisplay;
+		});
+	}.bind(this));
 }
 
 // filters data using callback, and redraws carousel
@@ -564,7 +580,7 @@ Carousel.prototype.parseData = function(data) {
 		});
 };
 
-/*global d3, SPARQLDataSource */
+/*global $, d3, SPARQLDataSource, VizConfig */
 
 var indexOfProp = function(data, prop, val) {
 	return data.map(function(o) { return o[prop]; }).indexOf(val);
@@ -578,6 +594,10 @@ function Countries(div) {
 
 	// cache DOM elements
 	this.DOM = { "div": d3.select(div) };
+
+	this.GEO_ASSET = "assets/world-countries-hires.geo.json";
+	// this.GEO_ASSET = "assets/eu.geo.json";
+	// this.GEO_ASSET = "assets/all_countries.json";
 }
 
 // runs query, calls this.draw() when finished
@@ -688,32 +708,66 @@ Countries.prototype.init = function() {
 			}.bind(this));
 
 			// add geography to data, and callback when finished
-			d3.json("assets/all_countries.json", function(countries) {
-				data = data
-					.map(function(object) {
-						var index = indexOfProp(countries, "name", object.country);
+			if (this.GEO_ASSET === "assets/all_countries.json") {
+				d3.json("assets/all_countries.json", function(countries) {
+					data = data
+						.map(function(object) {
+							var index = indexOfProp(countries, "name", object.country);
 
-						if (index > 0) {
-							object.country_code = countries[index]["alpha-3"];
-							object.geo = JSON.parse(countries[index].geo);
+							if (index > 0) {
+								object.country_code = countries[index]["alpha-3"];
+								object.geo = JSON.parse(countries[index].geo);
+							}
+							else {
+								// remove countries that are not all_countries.json file
+								object = null;
+							}
+
+							return object;
+						})
+						.filter(function(object) {
+							return (object !== null);
+						});
+
+					// save data
+					this.data = data;
+
+					// draw when done
+					this.draw();
+				}.bind(this));
+			}
+
+			else if (this.GEO_ASSET === "assets/eu.geo.json" || this.GEO_ASSET === "assets/world-countries-hires.geo.json") {
+				d3.json(this.GEO_ASSET, function(countries) {
+					countries.features.forEach(function(country) {
+						var name = country.properties.NAME;
+						var index = indexOfProp(data, "country", name);
+
+						if (index >= 0) {
+							data[index].geo = country;
 						}
 						else {
-							// remove countries that are not all_countries.json file
-							object = null;
+							console.log("no data for",  name);
 						}
-
-						return object;
-					})
-					.filter(function(object) {
-						return (object !== null);
 					});
 
-				// save data
-				this.data = data;
+					// remove countries not in geojson
+					data = data.filter(function(data) {
+						return data.geo;
+					});
 
-				// draw when done
-				this.draw();
-			}.bind(this));
+					// save data
+					this.data = data;
+
+					// draw when done
+					this.draw();
+				}.bind(this));
+			}
+
+			else {
+				console.error("no transform for asset: " + this.GEO_ASSET);
+			}
+
 		}.bind(this));
 };
 
@@ -763,7 +817,7 @@ Countries.prototype.drawBarChart = function(div, data) {
 
 	var svg = div.append("svg")
 		.attr("width", width)
-		.attr("height", height)
+		.attr("height", height);
 
 	svg.selectAll(".rect")
 		.data(rectData)
@@ -786,9 +840,9 @@ Countries.prototype.drawBarChart = function(div, data) {
 			VizConfig.tooltip.show();
 			VizConfig.tooltip.html(d.name + ' : ' + d.count, '#FFF', VizConfig.dsiAreasByLabel[d.name].color);
 		})
-		.on('mouseout', function(d) {
+		.on('mouseout', function() {
 			VizConfig.tooltip.hide();
-		})
+		});
 };
 
 Countries.prototype.drawProjectCount = function(div, data) {
@@ -1036,18 +1090,77 @@ Choropleth.prototype.init = function() {
 				return memo;
 			}, -Infinity);
 
-			// draw chart when data is ready;
-			this.draw();
+			// get case studies and draw chart
+			this.getCaseStudies(function() {
+				this.draw();
+			}.bind(this));
 		}.bind(this));
 };
 
+Choropleth.prototype.getCaseStudies = function(callback) {
+	var apiUrl = "http://content.digitalsocial.eu/api/get_page/?slug=case-studies&children=true";
+	d3.json(apiUrl, function(caseStudiesData) {
+		caseStudiesData = caseStudiesData.page.children.map(function(data) {
+				// prepare tech focus array
+				var techFocus = data.custom_fields["tech-focus"];
+
+				if (techFocus) {
+					techFocus = techFocus[0];
+
+					if (techFocus && techFocus.indexOf(",") >= 0) {
+						techFocus = techFocus.split(",").map(function(value) { return value.replace(/^\s+|\s+$/g, ""); });
+					}
+					else {
+						techFocus = [ techFocus ];
+					}
+				}
+				else {
+					techFocus = [];
+				}
+
+				// return parsed object
+				return {
+					"name": data.title,
+					"url": data.url,
+					"areaOfDSI": data.custom_fields["area-of-digital-social-innovation"][0],
+					"techFocus": techFocus
+				};
+			});
+
+		// merge case studies with this.data
+		this.data = this.data.map(function(data) {
+			var adsiKey = data.adsi.toLowerCase().replace(/\ /g, "-");
+			var techKey = data.tech.toLowerCase().replace(/\ /g, "-");
+
+			data.caseStudies = caseStudiesData.filter(function(caseStudy) {
+				var dsiMatches = caseStudy.areaOfDSI === adsiKey;
+				var techMatches = caseStudy.techFocus.indexOf(techKey) >= 0;
+
+				return dsiMatches && techMatches;
+			});
+
+			return data;
+		});
+
+		callback();
+	}.bind(this));
+};
+
 Choropleth.prototype.draw = function() {
-	var width = (this.techNames.length + 1) * this.rect.width + this.margin.left;
 	var height = (this.adsiNames.length + 1) * this.rect.height + this.margin.top;
+	var width = 994;
 
 	var svg = this.DOM.div.append("svg")
-		.attr("width", 994)
+		.attr("width", width)
 		.attr("height", height);
+
+	svg.append("rect")
+		.attr("width", width)
+		.attr("height", height)
+		.attr("fill", "#FFF")
+		.on("click", function() {
+			VizConfig.popup.close();
+		});
 
 	this.techNames.forEach(function(tech, techIndex) {
 		this.drawTitle(svg, tech, "top", techIndex);
@@ -1057,12 +1170,70 @@ Choropleth.prototype.draw = function() {
 		this.drawTitle(svg, adsi, "left", adsiIndex);
 	}.bind(this));
 
-	this.data.forEach(function(data) {
-		var techIndex = this.techNames.indexOf(data.tech);
-		var adsiIndex = this.adsiNames.indexOf(data.adsi);
+	var data = this.data.map(function(data) {
+		data.techIndex = this.techNames.indexOf(data.tech);
+		data.adsiIndex = this.adsiNames.indexOf(data.adsi);
 
-		this.drawRect(svg, techIndex, adsiIndex, data.count);
+		return data;
 	}.bind(this));
+
+	var color = d3.scale.threshold()
+		.domain([0.1, 0.4, 0.7, 1.0, 1.3])
+		.range(this.colorScale);
+
+	var rectGroups = svg.selectAll(".rect")
+		.data(data)
+		.enter()
+		.append("g")
+		.attr("class", "rect")
+		.on("click", function(d) {
+			var popupContent;
+			var windowOffset = $(svg[0]).offset();
+			var rectOffset = {
+				"x": (d.techIndex + 1.5) * this.rect.width + this.margin.left,
+				"y": d.adsiIndex * this.rect.height + this.margin.top + this.rect.height * 0.25
+			};
+
+			if (d.caseStudies.length > 0) {
+				popupContent = "<h4>Case Studies</h4>";
+				popupContent += d.caseStudies.map(function(caseStudy) {
+					return "<a href=\"" + caseStudy.url + "\">" + caseStudy.name + "</a>";
+				}).join("");
+			}
+			else {
+				popupContent = "No Case Studies for this combination yet...";
+			}
+
+			VizConfig.popup.html(popupContent);
+			VizConfig.popup.open(rectOffset.x, rectOffset.y, windowOffset.left, windowOffset.top);
+		}.bind(this));
+
+	rectGroups
+		.append("rect")
+		.attr("x", function(d) {
+			return (d.techIndex + 1) * this.rect.width + this.margin.left;
+		}.bind(this))
+		.attr("y", function(d) {
+			return d.adsiIndex * this.rect.height + this.margin.top;
+		}.bind(this))
+		.attr("width", this.rect.width)
+		.attr("height", this.rect.height)
+		.attr("fill", function(d) {
+			return color(d.count / this.maxCount);
+		}.bind(this));
+
+	rectGroups
+		.append("text")
+		.attr("x", function(d) {
+			return (d.techIndex + 1) * this.rect.width + this.margin.left + this.rect.width * 0.6;
+		}.bind(this))
+		.attr("y", function(d) {
+			return d.adsiIndex * this.rect.height + this.margin.top + this.rect.height * 0.6;
+		}.bind(this))
+		.text(function(d) {
+			return d.count;
+		})
+		.attr("text-anchor", "end");
 };
 
 Choropleth.prototype.drawTitle = function(svg, name, orient, index) {
@@ -1103,27 +1274,6 @@ Choropleth.prototype.drawTitle = function(svg, name, orient, index) {
 
 			return pos;
 		}.bind(this));
-}
-
-Choropleth.prototype.drawRect = function(svg, x, y, num) {
-	var color = d3.scale.threshold()
-		.domain([0.1, 0.4, 0.7, 1.0, 1.3])
-		.range(this.colorScale);
-
-	svg
-		.append("rect")
-		.attr("x", (x + 1) * this.rect.width + this.margin.left)
-		.attr("y", y * this.rect.height + this.margin.top)
-		.attr("width", this.rect.width)
-		.attr("height", this.rect.height)
-		.attr("fill", color(num / this.maxCount));
-
-	svg
-		.append("text")
-		.attr("x", (x + 1) * this.rect.width + this.margin.left + this.rect.width*0.45)
-		.attr("y", y * this.rect.height + this.margin.top + this.rect.height*0.7)
-		.attr("fill", color(num / this.maxCount))
-		.text(num)
 };
 
 /*global VizConfig, SPARQLDataSource, d3 */
@@ -1156,23 +1306,20 @@ Explorer.prototype.init = function() {
 		.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
 		.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
 		.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
-		.select("?label ?country ?city ?activity_label ?tech_method ?tech_focus ?adsi_label")
+		.select("?label ?country ?activity_label ?tech_method ?tech_focus")
 		.where("?org", "a", "o:Organization")
 		.where("?am", "a", "ds:ActivityMembership")
 		.where("?am", "ds:organization", "?org")
 		.where("?am", "ds:activity", "?activity")
 		.where("?activity", "rdfs:label", "?activity_label")
-		.where("?activity", "ds:areaOfDigitalSocialInnovation", "?adsi")
 		.where("?activity", "ds:technologyMethod", "?tm")
 		.where("?activity", "ds:technologyFocus", "?tf")
-		.where("?adsi", "rdfs:label", "?adsi_label")
 		.where("?tm", "rdfs:label", "?tech_method")
 		.where("?tf", "rdfs:label", "?tech_focus")
 		.where("?org", "rdfs:label", "?label")
 		.where("?org", "o:hasPrimarySite", "?org_site")
 		.where("?org_site", "o:siteAddress", "?org_address")
 		.where("?org_address", "vcard:country-name", "?country")
-		.where("?org_address", "vcard:locality", "?city")
 		.execute()
 		.then(function(results) {
 			this.data = results
@@ -1197,8 +1344,7 @@ Explorer.prototype.init = function() {
 							"country": object.country,
 							"city": object.city,
 							"tech_methods": [ object.tech_method ],
-							"tech_focuses": [ object.tech_focus ],
-							"adsi_labels": [ object.adsi_label ]
+							"tech_focuses": [ object.tech_focus ]
 						});
 					}
 					else {
@@ -1210,10 +1356,6 @@ Explorer.prototype.init = function() {
 
 						if (memoObject.tech_focuses.indexOf(object.tech_focus) < 0) {
 							memoObject.tech_focuses.push(object.tech_focus);
-						}
-
-						if (memoObject.adsi_labels.indexOf(object.adsi_label) < 0) {
-							memoObject.adsi_labels.push(object.adsi_label);
 						}
 
 						memo[activityIndex] = memoObject;
@@ -1334,13 +1476,13 @@ Explorer.prototype.drawBar = function(svg, currentSum, count, index, scale, colo
 
 			callback(title, depth);
 		}.bind(this))
-		.on("mouseover", function(d) {
+		.on("mouseover", function() {
 			VizConfig.tooltip.show();
 			VizConfig.tooltip.html(title + " : " + count, "#FFF", fillColor);
 		})
-		.on("mouseout", function(d) {
+		.on("mouseout", function() {
 			VizConfig.tooltip.hide();
-		})
+		});
 
 	text = svg.append("text")
 		.attr("x", function() {
@@ -1814,18 +1956,23 @@ function VizPopup() {
 }
 
 VizPopup.prototype.open = function(x, y, dx, dy, zoom) {
+  var scale = zoom ? zoom.scale() : 1;
+  var translate = zoom ? zoom.translate() : [ 0, 0 ];
+
   setTimeout(function() {
-    var nx = x * zoom.scale() + dx + zoom.translate()[0];
-    var ny = y * zoom.scale() + dy + zoom.translate()[1];
+    var nx = x * scale + dx + translate[0];
+    var ny = y * scale + dy + translate[1];
     this.setPosition(nx, ny);
     this.vizPopup.show();
   }.bind(this), 10);
 
-  zoom.on('zoom.popup', function() {
-    var nx = x * zoom.scale() + dx + zoom.translate()[0];
-    var ny = y * zoom.scale() + dy + zoom.translate()[1];
-    this.setPosition(nx, ny);
-  }.bind(this));
+  if (zoom) {
+    zoom.on('zoom.popup', function() {
+      var nx = x * zoom.scale() + dx + zoom.translate()[0];
+      var ny = y * zoom.scale() + dy + zoom.translate()[1];
+      this.setPosition(nx, ny);
+    }.bind(this));
+  }
 }
 
 VizPopup.prototype.close = function() {
@@ -1848,6 +1995,7 @@ VizPopup.prototype.setPosition = function(x, y) {
 VizPopup.prototype.isOpen = function() {
   return this.vizPopup.is(':visible');
 }
+
 function VizKey(open) {
   var vizKeyContainer = $('<div id="vizKeyContainer"></div>');
   var sideBar = $('<div id="vizKeySideBar"></div>');
@@ -3310,7 +3458,8 @@ Stats.prototype.drawTechnologyAreas = function() {
 		.append("text")
 		.attr("class", "title")
 		.text(function(d) {
-			return d.name;
+			var percentage = (d.count / maxCount) * 100;
+			return d.name + ": " + percentage.toFixed(2) + "%";
 		})
 		.attr("y", function(d, i) {
 			return (i + 1) * height;

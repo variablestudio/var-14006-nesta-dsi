@@ -7,18 +7,23 @@ function VizPopup() {
 }
 
 VizPopup.prototype.open = function(x, y, dx, dy, zoom) {
+  var scale = zoom ? zoom.scale() : 1;
+  var translate = zoom ? zoom.translate() : [ 0, 0 ];
+
   setTimeout(function() {
-    var nx = x * zoom.scale() + dx + zoom.translate()[0];
-    var ny = y * zoom.scale() + dy + zoom.translate()[1];
+    var nx = x * scale + dx + translate[0];
+    var ny = y * scale + dy + translate[1];
     this.setPosition(nx, ny);
     this.vizPopup.show();
   }.bind(this), 10);
 
-  zoom.on('zoom.popup', function() {
-    var nx = x * zoom.scale() + dx + zoom.translate()[0];
-    var ny = y * zoom.scale() + dy + zoom.translate()[1];
-    this.setPosition(nx, ny);
-  }.bind(this));
+  if (zoom) {
+    zoom.on('zoom.popup', function() {
+      var nx = x * zoom.scale() + dx + zoom.translate()[0];
+      var ny = y * zoom.scale() + dy + zoom.translate()[1];
+      this.setPosition(nx, ny);
+    }.bind(this));
+  }
 }
 
 VizPopup.prototype.close = function() {
