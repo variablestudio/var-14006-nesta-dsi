@@ -476,7 +476,7 @@ Carousel.prototype.buildItem = function(data) {
 		if (data.coverImage) { carouselItem += "<img src=\"" + data.coverImage + "\">"; }
 		carouselItem += "<span>";
 		if (data.logoImage) { carouselItem += "<img src=\"" + data.logoImage + "\"/>"; }
-		carouselItem += data.name;
+		carouselItem += "<span class=\"name\">" + data.name + "</span>";
 		carouselItem += "</span>";
 		carouselItem += "</a>";
 	}
@@ -2800,10 +2800,10 @@ function MainHexes(mainVizContainer) {
 
 MainHexes.prototype.initSVG = function() {
 	this.w = window.innerWidth;
-	this.h = 700; // TODO: should be calculated from data?
-	// this.h = window.innerHeight - 360;
-	// this.h = Math.min(this.h, 800);
-	// this.h = Math.max(300, this.h);
+	//this.h = 700; // TODO: should be calculated from data?
+	this.h = window.innerHeight - 360;
+	this.h = Math.min(this.h, 800);
+	this.h = Math.max(300, this.h);
 
 	this.svg = d3.select(this.mainVizContainer)
 		.append('svg')
@@ -3094,6 +3094,17 @@ MainHexes.prototype.buildViz = function(organizations, projects) {
 			})
 			.on("mouseout", function() {
 				VizConfig.tooltip.hide();
+			})
+			.on("click", function(item) {
+				if (item.id.indexOf('/activity/') != -1) {
+					var url = 'http://digitalsocial.eu/projects/' + item.id.substr(item.id.lastIndexOf('/')+1);
+					window.location.href = url;
+				}
+				if (item.id.indexOf('/organization/') != -1) {
+					var url = 'http://digitalsocial.eu/organisations/' + item.id.substr(item.id.lastIndexOf('/')+1);
+					window.location.href = url;
+				}
+				//VizConfig.tooltip.hide();
 			});
 	}
 
@@ -3132,12 +3143,13 @@ MainHexes.prototype.buildViz = function(organizations, projects) {
 			return f.conceptName === conceptName && f.valueName === valueName;
 		})[0];
 
-		if (existingFilter) {
-			filters.splice(filters.indexOf(existingFilter), 1);
-		}
-		else {
-			filters.push({ conceptName: conceptName, valueName: valueName });
-		}
+		//if (existingFilter) {
+		//	filters.splice(filters.indexOf(existingFilter), 1);
+		//}
+		//else {
+		//	filters.push({ conceptName: conceptName, valueName: valueName });
+		//}
+		filters = [ { conceptName: conceptName, valueName: valueName } ];
 
 		rerenderFilteredItems.call(this);
   }.bind(this));
@@ -3424,7 +3436,7 @@ Stats.prototype.drawDSIAreas = function() {
 				})
 				.on("click", function(d) {
 					var url = "http://digitalsocial.eu/projects/" + d.url;
-					window.open(url, "_blank");
+					document.location.href = url;
 				});
 		});
 };
@@ -3459,7 +3471,7 @@ Stats.prototype.drawTechnologyAreas = function() {
 		.attr("class", "title")
 		.text(function(d) {
 			var percentage = (d.count / maxCount) * 100;
-			return d.name + ": " + percentage.toFixed(2) + "%";
+			return d.name + ": " + percentage.toFixed(0) + "%";
 		})
 		.attr("y", function(d, i) {
 			return (i + 1) * height;
@@ -3677,7 +3689,7 @@ Stats.prototype.drawHex = function(selection, data) {
 
 	hex.on("click", function(d) {
 		var url = "http://digitalsocial.eu/organisations/" + d.org_url;
-		window.open(url, "_blank");
+		document.location.href = url;
 	});
 };
 

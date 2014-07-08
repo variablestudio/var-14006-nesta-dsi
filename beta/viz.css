@@ -199,11 +199,12 @@
   text-decoration: none;
 }
 
-#carousel .carousel-item span {
+#carousel .carousel-item a > span {
   display: block;
   position: absolute;
 
   top: 181px;
+  /* top: 0; */
   left: 0;
   width: 322px;
   height: 181px;
@@ -220,19 +221,27 @@
   transition: top 300ms;
 }
 
-#carousel .carousel-item:hover span {
+#carousel .carousel-item:hover a > span {
   top: 0;
 }
 
-#carousel .carousel-item span img {
+#carousel .carousel-item a span > img {
   width: 110px;
   height: 125px;
   width: 55px;
   height: 62px;
   display: block;
   margin: 0 auto;
-  margin-bottom: 1em;
+  padding-bottom: 10px;
+  padding-right: 80px;
+  padding-left: 80px;
   margin-top: 20px;
+  border-bottom: 2px solid black;
+}
+
+#carousel .carousel-item a span .name {
+  display: block;
+  padding-top: 10px;
 }
 
 #carousel img.preloading {

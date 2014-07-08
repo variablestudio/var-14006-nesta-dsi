@@ -142,7 +142,7 @@ Carousel.prototype.buildItem = function(data) {
 		if (data.coverImage) { carouselItem += "<img src=\"" + data.coverImage + "\">"; }
 		carouselItem += "<span>";
 		if (data.logoImage) { carouselItem += "<img src=\"" + data.logoImage + "\"/>"; }
-		carouselItem += data.name;
+		carouselItem += "<span class=\"name\">" + data.name + "</span>";
 		carouselItem += "</span>";
 		carouselItem += "</a>";
 	}
