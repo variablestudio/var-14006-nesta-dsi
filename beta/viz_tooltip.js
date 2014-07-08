@@ -1,4 +1,4 @@
- function VizTooltip() {
+function VizTooltip() {
   var vizTooltip = $('<div id="vizTooltip"></div>');
   $('body').append(vizTooltip);
   vizTooltip.text('');

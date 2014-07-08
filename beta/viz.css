@@ -155,7 +155,7 @@
 
 #carousel .button {
   cursor: pointer;
-  margin-top: 46px;
+  margin-top: 70px;
   font-size: 40px;
 }
 
@@ -199,7 +199,7 @@
   text-decoration: none;
 }
 
-#carousel .carousel-item a > span {
+#carousel .carousel-item > span {
   display: block;
   position: absolute;
 
@@ -219,13 +219,15 @@
 
   -webkit-transition: top 300ms;
   transition: top 300ms;
+
+  cursor: pointer;
 }
 
-#carousel .carousel-item:hover a > span {
+#carousel .carousel-item:hover > span {
   top: 0;
 }
 
-#carousel .carousel-item a span > img {
+#carousel .carousel-item span > img {
   width: 110px;
   height: 125px;
   width: 55px;
@@ -239,7 +241,7 @@
   border-bottom: 2px solid black;
 }
 
-#carousel .carousel-item a span .name {
+#carousel .carousel-item span .name {
   display: block;
   padding-top: 10px;
 }
@@ -252,6 +254,57 @@
   width: auto;
   margin-left: -20px;
   margin-top: -20px;
+}
+
+/*---------------------------------- carousel popup -----------------------------------*/
+
+#carousel-popup {
+  position: fixed;
+  width: 60%;
+  height: 60%;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  margin: auto;
+  overflow: hidden;
+  background: white;
+  border: 1px solid #eee;
+  box-shadow: 0px 10px 15px #999;
+}
+
+#carousel-popup .title {
+  text-align: center;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  font-family: "Scene Pro", "Helvetica", sans-serif;
+  font-size: 20px;
+}
+
+#carousel-popup .content-container {
+  height: 90%;
+  overflow: scroll;
+}
+
+#carousel-popup .content {
+  font-family: Helvetica, sans-serif;
+  font-size: 15px;
+
+  padding: 25px;
+}
+
+#carousel-popup .content .cover {
+  float: left;
+  padding-right: 10px;
+  padding-bottom: 5px;
+}
+
+#carousel-popup .content p {
+  margin-bottom: 0.2em;
+}
+
+#carousel-popup .content p a {
+  color: #000;
 }
 
 /*---------------------------------- eu countries -------------------------------------*/

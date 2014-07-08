@@ -2,10 +2,25 @@
 /*global fn, $, VizConfig */
 
 function Carousel(DOMElements, settings) {
+	// create popup
+	var popupStr = [
+		"<div id=\"carousel-popup\">",
+			"<div class=\"title\"></div>",
+			"<div class=\"content-container\">",
+				"<div class=\"content\"></div>",
+			"</div>",
+		"</div>"
+	].join("");
+
+	var popup = $(popupStr).hide().on("click", this.caseStudyHide.bind(this));
+	$("body").append(popup);
+	$("body").on("click", this.caseStudyHide.bind(this));
+
 	this.DOM = {
 		"wrapper": DOMElements.wrapper, // carousel wrapper
 		"buttonNext": DOMElements.buttonNext,
-		"buttonPrev": DOMElements.buttonPrev
+		"buttonPrev": DOMElements.buttonPrev,
+		"popup": popup
 	};
 
 	this.carousel = {
@@ -138,19 +153,30 @@ Carousel.prototype.filter = function(callback) {
 Carousel.prototype.buildItem = function(data) {
 	var carouselItem = "<div class=\"carousel-item\" style=\"position: absolute\">";
 	if (data !== null) {
-		carouselItem += "<a href=\"" + data.url + "\" + alt=\"" + data.name + "\">";
 		if (data.coverImage) { carouselItem += "<img src=\"" + data.coverImage + "\">"; }
 		carouselItem += "<span>";
 		if (data.logoImage) { carouselItem += "<img src=\"" + data.logoImage + "\"/>"; }
 		carouselItem += "<span class=\"name\">" + data.name + "</span>";
 		carouselItem += "</span>";
-		carouselItem += "</a>";
 	}
 	else {
 		// data === null -> preloading
 		carouselItem += "<img class=\"preloading\" src=\"" + VizConfig.assetsPath + "/preloader.gif\"/>";
 	}
 	carouselItem += "</div>";
+
+	// crate jquery object from item
+	carouselItem = $(carouselItem);
+
+	// add event handler if item has data
+	if (data) {
+		carouselItem.on("click", function(e) {
+			e.preventDefault();
+			e.stopPropagation();
+
+			this.caseStudyShow(data);
+		}.bind(this));
+	}
 
 	return carouselItem;
 };
@@ -165,7 +191,7 @@ Carousel.prototype.buildCarousel = function(settings) {
 	if (isPreloading) {
 		fn.sequence(0, this.carousel.numItems).forEach(function(index) {
 			this.DOM.wrapper.append(
-				$(this.buildItem(null)).css({ "left": index * this.width + "px" })
+				this.buildItem(null).css({ "left": index * this.width + "px" })
 			);
 		}.bind(this));
 	}
@@ -173,7 +199,7 @@ Carousel.prototype.buildCarousel = function(settings) {
 		// add first three items to DOM
 		this.carousel.data.slice(0, this.carousel.numItems).forEach(function(object, index) {
 			this.DOM.wrapper.append(
-				$(this.buildItem(object)).css({ "left": index * this.width + "px" })
+				this.buildItem(object).css({ "left": index * this.width + "px" })
 			);
 		}.bind(this));
 	}
@@ -185,6 +211,7 @@ Carousel.prototype.parseData = function(data) {
 		.map(function(data) {
 			var coverImage = null;
 			var logoImage = null;
+
 			if (data.attachments.length > 0) {
 				var bigImages = data.attachments.filter(function(img) {
 					return img.images.full.width > 110 && img.images.full.height > 125;
@@ -222,12 +249,13 @@ Carousel.prototype.parseData = function(data) {
 
 			// return parsed object
 			return {
-				"name": data.title,
-				"url": data.url,
 				"areaOfDSI": data.custom_fields["area-of-digital-social-innovation"][0],
-				"techFocus": techFocus,
+				"content": data.content,
 				"coverImage": coverImage,
-				"logoImage": logoImage
+				"logoImage": logoImage,
+				"name": data.title,
+				"techFocus": techFocus,
+				"url": data.url
 			};
 		})
 		// TODO: temporarily skip case studies with missing images
@@ -244,4 +272,32 @@ Carousel.prototype.parseData = function(data) {
 
 			return returnVal;
 		});
+};
+
+// display popup
+Carousel.prototype.caseStudyShow = function(data) {
+	// get color from config
+	var color = VizConfig.dsiAreas.filter(function(dsi) {
+		return dsi.id === data.areaOfDSI;
+	})[0].color;
+
+	// build content for popup
+	var html = "<img class=\"cover\" src=\"" + data.coverImage + "\"/>";
+	if (data.content.length > 0) {
+		html += data.content;
+	}
+	else {
+		html += "No content yet...";
+	}
+
+	// update popup elements
+	this.DOM.popup.find(".title").html(data.name).css({ "color": color, "border-top": "4px solid " + color });
+	this.DOM.popup.find(".content").html(html);
+
+	// finally show poppup
+	this.DOM.popup.show();
+};
+
+Carousel.prototype.caseStudyHide = function() {
+	this.DOM.popup.hide();
 };

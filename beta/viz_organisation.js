@@ -1,10 +1,10 @@
-/*global window, fn, d3, SPARQLDataSource, VizConfig */
+/*global document, window, fn, d3, SPARQLDataSource, VizConfig */
 
 var indexOfProp = function(data, prop, val) {
 	return data.map(function(o) { return o[prop]; }).indexOf(val);
 };
 
-function Stats(divs, org, dsiColors) {
+function Stats(divs, org) {
 	this.data = []; // will be filled on SPARQL query
 
 	// cache org url
@@ -16,18 +16,6 @@ function Stats(divs, org, dsiColors) {
 		"tech": d3.select(divs.tech),
 		"collaborators": d3.select(divs.collaborators)
 	};
-
-	// DSI colors and area names
-	this.DSIColors = dsiColors || {
-		"Open Democracy": "#F9EB40",
-		"New Ways of Making": "#f53944",
-		"Awareness Networks": "#31ac33",
-		"Collaborative Economy": "#1DAEEC",
-		"Open Access": "#f274c7",
-		"Funding Acceleration and Incubation": "#f79735"
-	};
-
-	this.DSIAreas = Object.keys(this.DSIColors);
 }
 
 Stats.prototype.cleanResults = function(results) {
@@ -238,10 +226,8 @@ Stats.prototype.drawDSIAreas = function() {
 			return (i + 1) * height;
 		})
 		.attr("fill", function(d) {
-			return this.DSIColors[d.name];
-		}.bind(this));
-
-	var DSIColors = this.DSIColors;
+			return VizConfig.dsiAreasByLabel[d.name].color;
+		});
 
 	svg.selectAll(".dsi-rects")
 		.data(groupedData)
@@ -265,10 +251,10 @@ Stats.prototype.drawDSIAreas = function() {
 				})
 				.attr("width", rectWidth)
 				.attr("height", rectHeight)
-				.attr("fill", DSIColors[name])
+				.attr("fill", VizConfig.dsiAreasByLabel[name].color)
 				.on("mouseover", function(d) {
 					VizConfig.tooltip.show();
-					VizConfig.tooltip.html(d.name, "#FFF", DSIColors[name]);
+					VizConfig.tooltip.html(d.name, "#FFF", VizConfig.dsiAreasByLabel[name].color);
 
 					highlightOnActivityUrl("over", d.url);
 				})
@@ -499,7 +485,7 @@ Stats.prototype.drawHex = function(selection, data) {
 	// fill hex only if data is passed
 	if (data.counts) {
 		fn.sequence(0, 6).forEach(function(i) {
-			var dsiArea = this.DSIAreas[i];
+			var dsiArea = VizConfig.dsiAreas[i].label;
 			var bite = hex.append("path");
 
 			bite
@@ -511,7 +497,7 @@ Stats.prototype.drawHex = function(selection, data) {
 						i
 					).join("L") + "Z";
 				})
-				.attr("fill", this.DSIColors[this.DSIAreas[i]]);
+				.attr("fill", VizConfig.dsiAreas[i].color);
 		}.bind(this));
 	}
 

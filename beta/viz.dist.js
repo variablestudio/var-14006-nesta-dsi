@@ -336,10 +336,25 @@ var EventDispatcher = {
 /*global fn, $, VizConfig */
 
 function Carousel(DOMElements, settings) {
+	// create popup
+	var popupStr = [
+		"<div id=\"carousel-popup\">",
+			"<div class=\"title\"></div>",
+			"<div class=\"content-container\">",
+				"<div class=\"content\"></div>",
+			"</div>",
+		"</div>"
+	].join("");
+
+	var popup = $(popupStr).hide().on("click", this.caseStudyHide.bind(this));
+	$("body").append(popup);
+	$("body").on("click", this.caseStudyHide.bind(this));
+
 	this.DOM = {
 		"wrapper": DOMElements.wrapper, // carousel wrapper
 		"buttonNext": DOMElements.buttonNext,
-		"buttonPrev": DOMElements.buttonPrev
+		"buttonPrev": DOMElements.buttonPrev,
+		"popup": popup
 	};
 
 	this.carousel = {
@@ -472,19 +487,30 @@ Carousel.prototype.filter = function(callback) {
 Carousel.prototype.buildItem = function(data) {
 	var carouselItem = "<div class=\"carousel-item\" style=\"position: absolute\">";
 	if (data !== null) {
-		carouselItem += "<a href=\"" + data.url + "\" + alt=\"" + data.name + "\">";
 		if (data.coverImage) { carouselItem += "<img src=\"" + data.coverImage + "\">"; }
 		carouselItem += "<span>";
 		if (data.logoImage) { carouselItem += "<img src=\"" + data.logoImage + "\"/>"; }
 		carouselItem += "<span class=\"name\">" + data.name + "</span>";
 		carouselItem += "</span>";
-		carouselItem += "</a>";
 	}
 	else {
 		// data === null -> preloading
 		carouselItem += "<img class=\"preloading\" src=\"" + VizConfig.assetsPath + "/preloader.gif\"/>";
 	}
 	carouselItem += "</div>";
+
+	// crate jquery object from item
+	carouselItem = $(carouselItem);
+
+	// add event handler if item has data
+	if (data) {
+		carouselItem.on("click", function(e) {
+			e.preventDefault();
+			e.stopPropagation();
+
+			this.caseStudyShow(data);
+		}.bind(this));
+	}
 
 	return carouselItem;
 };
@@ -499,7 +525,7 @@ Carousel.prototype.buildCarousel = function(settings) {
 	if (isPreloading) {
 		fn.sequence(0, this.carousel.numItems).forEach(function(index) {
 			this.DOM.wrapper.append(
-				$(this.buildItem(null)).css({ "left": index * this.width + "px" })
+				this.buildItem(null).css({ "left": index * this.width + "px" })
 			);
 		}.bind(this));
 	}
@@ -507,7 +533,7 @@ Carousel.prototype.buildCarousel = function(settings) {
 		// add first three items to DOM
 		this.carousel.data.slice(0, this.carousel.numItems).forEach(function(object, index) {
 			this.DOM.wrapper.append(
-				$(this.buildItem(object)).css({ "left": index * this.width + "px" })
+				this.buildItem(object).css({ "left": index * this.width + "px" })
 			);
 		}.bind(this));
 	}
@@ -519,6 +545,7 @@ Carousel.prototype.parseData = function(data) {
 		.map(function(data) {
 			var coverImage = null;
 			var logoImage = null;
+
 			if (data.attachments.length > 0) {
 				var bigImages = data.attachments.filter(function(img) {
 					return img.images.full.width > 110 && img.images.full.height > 125;
@@ -556,12 +583,13 @@ Carousel.prototype.parseData = function(data) {
 
 			// return parsed object
 			return {
-				"name": data.title,
-				"url": data.url,
 				"areaOfDSI": data.custom_fields["area-of-digital-social-innovation"][0],
-				"techFocus": techFocus,
+				"content": data.content,
 				"coverImage": coverImage,
-				"logoImage": logoImage
+				"logoImage": logoImage,
+				"name": data.title,
+				"techFocus": techFocus,
+				"url": data.url
 			};
 		})
 		// TODO: temporarily skip case studies with missing images
@@ -578,6 +606,34 @@ Carousel.prototype.parseData = function(data) {
 
 			return returnVal;
 		});
+};
+
+// display popup
+Carousel.prototype.caseStudyShow = function(data) {
+	// get color from config
+	var color = VizConfig.dsiAreas.filter(function(dsi) {
+		return dsi.id === data.areaOfDSI;
+	})[0].color;
+
+	// build content for popup
+	var html = "<img class=\"cover\" src=\"" + data.coverImage + "\"/>";
+	if (data.content.length > 0) {
+		html += data.content;
+	}
+	else {
+		html += "No content yet...";
+	}
+
+	// update popup elements
+	this.DOM.popup.find(".title").html(data.name).css({ "color": color, "border-top": "4px solid " + color });
+	this.DOM.popup.find(".content").html(html);
+
+	// finally show poppup
+	this.DOM.popup.show();
+};
+
+Carousel.prototype.caseStudyHide = function() {
+	this.DOM.popup.hide();
 };
 
 /*global $, d3, SPARQLDataSource, VizConfig */
@@ -1919,7 +1975,7 @@ var DSIAreasData =[
 ["d199de25-203c-7938-7eeb-6dfc23caa985", "open-democracy"],
 ["dc74af58-f1bc-ff08-dd07-222e0bdf69de", "open-democracy"]
 ]
- function VizTooltip() {
+function VizTooltip() {
   var vizTooltip = $('<div id="vizTooltip"></div>');
   $('body').append(vizTooltip);
   vizTooltip.text('');
@@ -1947,6 +2003,7 @@ VizTooltip.prototype.html = function(content, textColor, bgColor) {
   this.vizTooltip.css('background', bgColor);
   this.vizTooltip.html(content);
 }
+
 function VizPopup() {
   this.vizPopup = $('<div id="vizPopup"><div id="vizPopupPointer"></div></div>');
   this.content = $('<div id="vizPopupContent"></div>')
@@ -3155,13 +3212,13 @@ MainHexes.prototype.buildViz = function(organizations, projects) {
   }.bind(this));
 };
 
-/*global window, fn, d3, SPARQLDataSource, VizConfig */
+/*global document, window, fn, d3, SPARQLDataSource, VizConfig */
 
 var indexOfProp = function(data, prop, val) {
 	return data.map(function(o) { return o[prop]; }).indexOf(val);
 };
 
-function Stats(divs, org, dsiColors) {
+function Stats(divs, org) {
 	this.data = []; // will be filled on SPARQL query
 
 	// cache org url
@@ -3173,18 +3230,6 @@ function Stats(divs, org, dsiColors) {
 		"tech": d3.select(divs.tech),
 		"collaborators": d3.select(divs.collaborators)
 	};
-
-	// DSI colors and area names
-	this.DSIColors = dsiColors || {
-		"Open Democracy": "#F9EB40",
-		"New Ways of Making": "#f53944",
-		"Awareness Networks": "#31ac33",
-		"Collaborative Economy": "#1DAEEC",
-		"Open Access": "#f274c7",
-		"Funding Acceleration and Incubation": "#f79735"
-	};
-
-	this.DSIAreas = Object.keys(this.DSIColors);
 }
 
 Stats.prototype.cleanResults = function(results) {
@@ -3395,10 +3440,8 @@ Stats.prototype.drawDSIAreas = function() {
 			return (i + 1) * height;
 		})
 		.attr("fill", function(d) {
-			return this.DSIColors[d.name];
-		}.bind(this));
-
-	var DSIColors = this.DSIColors;
+			return VizConfig.dsiAreasByLabel[d.name].color;
+		});
 
 	svg.selectAll(".dsi-rects")
 		.data(groupedData)
@@ -3422,10 +3465,10 @@ Stats.prototype.drawDSIAreas = function() {
 				})
 				.attr("width", rectWidth)
 				.attr("height", rectHeight)
-				.attr("fill", DSIColors[name])
+				.attr("fill", VizConfig.dsiAreasByLabel[name].color)
 				.on("mouseover", function(d) {
 					VizConfig.tooltip.show();
-					VizConfig.tooltip.html(d.name, "#FFF", DSIColors[name]);
+					VizConfig.tooltip.html(d.name, "#FFF", VizConfig.dsiAreasByLabel[name].color);
 
 					highlightOnActivityUrl("over", d.url);
 				})
@@ -3656,7 +3699,7 @@ Stats.prototype.drawHex = function(selection, data) {
 	// fill hex only if data is passed
 	if (data.counts) {
 		fn.sequence(0, 6).forEach(function(i) {
-			var dsiArea = this.DSIAreas[i];
+			var dsiArea = VizConfig.dsiAreas[i].label;
 			var bite = hex.append("path");
 
 			bite
@@ -3668,7 +3711,7 @@ Stats.prototype.drawHex = function(selection, data) {
 						i
 					).join("L") + "Z";
 				})
-				.attr("fill", this.DSIColors[this.DSIAreas[i]]);
+				.attr("fill", VizConfig.dsiAreas[i].color);
 		}.bind(this));
 	}
 
@@ -3742,12 +3785,12 @@ else {
 }
 
 VizConfig.dsiAreas = [
-  { title: 'Funding acceleration<br/> and incubation', id: 'funding-acceleration-and-incubation', color: '#FDE302', icon: VizConfig.assetsPath + '/triangle-funding-acceleration-and-incubation.png' },
-  { title: 'Collaborative economy', id: 'collaborative-economy', color: '#A6CE39', icon: VizConfig.assetsPath + '/triangle-collaborative-economy.png' },
-  { title: 'Open democracy', id: 'open-democracy', color: '#F173AC', icon: VizConfig.assetsPath + '/triangle-open-democracy.png' },
-  { title: 'Awareness networks', id: 'awareness-networks', color: '#ED1A3B', icon: VizConfig.assetsPath + '/triangle-awareness-networks.png' },
-  { title: 'New ways of making', id: 'new-ways-of-making', color: '#F58220', icon: VizConfig.assetsPath + '/triangle-new-ways-of-making.png' },
-  { title: 'Open access', id: 'open-access', color: '#7BAFDE', icon: VizConfig.assetsPath + '/triangle-open-access.png' }
+  { title: 'Funding acceleration<br/> and incubation', id: 'funding-acceleration-and-incubation', color: '#FDE302', icon: VizConfig.assetsPath + '/triangle-funding-acceleration-and-incubation.png', label: 'Funding Acceleration and Incubation' },
+  { title: 'Collaborative economy', id: 'collaborative-economy', color: '#A6CE39', icon: VizConfig.assetsPath + '/triangle-collaborative-economy.png', label: 'Collaborative Economy' },
+  { title: 'Open democracy', id: 'open-democracy', color: '#F173AC', icon: VizConfig.assetsPath + '/triangle-open-democracy.png', label: 'Open Democracy' },
+  { title: 'Awareness networks', id: 'awareness-networks', color: '#ED1A3B', icon: VizConfig.assetsPath + '/triangle-awareness-networks.png', label: 'Awareness Networks' },
+  { title: 'New ways of making', id: 'new-ways-of-making', color: '#F58220', icon: VizConfig.assetsPath + '/triangle-new-ways-of-making.png', label: 'New Ways of Making' },
+  { title: 'Open access', id: 'open-access', color: '#7BAFDE', icon: VizConfig.assetsPath + '/triangle-open-access.png', label: 'Open Access' }
 ];
 
 VizConfig.dsiAreasById = {
