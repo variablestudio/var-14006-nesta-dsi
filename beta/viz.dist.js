@@ -2137,25 +2137,6 @@ function MainMap(mainVizContainer) {
   this.init();
 }
 
-MainMap.prototype.initSVG = function() {
-  this.w = window.innerWidth;
-  this.h = window.innerHeight - 360;
-  this.h = Math.min(this.h, 500);
-  this.h = Math.max(300, this.h);
-  this.svg = d3.select(this.mainVizContainer)
-    .append('svg')
-    .attr('width', this.w)
-    .attr('height', this.h);
-
-  this.svg.append('rect')
-    .attr('fill', '#808080')
-    .attr('class', 'bg')
-    .attr('x', 0)
-    .attr('y', 0)
-    .attr('width', this.w)
-    .attr('height', this.h);
-}
-
 MainMap.prototype.init = function() {
   this.initSVG();
 
@@ -2163,7 +2144,6 @@ MainMap.prototype.init = function() {
   $(this.mainVizContainer).append(this.preloader);
 
   this.getOrganisations().then(function(organisations) {
-
     this.organisations = organisations;
     this.buildViz(organisations);
     this.hijackSearch();
@@ -2175,6 +2155,31 @@ MainMap.prototype.init = function() {
       }.bind(this));
     }.bind(this));
   }.bind(this));
+}
+
+MainMap.prototype.initSVG = function() {
+  this.w = window.innerWidth;
+  this.h = window.innerHeight - 360;
+  this.h = Math.min(this.h, 500);
+  this.h = Math.max(300, this.h);
+
+  this.DOM.map = d3.select(this.mainVizContainer)
+    .append('div')
+    .attr('id', 'map');
+
+  // for some strange reason can't set this width d3.style()
+  $('#map').css({ 'width': this.w, 'height': this.h });
+
+  var scale  = 4;
+  var center = [50, -17];
+  this.showWorldMap(center, scale);
+
+  this.DOM.svg = d3.select("#map")
+    .select("svg")
+    .append("g")
+    .attr("class", "viz");
+
+  this.defaultViewBox = d3.select("#map").select("svg").attr("viewBox").split(" ").map(function(v) { return +v; });
 }
 
 MainMap.prototype.hijackSearch = function() {
@@ -2347,37 +2352,21 @@ MainMap.prototype.runProjectsInfoQuery = function() {
 MainMap.prototype.buildViz = function(organisations) {
   var w = this.w;
   var h = this.h;
-  var svg = this.svg;
-
-  var scale  = 700;
-  var offset = [w/2, h/2];
-  var center = [10, 50];
-  var projection = d3.geo.mercator()
-    .scale(scale).center(center)
-    .translate(offset);
-
-  organisations.forEach(function(org) {
-    var pos = projection([org.lon, org.lat]);
-    org.x = pos[0];
-    org.y = pos[1];
-  });
-
-  var organisationsById = {};
-  organisations.forEach(function(org) {
-    organisationsById[org.org] = org;
-  });
-  this.organisationsById = organisationsById;
+  var svg = this.DOM.svg;
 
   this.DOM.g = svg.append('g');
   this.DOM.mapGroup = this.DOM.g.append('g');
   this.DOM.networkGroup = this.DOM.g.append('g');
   this.DOM.orgGroup = this.DOM.g.append('g');
 
-  var zoom = this.addZoom(svg, this.DOM.g, w, h);
-  this.showWorldMap(svg, this.DOM.g, projection);
-  this.showOrganisations(svg, this.DOM.g, projection, center, organisations, zoom);
+  this.organisationsById = organisations.reduce(function(memo, org) {
+    org.LatLng = new L.LatLng(org.lat, org.lon);
+    memo[org.org] = org;
 
-  //console.log('org', organisations[0]);
+    return memo;
+  }, {});
+
+  this.showOrganisations(svg, this.DOM.g, organisations);
 
   VizConfig.events.addEventListener('filter', function(e) {
     var filteredOrganisations = organisations.filter(function(o) {
@@ -2388,155 +2377,37 @@ MainMap.prototype.buildViz = function(organisations) {
     if (e.property == 'areaOfDigitalSocialInnovation') {
       color = VizConfig.dsiAreasById[e.id].color;
     }
-    this.showOrganisations(svg, this.DOM.g, projection, center, filteredOrganisations, zoom, color);
+    this.showOrganisations(svg, this.DOM.g, filteredOrganisations, color);
     //console.log(e, organisations.length, filteredOrganisations.length);
   }.bind(this))
   //this.showIsoLines(svg, this.DOM.g, organisations, w, h, zoom);
 }
 
-MainMap.prototype.addZoom = function(svg, g, w, h) {
-  var rectSize = 30;
-  var margin = 20;
-  var spacing = 2;
+MainMap.prototype.showWorldMap = function(center, scale) {
+  var mapLayerStr = "http://b.tiles.mapbox.com/v3/swirrl.ikeb7gn0/{z}/{x}/{y}.png";
 
-  var zoomReset = svg.append('g');
-  zoomReset.append('rect')
-    .attr('fill', '#DDD')
-    .attr('x', w - rectSize - margin)
-    .attr('y', margin)
-    .attr('width', rectSize)
-    .attr('height', rectSize);
-  zoomReset.append('circle')
-    .attr('stroke', '#666')
-    .attr('fill', 'none')
-    .attr('cx', w - rectSize - margin + rectSize/2)
-    .attr('cy', margin + rectSize/2)
-    .attr('r', rectSize/4)
-  zoomReset.append('circle')
-    .attr('fill', '666')
-    .attr('cx', w - rectSize - margin + rectSize/2)
-    .attr('cy', margin + rectSize/2)
-    .attr('r', 1)
+  this.map = L.map('map', {
+    center: new L.LatLng(center[0], center[1]),
+    zoom: scale,
+    layers: [ new L.TileLayer(mapLayerStr, { maxZoom: 18 }) ]
+  });
+  this.map._initPathRoot();
 
+  this.map.on("viewreset", function() {
+    VizConfig.popup.close();
+    this.updateTranslation();
+  }.bind(this));
 
-  var zoomIn = svg.append('g');
-  zoomIn.append('rect')
-    .attr('fill', '#DDD')
-    .attr('x', w - rectSize - margin)
-    .attr('y', margin+ (rectSize + spacing)*1 + margin)
-    .attr('width', rectSize)
-    .attr('height', rectSize);
-
-  zoomIn.append('text')
-    .attr('fill', '#666')
-    .text('+')
-    .attr('x', w - rectSize*0.5 - margin)
-    .attr('y', margin + (rectSize + spacing)*1 + rectSize*0.65 + margin)
-    .attr('text-anchor', 'middle')
-
-  var zoomOut = svg.append('g');
-  zoomOut.append('rect')
-    .attr('fill', '#DDD')
-    .attr('x', w - rectSize - margin)
-    .attr('y', margin + (rectSize + spacing)*2 + margin)
-    .attr('width', rectSize)
-    .attr('height', rectSize);
-  zoomOut.append('text')
-    .attr('fill', '#666')
-    .text('-')
-    .attr('x', w - rectSize*0.5 - margin)
-    .attr('y', margin + (rectSize + spacing)*2 + rectSize*0.65 + margin)
-    .attr('text-anchor', 'middle')
-
-  var prevScale = 1;
-
-  //can't make animations work at the moment
-  function updateTransform(translate, scale, animate) {
-    if (animate) {
-      prevScale = scale;
-      //g.transition().duration(200).attr('transform','translate('+translate.join(',')+')scale('+scale+')');
-      g.attr('transform','translate('+translate.join(',')+')scale('+scale+')');
-    }
-    else {
-      g.attr('transform','translate('+translate.join(',')+')scale('+scale+')');
-    }
-
-    //if (scale < 0.5) {
-    //  zoom.scale(0.5);
-    //  zoom.event(svg);
-    //}
-  }
-
-  var zoom = d3.behavior.zoom().scaleExtent([1, 8192]).on('zoom', function() {
-    updateTransform(d3.event.translate, d3.event.scale);
+  this.map.on("click", function() {
+    VizConfig.popup.close();
   });
 
-  zoomReset.on('click', function(e) {
-    d3.event.stopPropagation()
-    d3.event.preventDefault();
-    zoom.scale(1);
-    zoom.translate([0, 0]);
-    zoom.event(svg)
-    return false;
-  })
-
-  zoomIn.on('click', function(e) {
-    d3.event.stopPropagation()
-    d3.event.preventDefault();
-    var scale = 2;
-    var newZoom = zoom.scale() * scale;
-    if (newZoom > 2048) return;
-    var newX = ((zoom.translate()[0] - (w / 2)) * scale) + w / 2;
-    var newY = ((zoom.translate()[1] - (h / 2)) * scale) + h / 2;
-    zoom.scale(newZoom);
-    zoom.translate([newX, newY]);
-    zoom.event(svg)
-    return false;
-  })
-
-  zoomOut.on('click', function(e) {
-    d3.event.stopPropagation()
-    d3.event.preventDefault();
-    var scale = 1/2;
-    var newZoom = zoom.scale() * scale;
-    if (newZoom < 0.3) return;
-    var newX = ((zoom.translate()[0] - (w / 2)) * scale) + w / 2;
-    var newY = ((zoom.translate()[1] - (h / 2)) * scale) + h / 2;
-    zoom.scale(newZoom);
-    zoom.translate([newX, newY])
-    zoom.event(svg);
-    return false;
-  })
-
-  svg.call(zoom)
-  svg
-  //.on("mousewheel.zoom", null)
-  //.on("DOMMouseScroll.zoom", null)
-  //.on("wheel.zoom", null)
-  .on("dblclick.zoom", null);
-
-  return zoom;
+  this.map.on("movestart", function() {
+    VizConfig.popup.close();
+  });
 }
 
-MainMap.prototype.showWorldMap = function(svg, g, projection) {
-  d3.json("assets/world-50m.json", function(error, world) {
-    var countries = topojson.feature(world, world.objects.countries).features;
-    var neighbors = topojson.neighbors(world.objects.countries.geometries);
-
-    var path = d3.geo.path()
-      .projection(projection);
-
-    this.DOM.mapGroup.selectAll(".country")
-      .data(countries)
-      .enter().insert("path", ".graticule")
-      .attr("class", "country")
-      .attr("d", path)
-      .attr("stroke", "none")
-      .attr("fill", "#FFF");
-  }.bind(this));
-}
-
-MainMap.prototype.showOrganisations = function(svg, g, projection, center, organisations, zoom, color) {
+MainMap.prototype.showOrganisations = function(svg, g, organisations, color) {
   var circles = this.DOM.orgGroup.selectAll('circle.org').data(organisations);
 
   color = color || '#000000';
@@ -2548,9 +2419,11 @@ MainMap.prototype.showOrganisations = function(svg, g, projection, center, organ
     .attr('cx', 0)
     .attr('cy', 0)
     .attr('transform', function(d) {
-      var pos = projection(center);
-      return "translate(" + pos[0] + "," + pos[1] + ")"
-    })
+      var pos = this.map.latLngToLayerPoint(d.LatLng);
+      d.x = pos.x;
+      d.y = pos.y;
+      return "translate(" + d.x + "," + d.y + ")"
+    }.bind(this))
 
   circles
     .transition()
@@ -2568,6 +2441,9 @@ MainMap.prototype.showOrganisations = function(svg, g, projection, center, organ
   circles.exit().transition().duration(300).attr('r', 0).remove();
 
   circles.on('click', function(organization) {
+    d3.event.preventDefault();
+    d3.event.stopPropagation();
+
     this.showNetwork(organization.org);
 
     var url = 'http://digitalsocial.eu/organisations/';
@@ -2583,8 +2459,14 @@ MainMap.prototype.showOrganisations = function(svg, g, projection, center, organ
       })
     }
     VizConfig.popup.html($(popupContent));
-    var windowOffset = $(svg[0]).offset();
-    VizConfig.popup.open(organization.x, organization.y, windowOffset.left, windowOffset.top, zoom);
+
+    var windowOffset = $("#map").offset();
+    var viewBox = d3.select("#map").select("svg").attr("viewBox").split(" ").map(function(v) { return +v; });
+
+    var dx = windowOffset.left + this.defaultViewBox[0] - viewBox[0];
+    var dy = windowOffset.top + this.defaultViewBox[1] - viewBox[1];
+
+    VizConfig.popup.open(organization.x, organization.y, dx, dy);
   }.bind(this));
 
   circles.on('mouseover', function(organization) {
@@ -2596,20 +2478,42 @@ MainMap.prototype.showOrganisations = function(svg, g, projection, center, organ
     VizConfig.tooltip.hide();
   }.bind(this));
 
-  zoom.on('zoom.circles', function() {
-    var r = 3 * 1/d3.event.scale * Math.pow(d3.event.scale, 0.29);
-    var strokeWidth = 1 / d3.event.scale;
-    circles
-      .attr('r', r)
-      .attr('stroke-width', strokeWidth)
-    g.selectAll('line.network').attr('stroke-width', 1/d3.event.scale);
-  });
+  // zoom.on('zoom.circles', function() {
+  //   var r = 3 * 1/d3.event.scale * Math.pow(d3.event.scale, 0.29);
+  //   var strokeWidth = 1 / d3.event.scale;
+  //   circles
+  //     .attr('r', r)
+  //     .attr('stroke-width', strokeWidth)
+  //   g.selectAll('line.network').attr('stroke-width', 1/d3.event.scale);
+  // });
 
-  var NESTA = "http://data.digitalsocial.eu/id/organization/eb70a18d-2f2b-62fd-76ca-5a33f71b9f50";
+  // var NESTA = "http://data.digitalsocial.eu/id/organization/eb70a18d-2f2b-62fd-76ca-5a33f71b9f50";
 
   //TODO: verify this is correct data
 
   //showNetwork(NESTA);
+}
+
+MainMap.prototype.updateTranslation = function() {
+  this.DOM.orgGroup.selectAll('circle.org')
+    .attr('transform', function(d) {
+      var pos = this.map.latLngToLayerPoint(d.LatLng);
+      d.x = pos.x;
+      d.y = pos.y;
+      return "translate(" + d.x + "," + d.y + ")"
+    }.bind(this));
+
+  for (var org in this.organisationsById) {
+    var pos = this.map.latLngToLayerPoint(this.organisationsById[org].LatLng);
+    this.organisationsById[org].x = pos.x;
+    this.organisationsById[org].y = pos.y;
+  }
+
+  this.DOM.networkGroup.selectAll('line.network')
+    .attr('x1', function(d) { return this.organisationsById[d.org].x; }.bind(this))
+    .attr('y1', function(d) { return this.organisationsById[d.org].y; }.bind(this))
+    .attr('x2', function(d) { return this.organisationsById[d.collab].x; }.bind(this))
+    .attr('y2', function(d) { return this.organisationsById[d.collab].y; }.bind(this));
 }
 
 MainMap.prototype.showNetwork = function(org, limit) {
@@ -2638,14 +2542,20 @@ MainMap.prototype.showNetwork = function(org, limit) {
       this.DOM.networkGroup.selectAll('line.network').remove(); //remove existing
     }
 
+    collaborators = collaborators.map(function(collaborator) {
+      return { org: org, collab: collaborator };
+    });
+
+    console.log(collaborators);
+
     var networkPaths = this.DOM.networkGroup.selectAll('line.network.' + ns).data(collaborators);
     networkPaths.enter()
       .append('line')
       .attr('class', 'network ' + ns)
-      .attr('x1', function() { return this.organisationsById[org].x; }.bind(this))
-      .attr('y1', function() { return this.organisationsById[org].y; }.bind(this))
-      .attr('x2', function(c) { return this.organisationsById[c].x; }.bind(this))
-      .attr('y2', function(c) { return this.organisationsById[c].y; }.bind(this))
+      .attr('x1', function(d) { return this.organisationsById[d.org].x; }.bind(this))
+      .attr('y1', function(d) { return this.organisationsById[d.org].y; }.bind(this))
+      .attr('x2', function(d) { return this.organisationsById[d.collab].x; }.bind(this))
+      .attr('y2', function(d) { return this.organisationsById[d.collab].y; }.bind(this))
       .attr('stroke', 'black')
       .attr('stroke-width', 1)
       .attr('opacity', limit ? 0.05 : 1)
