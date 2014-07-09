@@ -230,7 +230,7 @@ MainMap.prototype.runProjectsInfoQuery = function() {
     .execute(false);
 }
 
-MainMap.prototype.buildViz = function(organisations) {
+MainMap.prototype.buildViz = function() {
   var w = this.w;
   var h = this.h;
   var svg = this.DOM.svg;
@@ -240,17 +240,17 @@ MainMap.prototype.buildViz = function(organisations) {
   this.DOM.networkGroup = this.DOM.g.append('g');
   this.DOM.orgGroup = this.DOM.g.append('g');
 
-  this.organisationsById = organisations.reduce(function(memo, org) {
+  this.organisationsById = this.organisations.reduce(function(memo, org) {
     org.LatLng = new L.LatLng(org.lat, org.lon);
     memo[org.org] = org;
 
     return memo;
   }, {});
 
-  this.showOrganisations(svg, this.DOM.g, organisations);
+  this.showOrganisations(this.organisations);
 
   VizConfig.events.addEventListener('filter', function(e) {
-    var filteredOrganisations = organisations.filter(function(o) {
+    var filteredOrganisations = this.organisations.filter(function(o) {
       var value = o[e.property] || '';
       return value.indexOf(e.id) != -1;
     });
@@ -258,7 +258,7 @@ MainMap.prototype.buildViz = function(organisations) {
     if (e.property == 'areaOfDigitalSocialInnovation') {
       color = VizConfig.dsiAreasById[e.id].color;
     }
-    this.showOrganisations(svg, this.DOM.g, filteredOrganisations, color);
+    this.showOrganisations(filteredOrganisations, color);
     //console.log(e, organisations.length, filteredOrganisations.length);
   }.bind(this))
   //this.showIsoLines(svg, this.DOM.g, organisations, w, h, zoom);
@@ -270,7 +270,8 @@ MainMap.prototype.showWorldMap = function(center, scale) {
   this.map = L.map('map', {
     center: new L.LatLng(center[0], center[1]),
     zoom: scale,
-    layers: [ new L.TileLayer(mapLayerStr, { maxZoom: 18 }) ]
+    zoomControl: false,
+    layers: [ new L.TileLayer(mapLayerStr, { maxZoom: 14, minZoom: 3 }) ]
   });
   this.map._initPathRoot();
 
@@ -288,7 +289,72 @@ MainMap.prototype.showWorldMap = function(center, scale) {
   });
 }
 
-MainMap.prototype.showOrganisations = function(svg, g, organisations, color) {
+MainMap.prototype.showOrganisations = function(organisations, color) {
+  organisations = organisations.map(function(org) {
+    var pos = this.map.latLngToLayerPoint(org.LatLng);
+    org.x = pos.x;
+    org.y = pos.y;
+
+    return org;
+  }.bind(this));
+
+  var calcDist = function(a, b) {
+    return Math.sqrt(b.x * b.x - a.x * a.x, b.y * b.y - a.y * a.y);
+  };
+
+  var groupingDist = 100;
+  organisations = organisations.reduce(function(memo, org) {
+    // index of closest cluster
+    var closestIndex = memo.reduce(function(memo, memoOrg, index) {
+      // nearest org in current cluster
+      var dist = memoOrg.reduce(function(memo, memoOrg) {
+        var dist = calcDist(org, memoOrg);
+        if (dist < memo) { memo = dist; }
+        return memo;
+      }, Infinity);
+
+      if (dist < memo.dist) {
+        memo.dist = dist;
+        memo.index = index;
+      }
+
+      return memo;
+    }, { index: -1, dist: Infinity });
+
+    if (closestIndex.index >= 0 && closestIndex.dist <= groupingDist) {
+      memo[closestIndex.index].push(org);
+    }
+    else {
+      memo.push([ org ]);
+    }
+
+    return memo;
+  }, []);
+
+  console.log(organisations);
+
+  var calcCenter = function(arr) {
+    var avg = arr.reduce(function(memo, o) {
+      memo.x += o.x;
+      memo.y += o.y;
+      return memo;
+    }, { x: 0, y: 0 });
+  
+    avg.x /= arr.length;
+    avg.y /= arr.length;
+
+    return avg;
+  };
+
+  organisations = organisations.map(function(org) {
+    return {
+      organisations: org,
+      pos: calcCenter(org)
+    }
+  });
+
+  // console.log(organisations);
+
   var circles = this.DOM.orgGroup.selectAll('circle.org').data(organisations);
 
   color = color || '#000000';
@@ -300,17 +366,14 @@ MainMap.prototype.showOrganisations = function(svg, g, organisations, color) {
     .attr('cx', 0)
     .attr('cy', 0)
     .attr('transform', function(d) {
-      var pos = this.map.latLngToLayerPoint(d.LatLng);
-      d.x = pos.x;
-      d.y = pos.y;
-      return "translate(" + d.x + "," + d.y + ")"
+      return "translate(" + d.pos.x + "," + d.pos.y + ")"
     }.bind(this))
 
   circles
     .transition()
     .duration(300)
     .attr('transform', function(d) {
-      return "translate(" + d.x + "," + d.y + ")"
+      return "translate(" + d.pos.x + "," + d.pos.y + ")"
     })
     //.attr('fill', 'rgba(0,20,0,0.1)')
     //.attr('stroke', 'rgba(0,20,0,0.3)')
@@ -352,7 +415,14 @@ MainMap.prototype.showOrganisations = function(svg, g, organisations, color) {
 
   circles.on('mouseover', function(organization) {
     VizConfig.tooltip.show();
-    VizConfig.tooltip.html(organization.label);
+    var html = "";
+    if (organization.label) {
+      html = organization.label;
+    }
+    else {
+      html = organization.organisations.map(function(o) { return o.label; }).join("<br/>");
+    }
+    VizConfig.tooltip.html(html);
   }.bind(this));
 
   circles.on('mouseout', function(organization) {
@@ -376,13 +446,17 @@ MainMap.prototype.showOrganisations = function(svg, g, organisations, color) {
 }
 
 MainMap.prototype.updateTranslation = function() {
-  this.DOM.orgGroup.selectAll('circle.org')
-    .attr('transform', function(d) {
-      var pos = this.map.latLngToLayerPoint(d.LatLng);
-      d.x = pos.x;
-      d.y = pos.y;
-      return "translate(" + d.x + "," + d.y + ")"
-    }.bind(this));
+  // this.DOM.orgGroup.selectAll('circle.org')
+  //   .attr('transform', function(d) {
+  //     var pos = this.map.latLngToLayerPoint(d.LatLng);
+  //     d.x = pos.x;
+  //     d.y = pos.y;
+  //     return "translate(" + d.x + "," + d.y + ")"
+  //   }.bind(this));
+
+  // unfortunately no other way to update clustered organisations
+  this.DOM.orgGroup.selectAll('circle.org').remove();
+  this.showOrganisations(this.organisations);
 
   for (var org in this.organisationsById) {
     var pos = this.map.latLngToLayerPoint(this.organisationsById[org].LatLng);
