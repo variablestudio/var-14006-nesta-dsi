@@ -273,6 +273,8 @@ MainMap.prototype.showWorldMap = function(center, scale) {
   this.map = L.map('map', {
     center: new L.LatLng(center[0], center[1]),
     zoom: scale,
+		inertia: false,
+		bounceAtZoomLimits: false,
     zoomControl: false,
     layers: [ new L.TileLayer(mapLayerStr, { maxZoom: 16, minZoom: 3 }) ]
   });
@@ -314,10 +316,12 @@ MainMap.prototype.filterOrganisations = function() {
   };
 };
 
-MainMap.prototype.showOrganisations = function() {
-  var filteredOrganisations = this.filterOrganisations();
-  var organisations = filteredOrganisations.organisations;
-  var color = filteredOrganisations.color;
+MainMap.prototype.clusterOrganisations = function(organisations) {
+  var groupingDist = 50;
+  var iterations = 0, maxIterations = 2;
+  var finishedClustering = false;
+
+	var clusterByCountry = this.map.getZoom() < 7;
 
   var calcDist = function(a, b) {
     var xd = (b.x - a.x);
@@ -338,6 +342,10 @@ MainMap.prototype.showOrganisations = function() {
     return avg;
   };
 
+	var indexOfProp = function(data, prop, val) {
+		return data.map(function(o) { return o[prop]; }).indexOf(val);
+	};
+
   var clusters = organisations.map(function(org) {
     var pos = this.map.latLngToLayerPoint(org.LatLng);
 
@@ -347,39 +355,63 @@ MainMap.prototype.showOrganisations = function() {
     return { center: pos, organisations: [ org ] };
   }.bind(this));
 
-  var groupingDist = 50;
-  var iterations = 0, maxIterations = 4;
-  var finishedClustering = false;
+	if (clusterByCountry) {
+		clusters = clusters.reduce(function(memo, cluster) {
+			var org = cluster.organisations[0];
+			var index = indexOfProp(memo, "country", org.country);
 
-  while (!finishedClustering && iterations < maxIterations) {
-    finishedClustering = true;
-    iterations++;
+			if (index < 0) {
+				memo.push({ country: org.country, organisations: [ org ] });
+			}
+			else {
+				memo[index].organisations.push(org);
+			}
 
-    clusters = clusters.filter(function(cluster){
-      return cluster.organisations.length > 0;
-    }).map(function(cluster) {
-      cluster.center = calcCenter(cluster.organisations);
-      return cluster;
-    });
+			return memo;
+		}, []).map(function(cluster) {
+			cluster.center = calcCenter(cluster.organisations);
+			return cluster;
+		});
+	}
+	else {
+		while (!finishedClustering && iterations < maxIterations) {
+			finishedClustering = true;
+			iterations++;
 
-    clusters.forEach(function(cluster1, clusterIndex1) {
-      clusters.forEach(function(cluster2, clusterIndex2) {
-        if (clusterIndex1 !== clusterIndex2) {
-          cluster2.organisations = cluster2.organisations.filter(function(org) {
-            var shouldKeep = true;
+			clusters = clusters.filter(function(cluster){
+				return cluster.organisations.length > 0;
+			}).map(function(cluster) {
+				cluster.center = calcCenter(cluster.organisations);
+				return cluster;
+			});
 
-            if (calcDist(cluster1.center, org) < groupingDist) {
-              cluster1.organisations.push(org);
-              finishedClustering = false;
-              shouldKeep = false;
-            }
+			clusters.forEach(function(cluster1, clusterIndex1) {
+				clusters.forEach(function(cluster2, clusterIndex2) {
+					if (clusterIndex1 !== clusterIndex2) {
+						cluster2.organisations = cluster2.organisations.filter(function(org) {
+							var shouldKeep = true;
 
-            return shouldKeep;
-          });
-        }
-      });
-    });
-  }
+							if (calcDist(cluster1.center, org) < groupingDist) {
+								cluster1.organisations.push(org);
+								finishedClustering = false;
+								shouldKeep = false;
+							}
+
+							return shouldKeep;
+						});
+					}
+				});
+			});
+		}
+	}
+
+  return clusters;
+};
+
+MainMap.prototype.showOrganisations = function() {
+  var filteredOrganisations = this.filterOrganisations();
+  var clusters = this.clusterOrganisations(filteredOrganisations.organisations);
+  var color = filteredOrganisations.color;
 
   var circleGroups = this.DOM.orgGroup
     .selectAll('g.org')
@@ -395,7 +427,7 @@ MainMap.prototype.showOrganisations = function() {
 
   groupEnter
     .append('circle')
-    .attr('r', 0)
+    .attr('r', 0);
 
   groupEnter
     .append('text')
@@ -404,7 +436,7 @@ MainMap.prototype.showOrganisations = function() {
     .attr('dy', 3)
     .attr('fill', '#fff')
     .attr('font-size', '11px')
-    .text('')
+    .text('');
 
   var groupTransform = circleGroups
     .attr('transform', function(d) {
@@ -419,7 +451,7 @@ MainMap.prototype.showOrganisations = function() {
     .attr('stroke', color)
     .attr('opacity', 0.5)
     .attr('r', function(d) {
-      return d.organisations.length > 1 ? 12 : 2;
+      return d.organisations.length > 1 ? 12 : 5;
     });
 
   groupTransform
