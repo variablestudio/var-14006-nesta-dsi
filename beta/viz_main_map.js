@@ -454,7 +454,15 @@ MainMap.prototype.showOrganisations = function() {
 
     this.hideNetworks();
 
-    var popupHTML = cluster.organisations.map(function(organization) {
+    var maxOrgCount = 3;
+    var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
+    var organisations = cluster.organisations;
+
+    if (cutOrganisationsCount) {
+      organisations = organisations.slice(0, maxOrgCount);
+    }
+
+    var popupHTML = organisations.map(function(organization) {
       this.showNetwork(organization.org);
 
       var url = 'http://digitalsocial.eu/organisations/';
@@ -474,6 +482,10 @@ MainMap.prototype.showOrganisations = function() {
       return popupContent;
     }.bind(this)).join("<br/>");
 
+    if (cutOrganisationsCount) {
+      popupHTML += "<br/><div style='text-align:center'>...</div>";
+    }
+
     VizConfig.popup.html($(popupHTML));
 
     var windowOffset = $("#map").offset();
@@ -482,12 +494,25 @@ MainMap.prototype.showOrganisations = function() {
     var dx = windowOffset.left + this.defaultViewBox[0] - viewBox[0];
     var dy = windowOffset.top + this.defaultViewBox[1] - viewBox[1];
 
-    VizConfig.popup.open(cluster.center.x, cluster.center.y, dx, dy);
+    VizConfig.popup.open(cluster.center.x, cluster.center.y - 8, dx, dy);
   }.bind(this));
 
   circleGroups.on('mouseover', function(cluster) {
     VizConfig.tooltip.show();
-    var html = cluster.organisations.map(function(o) { return o.label; }).join("<br/>");
+
+    var maxOrgCount = 6;
+    var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
+    var organisations = cluster.organisations;
+
+    if (cutOrganisationsCount) {
+      organisations = organisations.slice(0, maxOrgCount);
+    }
+
+    var html = organisations.map(function(o) { return o.label; }).join("<br/>");
+
+    if (cutOrganisationsCount) {
+      html += "<br/>...";
+    }
 
     VizConfig.tooltip.html(html);
   }.bind(this));
