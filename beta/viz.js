@@ -155,7 +155,7 @@
 
   function initVizKey() {
     var openOnInit = !showIntro;
-    var vizKey = new VizKey(openOnInit);
+    VizConfig.vizKey = new VizKey(openOnInit);
   }
 
   function initOrgStats(orgId) {

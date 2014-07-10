@@ -16,6 +16,8 @@ function VizKey(open) {
   sideBar.append($('<h3><img src="' + VizConfig.assetsPath + '/key-project-solid.png' + '" height="40"/>' + projectsTitle + '</h3>'));
   sideBar.append($('<h3>' + dsiTitle + '</h3>'));
 
+  this.activeFilters = [];
+
   VizConfig.dsiAreas.map(function(dsiArea, dsiAreaIndex) {
     var areaLink = $('<a style="color2:' + dsiArea.color + '"><img src="' + dsiArea.icon + '" height="10"/><span>' + dsiArea.title + '</span></a>');
     areaLink.on('mouseover', function() {
@@ -26,10 +28,12 @@ function VizKey(open) {
       VizConfig.tooltip.hide();
     })
     areaLink.click(function() {
-      VizConfig.events.fire('filter', { property: 'areaOfDigitalSocialInnovation', id: dsiArea.id })
-    });
+      var filter = { property: 'areaOfDigitalSocialInnovation', id: dsiArea.id };
+      this.updateFilters(filter);
+      VizConfig.events.fire('filter', filter);
+    }.bind(this));
     sideBar.append(areaLink);
-  })
+  }.bind(this));
 
   sideBar.append($('<h3>' + techTitle + '</h3>'));
 
@@ -43,10 +47,12 @@ function VizKey(open) {
       VizConfig.tooltip.hide();
     });
     technologyLink.click(function() {
-      VizConfig.events.fire('filter', { property: 'technologyFocus', id: technologyFocus.id })
-    });
+      var filter = { property: 'technologyFocus', id: technologyFocus.id };
+      this.updateFilters(filter);
+      VizConfig.events.fire('filter', filter);
+    }.bind(this));
     sideBar.append(technologyLink);
-  });
+  }.bind(this));
 
   var open = false;
 
@@ -61,3 +67,25 @@ function VizKey(open) {
     }
   });
 }
+
+VizKey.prototype.updateFilters = function(filter) {
+  var isFilterActive = this.activeFilters.reduce(function(memo, memoFilter) {
+    if (!memo) {
+      memo = (memoFilter.id === filter.id) && (memoFilter.property === filter.propery);
+    }
+    return memo;
+  }, false);
+
+  if (isFilterActive) {
+    this.activeFilters = this.activeFilters.filter(function(activeFilter) {
+      return (activeFilter.id === filter.id) && (activeFilter.property === filter.propery);
+    });
+  }
+  else {
+    this.activeFilters.push(filter);
+  }
+};
+
+VizKey.prototype.getActiveFilters = function() {
+  return this.activeFilters;
+};

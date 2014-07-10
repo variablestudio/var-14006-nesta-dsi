@@ -2071,6 +2071,8 @@ function VizKey(open) {
   sideBar.append($('<h3><img src="' + VizConfig.assetsPath + '/key-project-solid.png' + '" height="40"/>' + projectsTitle + '</h3>'));
   sideBar.append($('<h3>' + dsiTitle + '</h3>'));
 
+  this.activeFilters = [];
+
   VizConfig.dsiAreas.map(function(dsiArea, dsiAreaIndex) {
     var areaLink = $('<a style="color2:' + dsiArea.color + '"><img src="' + dsiArea.icon + '" height="10"/><span>' + dsiArea.title + '</span></a>');
     areaLink.on('mouseover', function() {
@@ -2081,10 +2083,12 @@ function VizKey(open) {
       VizConfig.tooltip.hide();
     })
     areaLink.click(function() {
-      VizConfig.events.fire('filter', { property: 'areaOfDigitalSocialInnovation', id: dsiArea.id })
-    });
+      var filter = { property: 'areaOfDigitalSocialInnovation', id: dsiArea.id };
+      this.updateFilters(filter);
+      VizConfig.events.fire('filter', filter);
+    }.bind(this));
     sideBar.append(areaLink);
-  })
+  }.bind(this));
 
   sideBar.append($('<h3>' + techTitle + '</h3>'));
 
@@ -2098,10 +2102,12 @@ function VizKey(open) {
       VizConfig.tooltip.hide();
     });
     technologyLink.click(function() {
-      VizConfig.events.fire('filter', { property: 'technologyFocus', id: technologyFocus.id })
-    });
+      var filter = { property: 'technologyFocus', id: technologyFocus.id };
+      this.updateFilters(filter);
+      VizConfig.events.fire('filter', filter);
+    }.bind(this));
     sideBar.append(technologyLink);
-  });
+  }.bind(this));
 
   var open = false;
 
@@ -2116,6 +2122,28 @@ function VizKey(open) {
     }
   });
 }
+
+VizKey.prototype.updateFilters = function(filter) {
+  var isFilterActive = this.activeFilters.reduce(function(memo, memoFilter) {
+    if (!memo) {
+      memo = (memoFilter.id === filter.id) && (memoFilter.property === filter.propery);
+    }
+    return memo;
+  }, false);
+
+  if (isFilterActive) {
+    this.activeFilters = this.activeFilters.filter(function(activeFilter) {
+      return (activeFilter.id === filter.id) && (activeFilter.property === filter.propery);
+    });
+  }
+  else {
+    this.activeFilters.push(filter);
+  }
+};
+
+VizKey.prototype.getActiveFilters = function() {
+  return this.activeFilters;
+};
 
 var MainMap = (function() {
 
@@ -2366,20 +2394,9 @@ MainMap.prototype.buildViz = function() {
     return memo;
   }, {});
 
-  this.showOrganisations(this.organisations);
+  this.showOrganisations();
+  VizConfig.events.addEventListener('filter', this.showOrganisations.bind(this));
 
-  VizConfig.events.addEventListener('filter', function(e) {
-    var filteredOrganisations = this.organisations.filter(function(o) {
-      var value = o[e.property] || '';
-      return value.indexOf(e.id) != -1;
-    });
-    var color = '#000000'
-    if (e.property == 'areaOfDigitalSocialInnovation') {
-      color = VizConfig.dsiAreasById[e.id].color;
-    }
-    this.showOrganisations(filteredOrganisations, color);
-    //console.log(e, organisations.length, filteredOrganisations.length);
-  }.bind(this))
   //this.showIsoLines(svg, this.DOM.g, organisations, w, h, zoom);
 }
 
@@ -2390,9 +2407,9 @@ MainMap.prototype.showWorldMap = function(center, scale) {
     center: new L.LatLng(center[0], center[1]),
     zoom: scale,
     zoomControl: false,
-    layers: [ new L.TileLayer(mapLayerStr, { maxZoom: 14, minZoom: 3 }) ]
+    layers: [ new L.TileLayer(mapLayerStr, { maxZoom: 16, minZoom: 3 }) ]
   });
-  this.map._initPathRoot();
+  this.map._initPathRoot(); // adds svg layer to leaflet
 
   this.map.on("viewreset", function() {
     VizConfig.popup.close();
@@ -2408,8 +2425,35 @@ MainMap.prototype.showWorldMap = function(center, scale) {
   });
 }
 
-MainMap.prototype.showOrganisations = function(organisations, color) {
-  var calcDist = function(a, b) { 
+MainMap.prototype.filterOrganisations = function() {
+  var filteredOrganisations = this.organisations;
+  var color = '#000000';
+
+  VizConfig.vizKey.getActiveFilters().forEach(function(filter) {
+    console.log(filter);
+
+    filteredOrganisations = filteredOrganisations.filter(function(org) {
+      var value = org[filter.property] || '';
+      return value.indexOf(filter.id) != -1;
+    });
+
+    if (filter.property == 'areaOfDigitalSocialInnovation') {
+      color = VizConfig.dsiAreasById[filter.id].color;
+    }
+  });
+
+  return {
+    organisations: filteredOrganisations,
+    color: color
+  };
+}
+
+MainMap.prototype.showOrganisations = function() {
+  var filteredOrganisations = this.filterOrganisations();
+  var organisations = filteredOrganisations.organisations;
+  var color = filteredOrganisations.color;
+
+  var calcDist = function(a, b) {
     var xd = (b.x - a.x);
     var yd = (b.y - a.y);
     return Math.sqrt(xd * xd + yd * yd);
@@ -2444,7 +2488,7 @@ MainMap.prototype.showOrganisations = function(organisations, color) {
   while (!finishedClustering && iterations < maxIterations) {
     finishedClustering = true;
     iterations++;
-    
+
     clusters = clusters.filter(function(cluster){
       return cluster.organisations.length > 0;
     }).map(function(cluster) {
@@ -2458,7 +2502,7 @@ MainMap.prototype.showOrganisations = function(organisations, color) {
           cluster2.organisations = cluster2.organisations.filter(function(org) {
             var shouldKeep = true;
 
-            if (calcDist(cluster1.center, org) < groupingDist) { 
+            if (calcDist(cluster1.center, org) < groupingDist) {
               cluster1.organisations.push(org);
               finishedClustering = false;
               shouldKeep = false;
@@ -2520,7 +2564,7 @@ MainMap.prototype.showOrganisations = function(organisations, color) {
           popupContent += '<a href="' + url + '">'+project.label+'</a>'
         })
       }
-      
+
       return popupContent;
     }.bind(this)).join("<br/>");
 
@@ -2612,7 +2656,7 @@ MainMap.prototype.showNetwork = function(org, limit) {
       ns += limit.indexOf(org);
     }
     else {
-      this.DOM.networkGroup.selectAll('line.network').remove(); //remove existing
+      // this.DOM.networkGroup.selectAll('line.network').remove(); //remove existing
     }
 
     collaborators = collaborators.map(function(collaborator) {
@@ -3980,7 +4024,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
 
   function initVizKey() {
     var openOnInit = !showIntro;
-    var vizKey = new VizKey(openOnInit);
+    VizConfig.vizKey = new VizKey(openOnInit);
   }
 
   function initOrgStats(orgId) {
