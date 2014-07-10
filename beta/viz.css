@@ -442,8 +442,12 @@
   display: block;
   margin-bottom: 1.2em;
   line-height: 150%;
-  color: #FFF;
+  color: #BBB;
   float: none;
+}
+
+#vizKeyContainer a.active {
+  color: #FFF;
 }
 
 #vizKeyContainer a:hover {

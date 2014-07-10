@@ -17,6 +17,7 @@ function VizKey(open) {
   sideBar.append($('<h3>' + dsiTitle + '</h3>'));
 
   this.activeFilters = [];
+  var updateFilters = this.updateFilters.bind(this);
 
   VizConfig.dsiAreas.map(function(dsiArea, dsiAreaIndex) {
     var areaLink = $('<a style="color2:' + dsiArea.color + '"><img src="' + dsiArea.icon + '" height="10"/><span>' + dsiArea.title + '</span></a>');
@@ -29,11 +30,14 @@ function VizKey(open) {
     })
     areaLink.click(function() {
       var filter = { property: 'areaOfDigitalSocialInnovation', id: dsiArea.id };
-      this.updateFilters(filter);
+      var active = updateFilters(filter);
+
+      d3.select(this).classed("active", active);
+
       VizConfig.events.fire('filter', filter);
-    }.bind(this));
+    });
     sideBar.append(areaLink);
-  }.bind(this));
+  });
 
   sideBar.append($('<h3>' + techTitle + '</h3>'));
 
@@ -48,11 +52,14 @@ function VizKey(open) {
     });
     technologyLink.click(function() {
       var filter = { property: 'technologyFocus', id: technologyFocus.id };
-      this.updateFilters(filter);
+      var active = updateFilters(filter);
+
+      d3.select(this).classed("active", active);
+
       VizConfig.events.fire('filter', filter);
-    }.bind(this));
+    });
     sideBar.append(technologyLink);
-  }.bind(this));
+  });
 
   var open = false;
 
@@ -69,21 +76,23 @@ function VizKey(open) {
 }
 
 VizKey.prototype.updateFilters = function(filter) {
-  var isFilterActive = this.activeFilters.reduce(function(memo, memoFilter) {
+  var wasFilterActive = this.activeFilters.reduce(function(memo, memoFilter) {
     if (!memo) {
-      memo = (memoFilter.id === filter.id) && (memoFilter.property === filter.propery);
+      memo = (memoFilter.id === filter.id) && (memoFilter.property === filter.property);
     }
     return memo;
   }, false);
 
-  if (isFilterActive) {
+  if (wasFilterActive) {
     this.activeFilters = this.activeFilters.filter(function(activeFilter) {
-      return (activeFilter.id === filter.id) && (activeFilter.property === filter.propery);
+      return !((activeFilter.id === filter.id) && (activeFilter.property === filter.property));
     });
   }
   else {
     this.activeFilters.push(filter);
   }
+
+  return !wasFilterActive;
 };
 
 VizKey.prototype.getActiveFilters = function() {
