@@ -171,24 +171,19 @@ OrgGraph.prototype.draw = function() {
   //PROJECTS
 
   org.projects.forEach(function(project, projectIndex) {
-    project.x = w/2 + (projectIndex - Math.floor(org.projects.length/2) + 0.25) * 40;
+    project.x = w/2 + (projectIndex - Math.floor(org.projects.length/2) + 0.5) * 40;
     project.y = h*0.6;
   });
 
   var projectNodes = nodeGroup.selectAll('.project').data(org.projects);
   projectNodes.enter().append('rect')
     .attr('class', 'project')
-    .attr('x', function(d) { return d.x; })
+    .attr('x', function(d) { return d.x - 10; })
     .attr('y', function(d) { return d.y; })
     .attr('width', function(d) { return 20; })
     .attr('height', function(d) { return 10; })
     .style('fill', function(d) { return 'red' })
     .style('stroke', 'none');
-
-  projectNodes
-    .transition().duration(1000)
-    .attr('x', function(d) { return d.x; })
-    .style('fill', function(d) { return 'red' })
 
   projectNodes.exit().transition().duration(1000).style('opacity', 0).remove()
 
@@ -228,7 +223,7 @@ OrgGraph.prototype.draw = function() {
   collaboratorCircle
     .attr('cx', 0)
     .attr('cy', 0)
-    .attr('r', 10)
+    .attr('r', function(d) { return 5 + 2 * d.projects.length})
     .style('stroke', '#333')
     .style('fill', '#FFF')
 
