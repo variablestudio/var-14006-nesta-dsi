@@ -2429,8 +2429,8 @@ MainMap.prototype.showWorldMap = function(center, scale) {
   this.map = L.map('map', {
     center: new L.LatLng(center[0], center[1]),
     zoom: scale,
-		inertia: false,
-		bounceAtZoomLimits: false,
+    inertia: false,
+    bounceAtZoomLimits: false,
     zoomControl: false,
     layers: [ new L.TileLayer(mapLayerStr, { maxZoom: 16, minZoom: 3 }) ]
   });
@@ -2477,7 +2477,7 @@ MainMap.prototype.clusterOrganisations = function(organisations) {
   var iterations = 0, maxIterations = 2;
   var finishedClustering = false;
 
-	var clusterByCountry = this.map.getZoom() < 7;
+  var clusterByCountry = this.map.getZoom() < 7;
 
   var calcDist = function(a, b) {
     var xd = (b.x - a.x);
@@ -2498,9 +2498,9 @@ MainMap.prototype.clusterOrganisations = function(organisations) {
     return avg;
   };
 
-	var indexOfProp = function(data, prop, val) {
-		return data.map(function(o) { return o[prop]; }).indexOf(val);
-	};
+  var indexOfProp = function(data, prop, val) {
+    return data.map(function(o) { return o[prop]; }).indexOf(val);
+  };
 
   var clusters = organisations.map(function(org) {
     var pos = this.map.latLngToLayerPoint(org.LatLng);
@@ -2511,55 +2511,55 @@ MainMap.prototype.clusterOrganisations = function(organisations) {
     return { center: pos, organisations: [ org ] };
   }.bind(this));
 
-	if (clusterByCountry) {
-		clusters = clusters.reduce(function(memo, cluster) {
-			var org = cluster.organisations[0];
-			var index = indexOfProp(memo, "country", org.country);
+  if (clusterByCountry) {
+    clusters = clusters.reduce(function(memo, cluster) {
+      var org = cluster.organisations[0];
+      var index = indexOfProp(memo, "country", org.country);
 
-			if (index < 0) {
-				memo.push({ country: org.country, organisations: [ org ] });
-			}
-			else {
-				memo[index].organisations.push(org);
-			}
+      if (index < 0) {
+        memo.push({ country: org.country, organisations: [ org ] });
+      }
+      else {
+        memo[index].organisations.push(org);
+      }
 
-			return memo;
-		}, []).map(function(cluster) {
-			cluster.center = calcCenter(cluster.organisations);
-			return cluster;
-		});
-	}
-	else {
-		while (!finishedClustering && iterations < maxIterations) {
-			finishedClustering = true;
-			iterations++;
+      return memo;
+    }, []).map(function(cluster) {
+      cluster.center = calcCenter(cluster.organisations);
+      return cluster;
+    });
+  }
+  else {
+    while (!finishedClustering && iterations < maxIterations) {
+      finishedClustering = true;
+      iterations++;
 
-			clusters = clusters.filter(function(cluster){
-				return cluster.organisations.length > 0;
-			}).map(function(cluster) {
-				cluster.center = calcCenter(cluster.organisations);
-				return cluster;
-			});
+      clusters = clusters.filter(function(cluster){
+        return cluster.organisations.length > 0;
+      }).map(function(cluster) {
+        cluster.center = calcCenter(cluster.organisations);
+        return cluster;
+      });
 
-			clusters.forEach(function(cluster1, clusterIndex1) {
-				clusters.forEach(function(cluster2, clusterIndex2) {
-					if (clusterIndex1 !== clusterIndex2) {
-						cluster2.organisations = cluster2.organisations.filter(function(org) {
-							var shouldKeep = true;
+      clusters.forEach(function(cluster1, clusterIndex1) {
+        clusters.forEach(function(cluster2, clusterIndex2) {
+          if (clusterIndex1 !== clusterIndex2) {
+            cluster2.organisations = cluster2.organisations.filter(function(org) {
+              var shouldKeep = true;
 
-							if (calcDist(cluster1.center, org) < groupingDist) {
-								cluster1.organisations.push(org);
-								finishedClustering = false;
-								shouldKeep = false;
-							}
+              if (calcDist(cluster1.center, org) < groupingDist) {
+                cluster1.organisations.push(org);
+                finishedClustering = false;
+                shouldKeep = false;
+              }
 
-							return shouldKeep;
-						});
-					}
-				});
-			});
-		}
-	}
+              return shouldKeep;
+            });
+          }
+        });
+      });
+    }
+  }
 
   return clusters;
 };
