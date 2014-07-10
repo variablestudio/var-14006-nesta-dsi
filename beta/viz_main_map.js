@@ -1,4 +1,4 @@
-/*global window, localStorage, d3, $, Q, L, SPARQLDataSource, VizConfig */
+/*global window, localStorage, d3, $, Q, L, fn, SPARQLDataSource, VizConfig */
 
 var MainMap = (function() {
 
@@ -319,11 +319,13 @@ MainMap.prototype.filterOrganisations = function() {
 };
 
 MainMap.prototype.clusterOrganisations = function(organisations) {
-  var groupingDist = 50;
+  var groupingDist = 30;
   var iterations = 0, maxIterations = 2;
   var finishedClustering = false;
 
-  var clusterByCountry = this.map.getZoom() < 7;
+  var currentZoom = this.map.getZoom();
+  var clusterByCountry = currentZoom < 7;
+  var clusterByDistance = 7 <= currentZoom && currentZoom < 13;
 
   var calcDist = function(a, b) {
     var xd = (b.x - a.x);
@@ -375,7 +377,7 @@ MainMap.prototype.clusterOrganisations = function(organisations) {
       return cluster;
     });
   }
-  else {
+  else if (clusterByDistance) {
     while (!finishedClustering && iterations < maxIterations) {
       finishedClustering = true;
       iterations++;
@@ -410,152 +412,6 @@ MainMap.prototype.clusterOrganisations = function(organisations) {
   return clusters;
 };
 
-MainMap.prototype.showOrganisations = function() {
-  var filteredOrganisations = this.filterOrganisations();
-  this.clusters = this.clusterOrganisations(filteredOrganisations.organisations);
-  var color = filteredOrganisations.color;
-
-  var circleGroups = this.DOM.orgGroup
-    .selectAll('g.org')
-    .data(this.clusters);
-
-  var groupEnter = circleGroups
-    .enter()
-    .append('g')
-    .attr('class', 'org')
-    .attr('transform', function(d) {
-      return "translate(" + d.center.x + "," + d.center.y + ")";
-    });
-
-  groupEnter
-    .append('circle')
-    .attr('r', 0);
-
-  groupEnter
-    .append('text')
-    .attr('text-anchor', 'middle')
-    .attr('dx', 0)
-    .attr('dy', 3)
-    .attr('fill', '#fff')
-    .attr('font-size', '11px')
-    .text('');
-
-  var groupTransform = circleGroups
-    .attr('transform', function(d) {
-      return "translate(" + d.center.x + "," + d.center.y + ")";
-    });
-
-  groupTransform
-    .select("circle")
-    .transition()
-    .duration(300)
-    .attr('fill', color)
-    .attr('stroke', color)
-    .attr('opacity', 0.5)
-    .attr('r', function(d) {
-      return d.organisations.length > 1 ? 12 : 5;
-    });
-
-  groupTransform
-    .select("text")
-    .transition()
-    .text(function(d) {
-      return d.organisations.length > 1 ? d.organisations.length : '';
-    });
-
-  var groupExit = circleGroups.exit();
-
-  groupExit
-    .select('circle')
-    .transition()
-    .duration(300)
-    .attr('r', 0);
-
-  groupExit
-    .select('text')
-    .transition()
-    .duration(300)
-    .attr("opacity", 0);
-
-  groupExit
-    .transition()
-    .duration(300)
-    .remove();
-
-  circleGroups.on('click', function(cluster) {
-    d3.event.preventDefault();
-    d3.event.stopPropagation();
-
-    this.hideNetworks();
-
-    var maxOrgCount = 3;
-    var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
-    var organisations = cluster.organisations;
-
-    if (cutOrganisationsCount) {
-      organisations = organisations.slice(0, maxOrgCount);
-    }
-
-    var popupHTML = organisations.map(function(organization) {
-      this.showNetwork(organization.org);
-
-      var url = 'http://digitalsocial.eu/organisations/';
-      url += organization.org.substr(organization.org.lastIndexOf('/') + 1);
-      var popupContent = '<h4><a href="' + url + '">'+organization.label+'</a></h4>';
-      popupContent += '<span>' + organization.street + ", " + organization.city + ", " + organization.country + '</span>';
-
-      if (organization.projects) {
-        popupContent += 'Projects:';
-
-        organization.projects.forEach(function(project) {
-          var projectUrl = 'http://digitalsocial.eu/projects/' + project.p.substr(project.p.lastIndexOf('/')+1);
-          popupContent += '<a href="' + projectUrl + '">'+project.label+'</a>';
-        });
-      }
-
-      return popupContent;
-    }.bind(this)).join("<br/>");
-
-    if (cutOrganisationsCount) {
-      popupHTML += "<br/><div style='text-align:center'>...</div>";
-    }
-
-    VizConfig.popup.html($(popupHTML));
-
-    var windowOffset = $("#map").offset();
-    var viewBox = d3.select("#map").select("svg").attr("viewBox").split(" ").map(function(v) { return +v; });
-
-    var dx = windowOffset.left + this.defaultViewBox[0] - viewBox[0];
-    var dy = windowOffset.top + this.defaultViewBox[1] - viewBox[1];
-
-    VizConfig.popup.open(cluster.center.x, cluster.center.y - 8, dx, dy);
-  }.bind(this));
-
-  circleGroups.on('mouseover', function(cluster) {
-    VizConfig.tooltip.show();
-
-    var maxOrgCount = 6;
-    var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
-    var organisations = cluster.organisations;
-
-    if (cutOrganisationsCount) {
-      organisations = organisations.slice(0, maxOrgCount);
-    }
-
-    var html = organisations.map(function(o) { return o.label; }).join("<br/>");
-
-    if (cutOrganisationsCount) {
-      html += "<br/>...";
-    }
-
-    VizConfig.tooltip.html(html);
-  }.bind(this));
-
-  circleGroups.on('mouseout', function() {
-    VizConfig.tooltip.hide();
-  }.bind(this));
-};
-
 MainMap.prototype.connectOrgByIdWithClusters = function() {
   var org, pos, found, filtered, orgCluster;
 
@@ -585,6 +441,270 @@ MainMap.prototype.connectOrgByIdWithClusters = function() {
         this.organisationsById[org].center = orgCluster.center;
       }
     }
+  }
+};
+
+MainMap.prototype.showOrganisations = function() {
+  var filteredOrganisations = this.filterOrganisations();
+  this.clusters = this.clusterOrganisations(filteredOrganisations.organisations);
+  var color = filteredOrganisations.color;
+
+  var hexDisplayZoom = 10;
+  var data;
+  var clusters, hexes;
+
+  if (this.map.getZoom() >= hexDisplayZoom) {
+    data = this.clusters.reduce(function(memo, cluster) {
+      if (cluster.organisations.length > 1) {
+        memo.circles.push(cluster);
+      }
+      else if (cluster.organisations[0]) {
+        memo.hexes.push(cluster);
+      }
+
+      return memo;
+    }, { hexes: [], circles: [] });
+  }
+  else {
+    data = { hexes: [], circles: this.clusters };
+  }
+
+  var drawClusters = function() {
+    clusters = this.DOM.orgGroup
+      .selectAll('g.org')
+      .data(data.circles);
+
+    var groupEnter = clusters
+      .enter()
+      .append('g')
+      .attr('class', 'org')
+      .attr('transform', function(d) {
+        return "translate(" + d.center.x + "," + d.center.y + ")";
+      });
+
+    groupEnter
+      .append('circle')
+      .attr('r', 0);
+
+    groupEnter
+      .append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dx', 0)
+      .attr('dy', 3)
+      .attr('fill', '#fff')
+      .attr('font-size', '11px')
+      .text('');
+
+    var groupTransform = clusters
+      .attr('transform', function(d) {
+        return "translate(" + d.center.x + "," + d.center.y + ")";
+      });
+
+    groupTransform
+      .select("circle")
+      .transition()
+      .duration(300)
+      .attr('fill', color)
+      .attr('stroke', color)
+      .attr('opacity', 0.5)
+      .attr('r', function(d) {
+        return d.organisations.length > 1 ? 12 : 5;
+      });
+
+    groupTransform
+      .select("text")
+      .transition()
+      .text(function(d) {
+        return d.organisations.length > 1 ? d.organisations.length : '';
+      });
+
+    var groupExit = clusters.exit();
+
+    groupExit
+      .select('circle')
+      .transition()
+      .duration(300)
+      .attr('r', 0);
+
+    groupExit
+      .select('text')
+      .transition()
+      .duration(300)
+      .attr("opacity", 0);
+
+    groupExit
+      .transition()
+      .duration(300)
+      .remove();
+  };
+
+  var drawHexes = function() {
+    var hexR = 20;
+    var drawHex = this.drawHex;
+
+    var countDataForHex = function(data) {
+      return data.projects ? data.projects.reduce(function(memo, project) {
+        project.areaOfDigitalSocialInnovation.forEach(function(area) {
+          if (memo[area]) {
+            memo[area]++;
+          }
+          else {
+            memo[area] = 1;
+          }
+        });
+        return memo;
+      }, {}) : null;
+    };
+
+    this.DOM.orgGroup.selectAll('g.hex').remove();
+
+    hexes = this.DOM.orgGroup
+      .selectAll('g.hex')
+      .data(data.hexes.map(function(hex) {
+        var org = hex.organisations[0]
+        return {
+          organisations: hex.organisations,
+          r: hexR,
+          x: org.x,
+          y: org.y,
+          center: { x: org.x, y: org.y },
+          counts: countDataForHex(hex.organisations[0])
+        };
+      }));
+
+    hexes.enter()
+      .append('g')
+      .attr('class', 'hex')
+      .each(function(d) {
+        drawHex(d3.select(this), d);
+      });
+
+    hexes.exit().remove();
+  };
+
+  var handleMouse = function(selection) {
+    selection.on('click', function(cluster) {
+      d3.event.preventDefault();
+      d3.event.stopPropagation();
+
+      this.hideNetworks();
+
+      var maxOrgCount = 3;
+      var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
+      var organisations = cluster.organisations;
+
+      if (cutOrganisationsCount) {
+        organisations = organisations.slice(0, maxOrgCount);
+      }
+
+      var popupHTML = organisations.map(function(organization) {
+        this.showNetwork(organization.org);
+
+        var url = 'http://digitalsocial.eu/organisations/';
+        url += organization.org.substr(organization.org.lastIndexOf('/') + 1);
+        var popupContent = '<h4><a href="' + url + '">'+organization.label+'</a></h4>';
+        popupContent += '<span>' + organization.street + ", " + organization.city + ", " + organization.country + '</span>';
+
+        if (organization.projects) {
+          popupContent += 'Projects:';
+
+          organization.projects.forEach(function(project) {
+            var projectUrl = 'http://digitalsocial.eu/projects/' + project.p.substr(project.p.lastIndexOf('/')+1);
+            popupContent += '<a href="' + projectUrl + '">'+project.label+'</a>';
+          });
+        }
+
+        return popupContent;
+      }.bind(this)).join("<br/>");
+
+      if (cutOrganisationsCount) {
+        popupHTML += "<br/><div style='text-align:center'>...</div>";
+      }
+
+      VizConfig.popup.html($(popupHTML));
+
+      var windowOffset = $("#map").offset();
+      var viewBox = d3.select("#map").select("svg").attr("viewBox").split(" ").map(function(v) { return +v; });
+
+      var dx = windowOffset.left + this.defaultViewBox[0] - viewBox[0];
+      var dy = windowOffset.top + this.defaultViewBox[1] - viewBox[1];
+
+      VizConfig.popup.open(cluster.center.x, cluster.center.y - 8, dx, dy);
+    }.bind(this));
+
+    selection.on('mouseover', function(cluster) {
+      VizConfig.tooltip.show();
+
+      var maxOrgCount = 6;
+      var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
+      var organisations = cluster.organisations;
+
+      if (cutOrganisationsCount) {
+        organisations = organisations.slice(0, maxOrgCount);
+      }
+
+      var html = organisations.map(function(o) { return o.label; }).join("<br/>");
+
+      if (cutOrganisationsCount) {
+        html += "<br/>...";
+      }
+
+      VizConfig.tooltip.html(html);
+    }.bind(this));
+
+    selection.on('mouseout', function() {
+      VizConfig.tooltip.hide();
+    }.bind(this));
+  }
+
+  drawClusters.call(this);
+  drawHexes.call(this);
+
+  handleMouse.call(this, clusters);
+  handleMouse.call(this, hexes);
+};
+
+MainMap.prototype.drawHex = function(selection, data) {
+  var hexBite = function(x, y, r, i) {
+    var a = i/6 * Math.PI * 2 + Math.PI/6;
+    var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
+    return [
+      [x, y],
+      [x + r * Math.cos(a), y + r * Math.sin(a)],
+      [x + r * Math.cos(na), y + r * Math.sin(na)]
+    ];
+  };
+
+  var hex = selection.append("g").attr("class", "hex");
+
+  fn.sequence(0, 6).forEach(function(i) {
+    var bite = hex.append("path");
+
+    bite
+      .attr("d", function() {
+        return "M" + hexBite(data.x, data.y, data.r, i).join("L") + "Z";
+      })
+      .attr("stroke", "#666")
+      .attr("fill", "#FFF");
+  }.bind(this));
+
+  // fill hex only if data is passed
+  if (data.counts) {
+    fn.sequence(0, 6).forEach(function(i) {
+      var dsiArea = VizConfig.dsiAreas[i].id;
+      var bite = hex.append("path");
+
+      bite
+        .attr("d", function() {
+          return "M" + hexBite(
+            data.x,
+            data.y,
+            5 + Math.min(data.r - 5, Math.pow(data.counts[dsiArea], 0.6)) || 1,
+            i
+          ).join("L") + "Z";
+        })
+        .attr("fill", VizConfig.dsiAreas[i].color);
+    }.bind(this));
   }
 };
 
@@ -669,6 +789,8 @@ MainMap.prototype.showNetwork = function(org, limit) {
       .attr('stroke', 'black')
       .attr('stroke-width', 1)
       .attr('opacity', limit ? 0.05 : 1);
+
+    networkPaths.exit().remove();
 
     if (!limit) {
       collaborators.forEach(function(org_collab) {
