@@ -301,13 +301,16 @@ MainMap.prototype.filterOrganisations = function() {
   var filteredOrganisations = this.organisations;
   var color = '#000000';
 
-  VizConfig.vizKey.getActiveFilters().forEach(function(filter) {
+  var filters = VizConfig.vizKey.getActiveFilters();
+  var numAreasOfDsi = filters.reduce(function(sum, filter) { return sum + ((filter.property === 'areaOfDigitalSocialInnovation') ? 1 : 0); }, 0);
+  
+  filters.forEach(function(filter) {
     filteredOrganisations = filteredOrganisations.filter(function(org) {
       var value = org[filter.property] || '';
       return value.indexOf(filter.id) !== -1;
     });
 
-    if (filter.property === 'areaOfDigitalSocialInnovation') {
+    if (filter.property === 'areaOfDigitalSocialInnovation' && numAreasOfDsi == 1) {
       color = VizConfig.dsiAreasById[filter.id].color;
     }
   });
@@ -491,9 +494,10 @@ MainMap.prototype.showOrganisations = function() {
       .attr('text-anchor', 'middle')
       .attr('dx', 0)
       .attr('dy', 3)
-      .attr('fill', '#fff')
       .attr('font-size', '11px')
       .text('');
+
+    clusters.selectAll('text').attr('fill', (color == '#000000') ? '#FFF' : '#000')
 
     var groupTransform = clusters
       .attr('transform', function(d) {
@@ -506,7 +510,7 @@ MainMap.prototype.showOrganisations = function() {
       .duration(300)
       .attr('fill', color)
       .attr('stroke', color)
-      .attr('opacity', 0.5)
+      .attr('opacity', 0.75)
       .attr('r', function(d) {
         return d.organisations.length > 1 ? 12 + Math.sqrt(d.organisations.length) : 5;
       });
