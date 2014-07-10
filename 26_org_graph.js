@@ -95,10 +95,10 @@ OrgGraph.prototype.loadProjects = function(org) {
       this.projects = projects;
       this.collaboratorsByLabel = collaboratorsByLabel;
       this.collaborators = collaborators;
-      this.draw();
-    }.bind(this)).fail(function(e) {
-      console.log(e, e.stack)
-    });
+      setTimeout(function() {
+        this.draw();
+      }.bind(this), 1);
+    }.bind(this))
 }
 
 OrgGraph.prototype.draw = function() {
@@ -139,6 +139,33 @@ OrgGraph.prototype.draw = function() {
     tooltip.attr('transform', function(d) { return 'translate(' + (d3.event.x + 10 - svg[0][0].offsetLeft) + ',' + (d3.event.y-20) + ')'; });
   }.bind(this))
 
+  //UTILS
+
+  var r = 20;
+  var r2 = r * 2;
+
+  function hexBite(x, y, r, i) {
+    var a = i/6 * Math.PI * 2 + Math.PI/6;
+    var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
+    return [
+      [x, y],
+      [x + r * Math.cos(a), y + r * Math.sin(a)],
+      [x + r * Math.cos(na), y + r * Math.sin(na)]
+    ];
+  }
+
+  function hexEdge(x, y, r, i) {
+    var a = i/6 * Math.PI * 2 + Math.PI/6;
+    var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
+    var r2 = r ? r - 5 : 0;
+    return [
+      [x + r2 * Math.cos(na), y + r2 * Math.sin(na)],
+      [x + r2 * Math.cos(a), y + r2 * Math.sin(a)],
+      [x + r * Math.cos(a), y + r * Math.sin(a)],
+      [x + r * Math.cos(na), y + r * Math.sin(na)]
+    ];
+  }
+
   //ORG
 
   var org = { label: 'Nesta', projects: this.projects, collaborators: this.collaborators }
@@ -171,21 +198,12 @@ OrgGraph.prototype.draw = function() {
   //PROJECTS
 
   org.projects.forEach(function(project, projectIndex) {
-    project.x = w/2 + (projectIndex - Math.floor(org.projects.length/2) + 0.5) * 40;
+    project.x = w/2 + (projectIndex - Math.floor(org.projects.length/2) + 0.5) * 60;
     project.y = h*0.6;
   });
 
   var projectNodes = nodeGroup.selectAll('.project').data(org.projects);
-  projectNodes.enter().append('rect')
-    .attr('class', 'project')
-    .attr('x', function(d) { return d.x - 10; })
-    .attr('y', function(d) { return d.y; })
-    .attr('width', function(d) { return 20; })
-    .attr('height', function(d) { return 10; })
-    .style('fill', function(d) { return 'red' })
-    .style('stroke', 'none');
-
-  projectNodes.exit().transition().duration(1000).style('opacity', 0).remove()
+  projectNodes.enter().append('g').attr('class', 'project')
 
   projectNodes.on('mouseover', function(d) {
     if (d3.event.target.nodeName == 'rect') {
@@ -198,7 +216,54 @@ OrgGraph.prototype.draw = function() {
 
   projectNodes.on('mouseout', function() {
     tooltip.style('display', 'none');
-  })
+  });
+
+  function makeHexes(nodes) {
+    fn.sequence(0,6).map(function(i) {
+      var bite = nodes.append('path');
+      bite.attr('d', function(item, itemIndex) {
+        var x = item.x;
+        var y = item.y;
+        return "M" + hexBite(x, y, r + 2, i).join("L") + "Z";
+      });
+      bite.attr('stroke', 'none');
+      bite.attr('fill', '#FFF');
+    }.bind(this));
+
+    fn.sequence(0,6).map(function(i) {
+      var bite = nodes.append('path');
+      bite.attr('d', function(item, itemIndex) {
+        var x = item.x;
+        var y = item.y;
+
+        var path;
+
+        if (item.projects) {
+        //  var areaR = 0;
+        //  if (item.areaOfDigitalSocialInnovation.indexOf(this.DSIAreaTypes[i]) !== -1) {
+        //    if (item.areaOfDigitalSocialInnovationCounted) {
+        //      areaR = Math.min(r, 5 + 2 * item.areaOfDigitalSocialInnovationCounted[this.DSIAreaTypes[i]]);
+        //    }
+        //  }
+        //  path = "M" + hexBite(x, y, areaR, i).join("L") + "Z";
+        }
+        else {
+          var edgeR = 0;
+          if (item.areaOfDigitalSocialInnovation.indexOf(VizConfig.dsiAreas[i].id) !== -1) {
+            edgeR = r;
+          }
+          //edgeR = r;
+          path = "M" + hexEdge(x, y, edgeR, i).join("L") + "Z";
+        }
+
+        return path;
+      }.bind(this));
+      bite.attr('fill', VizConfig.dsiAreas[i].color);
+      bite.attr('stroke', 'none');
+    });
+  }
+
+  makeHexes(projectNodes);
 
   //COLLABORATORS
 
@@ -260,17 +325,9 @@ OrgGraph.prototype.draw = function() {
     .attr('class', 'link')
     .style('fill', 'none')
     .style('stroke', function(d) {
-      return 'red';
-    })
-    .style('opacity', 0)
-
-  linkNodes
-    .transition().duration(1000)
-    .style('stroke', function(d) {
-      return 'red';
+      return '#666';
     })
     .attr('d', diagonal)
-    .style('opacity', 1);
 
   linkNodes.exit().remove();
 }
