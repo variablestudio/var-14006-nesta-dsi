@@ -740,8 +740,8 @@ MainMap.prototype.updateTranslation = function() {
     org = this.organisationsById[org];
 
     return {
-      x: org.center ? org.center.x : org.x,
-      y: org.center ? org.center.y : org.y
+      x: org && org.center ? org.center.x : org.x,
+      y: org && org.center ? org.center.y : org.y
     };
   }.bind(this);
 
