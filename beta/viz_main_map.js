@@ -330,8 +330,8 @@ MainMap.prototype.clusterOrganisations = function(organisations) {
   var finishedClustering = false;
 
   var currentZoom = this.map.getZoom();
-  var clusterByCountry = currentZoom < 7;
-  var clusterByDistance = 7 <= currentZoom && currentZoom < 13;
+  var clusterByCountry = currentZoom < 6;
+  var clusterByDistance = 6 <= currentZoom && currentZoom < 13;
 
   var calcDist = function(a, b) {
     var xd = (b.x - a.x);
