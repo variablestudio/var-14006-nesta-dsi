@@ -734,23 +734,7 @@ MainMap.prototype.handleMouse = function(selection, settings) {
     d3.event.preventDefault();
     d3.event.stopPropagation();
 
-<<<<<<< HEAD
     var selectedClass = d3.select(this).attr("class");
-=======
-    return {
-      x: org && org.center ? org.center.x : org.x,
-      y: org && org.center ? org.center.y : org.y
-    };
-  }.bind(this);
-
-  // update lines
-  this.DOM.networkGroup.selectAll('line')
-    .attr('x1', function(d) { return getPos(d.org).x; })
-    .attr('y1', function(d) { return getPos(d.org).y; })
-    .attr('x2', function(d) { return getPos(d.collab).x; })
-    .attr('y2', function(d) { return getPos(d.collab).y; });
-};
->>>>>>> 986642ba917c4e8c4e9ba636feec0de6aad17e95
 
     if (selectedClass !== "hex-cluster") {
       showClusterNetwork(cluster);
