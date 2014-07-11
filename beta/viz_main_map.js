@@ -79,7 +79,7 @@ MainMap.prototype.hijackSearch = function() {
 
     if (foundOrgs.length > 0) {
       // TODO: show cluster on search
-      this.showNetwork(foundOrgs[0].org);
+      // this.showNetwork(foundOrgs[0].org);
     }
 
     $('#q').hide();
@@ -142,9 +142,7 @@ MainMap.prototype.getProjectsInfo = function(collaborations) {
 
     projects.forEach(function(project) {
       var orgs = collaborations.byProject[project.p] || [];
-      //if (Math.random() > 0.99) console.log(project.p)
       orgs.forEach(function(orgId) {
-        //if (Math.random() > 0.99) console.log(orgId)
         var org = this.organisationsById[orgId];
         if (!org) {
           return;
@@ -171,8 +169,6 @@ MainMap.prototype.getProjectsInfo = function(collaborations) {
         });
       }.bind(this));
     }.bind(this));
-    //projects
-    //console.log('collaborations', collaborations)
 
     deferred.resolve(projects);
   }.bind(this));
@@ -263,6 +259,7 @@ MainMap.prototype.buildViz = function() {
   }, {});
 
   this.showOrganisations();
+
   VizConfig.events.addEventListener('filter', function() {
     this.showOrganisations();
     this.showClusterNetwork();
@@ -291,7 +288,7 @@ MainMap.prototype.showWorldMap = function(center, scale) {
     VizConfig.popup.close();
 
     // update organisations
-    this.showOrganisations(this.organisations);
+    this.showOrganisations();
 
     // update clusters
     this.showClusterNetwork();
@@ -482,8 +479,8 @@ MainMap.prototype.showOrganisations = function() {
   var hexes = this.drawHexes(this.DOM.orgGroup, data.hexes);
 
   // act on mouse
-  this.handleMouse(clusters, "clusters");
-  this.handleMouse(hexes, "hexes");
+  this.handleMouse(clusters, { fromCluster: true });
+  this.handleMouse(hexes);
 };
 
 MainMap.prototype.drawClusters = function(selection, data, color) {
@@ -557,9 +554,15 @@ MainMap.prototype.drawClusters = function(selection, data, color) {
   return clusters;
 };
 
-MainMap.prototype.drawHexes = function(selection, data) {
+MainMap.prototype.drawHexes = function(selection, data, settings) {
   var hexR = 20;
   var drawHex = this.drawHex;
+  var className = "hex-default";
+
+  var hexFromCluster = (settings && settings.fromCluster === true);
+  var hexFromNetwork = (settings && settings.fromNetwork === true);
+  if (hexFromCluster) { className = "hex-cluster"; }
+  if (hexFromNetwork) { className = "hex-network"; }
 
   var countDataForHex = function(data) {
     return data.projects ? data.projects.reduce(function(memo, project) {
@@ -575,26 +578,26 @@ MainMap.prototype.drawHexes = function(selection, data) {
     }, {}) : null;
   };
 
-  this.DOM.orgGroup.selectAll('g.hex').remove();
+  this.DOM.orgGroup.selectAll('g.' + className).remove();
 
   var hexes = selection
-    .selectAll('g.hex')
+    .selectAll('g.' + className)
     .data(data.map(function(hex) {
       var org = hex.organisations[0];
+      var pos = hex.center ? hex.center : { x: org.x, y: org.y };
 
       return {
         organisations: hex.organisations,
         r: hexR,
-        x: org.x,
-        y: org.y,
-        center: { x: org.x, y: org.y },
+        x: pos.x,
+        y: pos.y,
         counts: countDataForHex(hex.organisations[0])
       };
     }));
 
   hexes.enter()
     .append('g')
-    .attr('class', 'hex')
+    .attr('class', className)
     .each(function(d) {
       drawHex(d3.select(this), d);
     });
@@ -648,14 +651,22 @@ MainMap.prototype.drawHex = function(selection, data) {
   }
 };
 
-MainMap.prototype.handleMouse = function(selection, type) {
+MainMap.prototype.handleMouse = function(selection, settings) {
+  var fromCluster = (settings && settings.fromCluster === true);
+
   selection.on('click', function(cluster) {
     d3.event.preventDefault();
     d3.event.stopPropagation();
 
-    // TODO: check if cluster with single organisation and turn it into hex
-
     this.showClusterNetwork(cluster);
+
+    // draw hex if selected item is single organisation
+    if (fromCluster && cluster.organisations.length === 1) {
+      this.drawHexes(this.DOM.orgGroup, [ cluster ], { fromCluster: true });
+    }
+    else {
+      this.DOM.orgGroup.selectAll(".hex-cluster").remove();
+    }
 
     var maxOrgCount = 3;
     var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
@@ -693,7 +704,10 @@ MainMap.prototype.handleMouse = function(selection, type) {
     var dx = windowOffset.left + this.defaultViewBox[0] - viewBox[0];
     var dy = windowOffset.top + this.defaultViewBox[1] - viewBox[1];
 
-    VizConfig.popup.open(cluster.center.x, cluster.center.y - 8, dx, dy);
+    var x = cluster.center ? cluster.center.x : cluster.x;
+    var y = cluster.center ? cluster.center.y : cluster.y;
+
+    VizConfig.popup.open(x, y - 8, dx, dy);
   }.bind(this));
 
   selection.on('mouseover', function(cluster) {
@@ -774,7 +788,7 @@ MainMap.prototype.showClusterNetwork = function(cluster) {
       collaborators = collaborators.map(function(collaborator) {
         var getPos = function(org) {
           org = this.organisationsById[org];
-          return org ? org.center : null;
+          return org ? org.center : undefined;
         }.bind(this);
 
         cluster.center = getPos(cluster.organisations[0].org);
@@ -787,7 +801,7 @@ MainMap.prototype.showClusterNetwork = function(cluster) {
           }
         };
       }.bind(this)).filter(function(collaborator) {
-        return collaborator.collaborator.center !== null;
+        return collaborator.collaborator.center !== undefined;
       });
 
       var networkPaths = this.DOM.networkGroup
@@ -814,6 +828,18 @@ MainMap.prototype.showClusterNetwork = function(cluster) {
       networkPaths
         .exit()
         .remove();
+
+      // draw collaborators hexes
+      var collabHexesData = collaborators.map(function(collab) {
+        var org = this.organisationsById[collab.collaborator.org];
+        return {
+          center: collab.collaborator.center,
+          organisations: [ org ]
+        };
+      }.bind(this));
+
+      var collabHexes = this.drawHexes(this.DOM.orgGroup, collabHexesData, { fromNetwork: true });
+      this.handleMouse(collabHexes);
     }.bind(this));
   }
 };
