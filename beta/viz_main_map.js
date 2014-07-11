@@ -294,20 +294,64 @@ MainMap.prototype.buildViz = function() {
 MainMap.prototype.showWorldMap = function(center, scale) {
   var mapLayerStr = "http://b.tiles.mapbox.com/v3/swirrl.ikeb7gn0/{z}/{x}/{y}.png";
 
-  this.map = L.map('map', {
-    center: new L.LatLng(center[0], center[1]),
-    zoom: scale,
-    inertia: false,
-    bounceAtZoomLimits: false,
-    zoomControl: false,
-    layers: [ new L.TileLayer(mapLayerStr, { maxZoom: 16, minZoom: 3 }) ]
-  });
+  this.map = {
+    leaflet: L.map('map', {
+      center: new L.LatLng(center[0], center[1]),
+      zoom: scale,
+      inertia: false,
+      bounceAtZoomLimits: false,
+      zoomControl: false,
+      layers: [ new L.TileLayer(mapLayerStr, { maxZoom: 16, minZoom: 3 }) ]
+    }),
+    fullscreeen: false
+  };
 
-  this.map.addControl(new L.control.zoom({ position: 'topright' }));
-  this.map._initPathRoot(); // adds svg layer to leaflet
+  this.map.leaflet._initPathRoot(); // adds svg layer to leaflet
+
+  this.map.leaflet.addControl(new L.control.customButton({
+    title: 'Fullscreen',
+    className: 'leaflet-fullscreen-button',
+    callback: function() {
+      if (this.map.fullscreen) {
+        $('#map').css({
+          'height': this.h,
+          'position': 'relative'
+        });
+
+        // ugly workarounds for fixed positioning / z-index
+        $('.nav-bar .search').show();
+        $('#caseStudiesViz').show();
+      }
+      else {
+        $('#map').css({
+          'height': window.innerHeight,
+          'position': 'fixed',
+          'top': 0,
+          'left': 0
+        });
+
+        // ugly workarounds for fixed positioning / z-index
+        $('.nav-bar .search').hide();
+        $('#caseStudiesViz').hide();
+      }
+
+      this.map.leaflet.invalidateSize();
+      this.map.fullscreen = !this.map.fullscreen;
+    }.bind(this)
+  }));
+
+  this.map.leaflet.addControl(new L.control.zoom({ position: 'topright' }));
+
+  this.map.leaflet.addControl(new L.control.customButton({
+    title: 'Center',
+    className: 'leaflet-center-button',
+    callback: function() {
+      this.map.leaflet.setView(new L.LatLng(center[0], center[1]), scale);
+    }.bind(this)
+  }));
 
   // map redraws including zoom
-  this.map.on("viewreset", function() {
+  this.map.leaflet.on("viewreset", function() {
     VizConfig.popup.close();
 
     // update organisations
@@ -320,11 +364,11 @@ MainMap.prototype.showWorldMap = function(center, scale) {
     this.showClusterNetwork();
   }.bind(this));
 
-  this.map.on("click", function() {
+  this.map.leaflet.on("click", function() {
     VizConfig.popup.close();
   }.bind(this));
 
-  this.map.on("movestart", function() {
+  this.map.leaflet.on("movestart", function() {
     VizConfig.popup.close();
   });
 };
@@ -358,7 +402,7 @@ MainMap.prototype.clusterOrganisations = function(organisations) {
   var iterations = 0, maxIterations = 2;
   var finishedClustering = false;
 
-  var currentZoom = this.map.getZoom();
+  var currentZoom = this.map.leaflet.getZoom();
   var clusterByCountry = currentZoom < 6;
   var clusterByDistance = 6 <= currentZoom && currentZoom < 13;
 
@@ -386,7 +430,7 @@ MainMap.prototype.clusterOrganisations = function(organisations) {
   };
 
   var clusters = organisations.map(function(org) {
-    var pos = this.map.latLngToLayerPoint(org.LatLng);
+    var pos = this.map.leaflet.latLngToLayerPoint(org.LatLng);
 
     org.x = pos.x;
     org.y = pos.y;
@@ -485,7 +529,7 @@ MainMap.prototype.updateOrgByIdPositions = function() {
 
   for (org in this.organisationsById) {
     if (this.organisationsById.hasOwnProperty(org)) {
-      pos = this.map.latLngToLayerPoint(this.organisationsById[org].LatLng);
+      pos = this.map.leaflet.latLngToLayerPoint(this.organisationsById[org].LatLng);
       this.organisationsById[org].x = pos.x;
       this.organisationsById[org].y = pos.y;
 
@@ -517,7 +561,7 @@ MainMap.prototype.showOrganisations = function() {
   var hexDisplayZoom = 10;
   var data;
 
-  if (this.map.getZoom() >= hexDisplayZoom) {
+  if (this.map.leaflet.getZoom() >= hexDisplayZoom) {
     data = this.clusters.reduce(function(memo, cluster) {
       if (cluster.organisations.length > 1) {
         memo.clusters.push(cluster);
@@ -743,6 +787,7 @@ MainMap.prototype.handleMouse = function(selection, settings) {
   var handleMouse = this.handleMouse.bind(this);
 
   var isPreloading = function() { return this.preloader.is(":visible"); }.bind(this);
+  var isMapFullscreen = function() { return this.map.fullscreen; }.bind(this);
   var setSelectedOrg = function(org) { this.selectedOrg = org; }.bind(this);
 
   selection.on('click', function(cluster) {
@@ -820,13 +865,17 @@ MainMap.prototype.handleMouse = function(selection, settings) {
     var windowOffset = $("#map").offset();
     var viewBox = d3.select("#map").select("svg").attr("viewBox").split(" ").map(function(v) { return +v; });
 
+
     var dx = windowOffset.left + defaultViewBox[0] - viewBox[0];
     var dy = windowOffset.top + defaultViewBox[1] - viewBox[1];
 
     var x = cluster.center ? cluster.center.x : cluster.x;
     var y = cluster.center ? cluster.center.y : cluster.y;
 
-    VizConfig.popup.open(x, y - 8, dx, dy);
+    // ugly hack for nice popup positioning
+    y -= isMapFullscreen() ? 50 : 8;
+
+    VizConfig.popup.open(x, y, dx, dy);
   });
 
   selection.on('mouseover', function(cluster) {

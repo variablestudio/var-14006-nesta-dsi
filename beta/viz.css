@@ -140,6 +140,15 @@
   transform: scale(1.1); -webkit-transform: scale(1.1); -moz-transform: scale(1.1);
 }
 
+/*---------------------------------- main map -------------------------------------*/
+
+#map .leaflet-fullscreen-button {
+	background-image: url(assets/leaflet-fullscreen.png);
+}
+
+#map .leaflet-center-button {
+	background-image: url(assets/leaflet-center.png);
+}
 
 /*---------------------------------- carousel -------------------------------------*/
 
