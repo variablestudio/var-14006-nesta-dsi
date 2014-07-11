@@ -525,42 +525,10 @@ MainMap.prototype.showOrganisations = function() {
   var clusters = this.drawClusters(this.DOM.orgGroup, data.clusters, color);
   var hexes = this.drawHexes(this.DOM.hexGroup, data.hexes);
 
-<<<<<<< HEAD
   // act on mouse
   this.handleMouse(clusters, { fromCluster: true });
   this.handleMouse(hexes);
 };
-=======
-    groupEnter
-      .append('circle')
-      .attr('r', 0);
-
-    groupEnter
-      .append('text')
-      .attr('text-anchor', 'middle')
-      .attr('dx', 0)
-      .attr('dy', 3)
-      .attr('font-size', '11px')
-      .text('');
-
-    clusters.selectAll('text').attr('fill', (color == '#000000') ? '#FFF' : '#000')
-
-    var groupTransform = clusters
-      .attr('transform', function(d) {
-        return "translate(" + d.center.x + "," + d.center.y + ")";
-      });
-
-    groupTransform
-      .select("circle")
-      .transition()
-      .duration(300)
-      .attr('fill', color)
-      .attr('stroke', color)
-      .attr('opacity', 0.75)
-      .attr('r', function(d) {
-        return d.organisations.length > 1 ? 12 + Math.sqrt(d.organisations.length) : 5;
-      });
->>>>>>> 986642ba917c4e8c4e9ba636feec0de6aad17e95
 
 MainMap.prototype.drawClusters = function(selection, data, color) {
   var clusters = selection
