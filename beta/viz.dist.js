@@ -2267,7 +2267,8 @@ MainMap.prototype.hijackSearch = function() {
     });
 
     if (foundOrgs.length > 0) {
-      this.drawOrganisationWithNetwork(foundOrgs[0].org);
+      var cluster = this.drawOrganisationWithNetwork(foundOrgs[0].org);
+      if (cluster) { this.displayPopup(cluster); }
     }
 
     $('#q').hide();
@@ -2284,13 +2285,14 @@ MainMap.prototype.drawOrganisationWithNetwork = function(org) {
     org = this.selectedOrg;
   }
   else {
-    return;
+    return undefined;
   }
 
+  var orgCluster;
   org = this.organisationsById[org];
 
   if (org) {
-    var orgCluster = {
+    orgCluster = {
       center: org.center || { x: org.x, y: org.y },
       organisations: [ org ]
     };
@@ -2300,6 +2302,8 @@ MainMap.prototype.drawOrganisationWithNetwork = function(org) {
     var selectedHex = this.drawHexes(this.DOM.selectedHexGroup, [ orgCluster ], { fromCluster: true });
     this.handleMouse(selectedHex);
   }
+
+  return orgCluster;
 };
 
 MainMap.prototype.getOrganisations = function() {
@@ -2970,17 +2974,79 @@ MainMap.prototype.drawHex = function(selection, data) {
   }
 };
 
+MainMap.prototype.displayPopup = function(cluster) {
+  var maxOrgCount = 6;
+  var maxProjectCount = 3;
+  var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
+  var organisations = cluster.organisations;
+  var isSingleOrganisation = cluster.organisations.length === 1;
+
+  if (cutOrganisationsCount) { organisations = organisations.slice(0, maxOrgCount); }
+
+  var popupHTML = organisations.map(function(organization) {
+    var url = 'http://digitalsocial.eu/organisations/';
+    url += organization.org.substr(organization.org.lastIndexOf('/') + 1);
+    var popupContent = '<h4><a href="' + url + '">'+organization.label+'</a></h4>';
+
+    if (isSingleOrganisation) {
+      popupContent += '<span>';
+      popupContent += organization.street;
+      popupContent += ", " + organization.city;
+      popupContent += ", " + organization.country;
+      popupContent += '</span>';
+    }
+
+    if (organization.projects && isSingleOrganisation) {
+      popupContent += 'Projects:';
+
+      var projects = organization.projects;
+      var cutProjectCount = projects.length > maxProjectCount;
+      if (cutProjectCount) { projects = projects.slice(0, maxProjectCount); }
+
+      projects.forEach(function(project) {
+        var projectUrl = 'http://digitalsocial.eu/projects/' + project.p.substr(project.p.lastIndexOf('/')+1);
+        popupContent += '<a href="' + projectUrl + '">'+project.label+'</a>';
+      });
+
+      if (cutProjectCount) {
+        popupContent += "<div>...</div>";
+      }
+    }
+
+    return popupContent;
+  }).join("<br/>");
+
+  if (cutOrganisationsCount) {
+    popupHTML += "<br/><div style='text-align:center'>...</div>";
+  }
+
+  VizConfig.popup.html($(popupHTML));
+
+  var windowOffset = $("#map").offset();
+  var viewBox = d3.select("#map").select("svg").attr("viewBox").split(" ").map(function(v) { return +v; });
+
+  var dx = windowOffset.left + this.defaultViewBox[0] - viewBox[0];
+  var dy = windowOffset.top + this.defaultViewBox[1] - viewBox[1];
+
+  var x = cluster.center ? cluster.center.x : cluster.x;
+  var y = cluster.center ? cluster.center.y : cluster.y;
+
+  // ugly hack for nice popup positioning
+  y -= this.map.fullscreen ? 50 : 8;
+
+  VizConfig.popup.open(x, y, dx, dy);
+};
+
 MainMap.prototype.handleMouse = function(selection, settings) {
   var fromCluster = (settings && settings.fromCluster === true);
 
   var drawHexes = this.drawHexes.bind(this);
   var DOM = this.DOM;
   var showClusterNetwork = this.showClusterNetwork.bind(this);
-  var defaultViewBox = this.defaultViewBox;
   var handleMouse = this.handleMouse.bind(this);
+  var displayPopup = this.displayPopup.bind(this);
 
   var isPreloading = function() { return this.preloader.is(":visible"); }.bind(this);
-  var isMapFullscreen = function() { return this.map.fullscreen; }.bind(this);
   var setSelectedOrg = function(org) { this.selectedOrg = org; }.bind(this);
 
   selection.on('click', function(cluster) {
@@ -3008,67 +3074,7 @@ MainMap.prototype.handleMouse = function(selection, settings) {
       }
     }
 
-    var maxOrgCount = 6;
-    var maxProjectCount = 3;
-    var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
-    var organisations = cluster.organisations;
-    var isSingleOrganisation = cluster.organisations.length === 1;
-
-    if (cutOrganisationsCount) { organisations = organisations.slice(0, maxOrgCount); }
-
-    var popupHTML = organisations.map(function(organization) {
-      var url = 'http://digitalsocial.eu/organisations/';
-      url += organization.org.substr(organization.org.lastIndexOf('/') + 1);
-      var popupContent = '<h4><a href="' + url + '">'+organization.label+'</a></h4>';
-
-      if (isSingleOrganisation) {
-        popupContent += '<span>';
-        popupContent += organization.street;
-        popupContent += ", " + organization.city;
-        popupContent += ", " + organization.country;
-        popupContent += '</span>';
-      }
-
-      if (organization.projects && isSingleOrganisation) {
-        popupContent += 'Projects:';
-
-        var projects = organization.projects;
-        var cutProjectCount = projects.length > maxProjectCount;
-        if (cutProjectCount) { projects = projects.slice(0, maxProjectCount); }
-
-        projects.forEach(function(project) {
-          var projectUrl = 'http://digitalsocial.eu/projects/' + project.p.substr(project.p.lastIndexOf('/')+1);
-          popupContent += '<a href="' + projectUrl + '">'+project.label+'</a>';
-        });
-
-        if (cutProjectCount) {
-          popupContent += "<div>...</div>";
-        }
-      }
-
-      return popupContent;
-    }).join("<br/>");
-
-    if (cutOrganisationsCount) {
-      popupHTML += "<br/><div style='text-align:center'>...</div>";
-    }
-
-    VizConfig.popup.html($(popupHTML));
-
-    var windowOffset = $("#map").offset();
-    var viewBox = d3.select("#map").select("svg").attr("viewBox").split(" ").map(function(v) { return +v; });
-
-
-    var dx = windowOffset.left + defaultViewBox[0] - viewBox[0];
-    var dy = windowOffset.top + defaultViewBox[1] - viewBox[1];
-
-    var x = cluster.center ? cluster.center.x : cluster.x;
-    var y = cluster.center ? cluster.center.y : cluster.y;
-
-    // ugly hack for nice popup positioning
-    y -= isMapFullscreen() ? 50 : 8;
-
-    VizConfig.popup.open(x, y, dx, dy);
+    displayPopup(cluster);
   });
 
   selection.on('mouseover', function(cluster) {
