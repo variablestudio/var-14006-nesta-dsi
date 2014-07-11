@@ -90,7 +90,7 @@
   }
 
   function initCaseStudies(vizContainer) {
-    var caseStudiesTitle = $('<h1>Case Studies</h1>');
+    var caseStudiesTitle = $('<h1 id="caseStudiesTitle">Case Studies</h1>');
     vizContainer.append(caseStudiesTitle);
 
     var caseStudiesViz = $('<div id="caseStudiesViz"></div>');

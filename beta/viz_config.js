@@ -7,6 +7,10 @@ else {
   VizConfig.assetsPath = 'assets';
 }
 
+VizConfig.text = {
+  caseStudiesTitle: 'Case Studies'
+}
+
 VizConfig.dsiAreas = [
   { title: 'Funding acceleration<br/> and incubation', id: 'funding-acceleration-and-incubation', color: '#FDE302', icon: VizConfig.assetsPath + '/triangle-funding-acceleration-and-incubation.png', label: 'Funding Acceleration and Incubation' },
   { title: 'Collaborative economy', id: 'collaborative-economy', color: '#A6CE39', icon: VizConfig.assetsPath + '/triangle-collaborative-economy.png', label: 'Collaborative Economy' },

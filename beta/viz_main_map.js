@@ -262,7 +262,10 @@ MainMap.prototype.buildViz = function() {
   }, {});
 
   this.showOrganisations();
-  VizConfig.events.addEventListener('filter', this.showOrganisations.bind(this));
+  VizConfig.events.addEventListener('filter', function() {
+    this.showOrganisations;
+    this.updateCaseStudiesTitle();
+  }.bind(this));
 
   //this.showIsoLines(svg, this.DOM.g, organisations, w, h, zoom);
 };
@@ -303,7 +306,7 @@ MainMap.prototype.filterOrganisations = function() {
 
   var filters = VizConfig.vizKey.getActiveFilters();
   var numAreasOfDsi = filters.reduce(function(sum, filter) { return sum + ((filter.property === 'areaOfDigitalSocialInnovation') ? 1 : 0); }, 0);
-  
+
   filters.forEach(function(filter) {
     filteredOrganisations = filteredOrganisations.filter(function(org) {
       var value = org[filter.property] || '';
@@ -446,6 +449,19 @@ MainMap.prototype.connectOrgByIdWithClusters = function() {
     }
   }
 };
+
+MainMap.prototype.updateCaseStudiesTitle = function() {
+  var filters = VizConfig.vizKey.getActiveFilters();
+  var title = VizConfig.text.caseStudiesTitle;
+  if (filters.length > 0) {
+    title += ' from ';
+    title += filters.map(function(filter) {
+      if (filter.property == 'areaOfDigitalSocialInnovation') return VizConfig.dsiAreasById[filter.id].title.replace('<br/>', '');
+      if (filter.property == 'technologyFocus') return VizConfig.technologyFocusesById[filter.id].title;
+    }).join(', ');
+    d3.select('#caseStudiesTitle').text(title);
+  }
+}
 
 MainMap.prototype.showOrganisations = function() {
   var filteredOrganisations = this.filterOrganisations();
