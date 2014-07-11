@@ -2234,14 +2234,39 @@ MainMap.prototype.hijackSearch = function() {
     });
 
     if (foundOrgs.length > 0) {
-      // TODO: show cluster on search
-      // this.showNetwork(foundOrgs[0].org);
+      this.drawOrganisationWithNetwork(foundOrgs[0].org);
     }
 
     $('#q').hide();
     e.preventDefault();
     return false;
   }.bind(this));
+};
+
+MainMap.prototype.drawOrganisationWithNetwork = function(org) {
+  if (org) {
+    this.selectedOrg = org;
+  }
+  else if (this.selectedOrg) {
+    org = this.selectedOrg;
+  }
+  else {
+    return;
+  }
+
+  org = this.organisationsById[org];
+
+  if (org) {
+    var orgCluster = {
+      center: org.center || { x: org.x, y: org.y },
+      organisations: [ org ]
+    };
+
+    this.showClusterNetwork(orgCluster);
+
+    var selectedHex = this.drawHexes(this.DOM.selectedHexGroup, [ orgCluster ], { fromCluster: true });
+    this.handleMouse(selectedHex);
+  }
 };
 
 MainMap.prototype.getOrganisations = function() {
@@ -2403,9 +2428,10 @@ MainMap.prototype.buildViz = function() {
   var svg = this.DOM.svg;
 
   this.DOM.g = svg.append('g');
-  this.DOM.mapGroup = this.DOM.g.append('g');
   this.DOM.networkGroup = this.DOM.g.append('g').attr("class", "network");
-  this.DOM.orgGroup = this.DOM.g.append('g');
+  this.DOM.orgGroup = this.DOM.g.append('g').attr("class", "orgs");
+  this.DOM.hexGroup = this.DOM.g.append("g").attr("class", "hexes");
+  this.DOM.selectedHexGroup = this.DOM.g.append("g").attr("class", "hexes-selected");
 
   this.organisationsById = this.organisations.reduce(function(memo, org) {
     org.LatLng = new L.LatLng(org.lat, org.lon);
@@ -2445,6 +2471,9 @@ MainMap.prototype.showWorldMap = function(center, scale) {
 
     // update organisations
     this.showOrganisations();
+
+    // update selected organisation
+    this.drawOrganisationWithNetwork();
 
     // update clusters
     this.showClusterNetwork();
@@ -2544,13 +2573,6 @@ MainMap.prototype.clusterOrganisations = function(organisations) {
       finishedClustering = true;
       iterations++;
 
-      clusters = clusters.filter(function(cluster){
-        return cluster.organisations.length > 0;
-      }).map(function(cluster) {
-        cluster.center = calcCenter(cluster.organisations);
-        return cluster;
-      });
-
       clusters.forEach(function(cluster1, clusterIndex1) {
         clusters.forEach(function(cluster2, clusterIndex2) {
           if (clusterIndex1 !== clusterIndex2) {
@@ -2567,6 +2589,13 @@ MainMap.prototype.clusterOrganisations = function(organisations) {
             });
           }
         });
+      });
+
+      clusters = clusters.filter(function(cluster){
+        return cluster.organisations.length > 0;
+      }).map(function(cluster) {
+        cluster.center = calcCenter(cluster.organisations);
+        return cluster;
       });
     }
   }
@@ -2608,6 +2637,7 @@ MainMap.prototype.updateOrgByIdPositions = function() {
 MainMap.prototype.showOrganisations = function() {
   var filteredOrganisations = this.filterOrganisations();
   this.clusters = this.clusterOrganisations(filteredOrganisations.organisations);
+  this.updateOrgByIdPositions();
   var color = filteredOrganisations.color;
 
   var hexDisplayZoom = 10;
@@ -2632,7 +2662,7 @@ MainMap.prototype.showOrganisations = function() {
 
   // draw clusters and hexes
   var clusters = this.drawClusters(this.DOM.orgGroup, data.clusters, color);
-  var hexes = this.drawHexes(this.DOM.orgGroup, data.hexes);
+  var hexes = this.drawHexes(this.DOM.hexGroup, data.hexes);
 
   // act on mouse
   this.handleMouse(clusters, { fromCluster: true });
@@ -2734,13 +2764,15 @@ MainMap.prototype.drawHexes = function(selection, data, settings) {
     }, {}) : null;
   };
 
-  this.DOM.orgGroup.selectAll('g.' + className).remove();
+  // remove all previous hexes
+  selection.selectAll('g.' + className).remove();
 
   var hexes = selection
     .selectAll('g.' + className)
     .data(data.map(function(hex) {
       var org = hex.organisations[0];
-      var pos = hex.center ? hex.center : { x: org.x, y: org.y };
+      var orgCenter = org.center ? org.center : { x: org.x, y: org.y };
+      var pos = hex.center ? hex.center : orgCenter;
 
       return {
         organisations: hex.organisations,
@@ -2810,18 +2842,32 @@ MainMap.prototype.drawHex = function(selection, data) {
 MainMap.prototype.handleMouse = function(selection, settings) {
   var fromCluster = (settings && settings.fromCluster === true);
 
+  var drawHexes = this.drawHexes.bind(this);
+  var DOM = this.DOM;
+  var showClusterNetwork = this.showClusterNetwork.bind(this);
+  var defaultViewBox = this.defaultViewBox;
+  var handleMouse = this.handleMouse.bind(this);
+
   selection.on('click', function(cluster) {
     d3.event.preventDefault();
     d3.event.stopPropagation();
 
-    this.showClusterNetwork(cluster);
+    var selectedClass = d3.select(this).attr("class");
 
-    // draw hex if selected item is single organisation
-    if (fromCluster && cluster.organisations.length === 1) {
-      this.drawHexes(this.DOM.orgGroup, [ cluster ], { fromCluster: true });
-    }
-    else {
-      this.DOM.orgGroup.selectAll(".hex-cluster").remove();
+    if (selectedClass !== "hex-cluster") {
+      showClusterNetwork(cluster);
+
+      var isSingleOrganisationCluster = (fromCluster && cluster.organisations.length === 1);
+      var isNetworkHex = (selectedClass === "hex-network");
+
+      // draw hex if selected item is single organisation
+      if (isNetworkHex || isSingleOrganisationCluster) {
+        var hexes = drawHexes(DOM.selectedHexGroup, [ cluster ], { fromCluster: true });
+        handleMouse(hexes);
+      }
+      else {
+        DOM.selectedHexGroup.selectAll(".hex-cluster").remove();
+      }
     }
 
     var maxOrgCount = 3;
@@ -2846,7 +2892,7 @@ MainMap.prototype.handleMouse = function(selection, settings) {
       }
 
       return popupContent;
-    }.bind(this)).join("<br/>");
+    }).join("<br/>");
 
     if (cutOrganisationsCount) {
       popupHTML += "<br/><div style='text-align:center'>...</div>";
@@ -2857,14 +2903,14 @@ MainMap.prototype.handleMouse = function(selection, settings) {
     var windowOffset = $("#map").offset();
     var viewBox = d3.select("#map").select("svg").attr("viewBox").split(" ").map(function(v) { return +v; });
 
-    var dx = windowOffset.left + this.defaultViewBox[0] - viewBox[0];
-    var dy = windowOffset.top + this.defaultViewBox[1] - viewBox[1];
+    var dx = windowOffset.left + defaultViewBox[0] - viewBox[0];
+    var dy = windowOffset.top + defaultViewBox[1] - viewBox[1];
 
     var x = cluster.center ? cluster.center.x : cluster.x;
     var y = cluster.center ? cluster.center.y : cluster.y;
 
     VizConfig.popup.open(x, y - 8, dx, dy);
-  }.bind(this));
+  });
 
   selection.on('mouseover', function(cluster) {
     VizConfig.tooltip.show();
@@ -2994,7 +3040,7 @@ MainMap.prototype.showClusterNetwork = function(cluster) {
         };
       }.bind(this));
 
-      var collabHexes = this.drawHexes(this.DOM.orgGroup, collabHexesData, { fromNetwork: true });
+      var collabHexes = this.drawHexes(this.DOM.hexGroup, collabHexesData, { fromNetwork: true });
       this.handleMouse(collabHexes);
     }.bind(this));
   }
