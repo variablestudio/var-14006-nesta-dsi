@@ -20,7 +20,7 @@ function VizKey(open) {
   var updateFilters = this.updateFilters.bind(this);
 
   VizConfig.dsiAreas.map(function(dsiArea, dsiAreaIndex) {
-    var areaLink = $('<a style="color2:' + dsiArea.color + '"><img src="' + dsiArea.icon + '" height="10"/><span>' + dsiArea.title + '</span></a>');
+    var areaLink = $('<a class="filterLink ' + dsiArea.id + '"><span>' + dsiArea.title + '</span></a>');
     areaLink.on('mouseover', function() {
       VizConfig.tooltip.show();
       VizConfig.tooltip.html('<h4>' + dsiArea.title +'</h4>' + dsiArea.info);
@@ -42,7 +42,7 @@ function VizKey(open) {
   sideBar.append($('<h3>' + techTitle + '</h3>'));
 
   VizConfig.technologyFocuses.map(function(technologyFocus, technologyFocusIndex) {
-    var technologyLink = $('<a><img src="' + technologyFocus.icon + '" height="12"/><span>' + technologyFocus.title + '</span></a>');
+    var technologyLink = $('<a class="filterLink ' + technologyFocus.id + '"><span>' + technologyFocus.title + '</span></a>');
     technologyLink.on('mouseover', function() {
       VizConfig.tooltip.show();
       VizConfig.tooltip.html('<h4>' + technologyFocus.title +'</h4>' + technologyFocus.info);

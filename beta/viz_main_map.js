@@ -57,7 +57,7 @@ MainMap.prototype.initSVG = function() {
   $('#map').css({ 'width': this.w, 'height': this.h });
 
   var scale  = 4;
-  var center = [50, -17];
+  var center = [50, -0];
   this.showWorldMap(center, scale);
 
   this.DOM.svg = d3.select("#map")
@@ -289,6 +289,7 @@ MainMap.prototype.buildViz = function() {
   VizConfig.events.addEventListener('filter', function() {
     this.showOrganisations();
     this.showClusterNetwork();
+    this.updateCaseStudiesTitle();
   }.bind(this));
 
   //this.showIsoLines(svg, this.DOM.g, organisations, w, h, zoom);
@@ -336,13 +337,16 @@ MainMap.prototype.filterOrganisations = function() {
   var filteredOrganisations = this.organisations;
   var color = '#000000';
 
-  VizConfig.vizKey.getActiveFilters().forEach(function(filter) {
+  var filters = VizConfig.vizKey.getActiveFilters();
+  var numAreasOfDsi = filters.reduce(function(sum, filter) { return sum + ((filter.property === 'areaOfDigitalSocialInnovation') ? 1 : 0); }, 0);
+
+  filters.forEach(function(filter) {
     filteredOrganisations = filteredOrganisations.filter(function(org) {
       var value = org[filter.property] || '';
       return value.indexOf(filter.id) !== -1;
     });
 
-    if (filter.property === 'areaOfDigitalSocialInnovation') {
+    if (filter.property === 'areaOfDigitalSocialInnovation' && numAreasOfDsi == 1) {
       color = VizConfig.dsiAreasById[filter.id].color;
     }
   });
@@ -359,8 +363,8 @@ MainMap.prototype.clusterOrganisations = function(organisations) {
   var finishedClustering = false;
 
   var currentZoom = this.map.getZoom();
-  var clusterByCountry = currentZoom < 7;
-  var clusterByDistance = 7 <= currentZoom && currentZoom < 13;
+  var clusterByCountry = currentZoom < 6;
+  var clusterByDistance = 6 <= currentZoom && currentZoom < 13;
 
   var calcDist = function(a, b) {
     var xd = (b.x - a.x);
@@ -478,6 +482,19 @@ MainMap.prototype.updateOrgByIdPositions = function() {
   }
 };
 
+MainMap.prototype.updateCaseStudiesTitle = function() {
+  var filters = VizConfig.vizKey.getActiveFilters();
+  var title = VizConfig.text.caseStudiesTitle;
+  if (filters.length > 0) {
+    title += ' from ';
+    title += filters.map(function(filter) {
+      if (filter.property == 'areaOfDigitalSocialInnovation') return VizConfig.dsiAreasById[filter.id].title.replace('<br/>', '');
+      if (filter.property == 'technologyFocus') return VizConfig.technologyFocusesById[filter.id].title;
+    }).join(', ');
+    d3.select('#caseStudiesTitle').text(title);
+  }
+}
+
 MainMap.prototype.showOrganisations = function() {
   var filteredOrganisations = this.filterOrganisations();
   this.clusters = this.clusterOrganisations(filteredOrganisations.organisations);
@@ -508,10 +525,42 @@ MainMap.prototype.showOrganisations = function() {
   var clusters = this.drawClusters(this.DOM.orgGroup, data.clusters, color);
   var hexes = this.drawHexes(this.DOM.hexGroup, data.hexes);
 
+<<<<<<< HEAD
   // act on mouse
   this.handleMouse(clusters, { fromCluster: true });
   this.handleMouse(hexes);
 };
+=======
+    groupEnter
+      .append('circle')
+      .attr('r', 0);
+
+    groupEnter
+      .append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dx', 0)
+      .attr('dy', 3)
+      .attr('font-size', '11px')
+      .text('');
+
+    clusters.selectAll('text').attr('fill', (color == '#000000') ? '#FFF' : '#000')
+
+    var groupTransform = clusters
+      .attr('transform', function(d) {
+        return "translate(" + d.center.x + "," + d.center.y + ")";
+      });
+
+    groupTransform
+      .select("circle")
+      .transition()
+      .duration(300)
+      .attr('fill', color)
+      .attr('stroke', color)
+      .attr('opacity', 0.75)
+      .attr('r', function(d) {
+        return d.organisations.length > 1 ? 12 + Math.sqrt(d.organisations.length) : 5;
+      });
+>>>>>>> 986642ba917c4e8c4e9ba636feec0de6aad17e95
 
 MainMap.prototype.drawClusters = function(selection, data, color) {
   var clusters = selection
@@ -650,6 +699,16 @@ MainMap.prototype.drawHex = function(selection, data) {
     ];
   };
 
+  var hexBorder = function(x, y, r, i) {
+    var a = i/6 * Math.PI * 2 + Math.PI/6;
+    var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
+    return [
+      [x + r * Math.cos(a), y + r * Math.sin(a)],
+      [x + r * Math.cos(a), y + r * Math.sin(a)],
+      [x + r * Math.cos(na), y + r * Math.sin(na)]
+    ];
+  };
+
   var hex = selection.append("g").attr("class", "hex");
 
   fn.sequence(0, 6).forEach(function(i) {
@@ -659,8 +718,19 @@ MainMap.prototype.drawHex = function(selection, data) {
       .attr("d", function() {
         return "M" + hexBite(data.x, data.y, data.r, i).join("L") + "Z";
       })
-      .attr("stroke", "#666")
+      //.attr("stroke", "#666")
       .attr("fill", "#FFF");
+  }.bind(this));
+
+  fn.sequence(0, 6).forEach(function(i) {
+    var bite = hex.append("path");
+
+    bite
+      .attr("d", function() {
+        return "M" + hexBorder(data.x, data.y, data.r, i).join("L") + "Z";
+      })
+      .attr("stroke", "#666")
+      .attr("fill", "none");
   }.bind(this));
 
   // fill hex only if data is passed
@@ -696,7 +766,23 @@ MainMap.prototype.handleMouse = function(selection, settings) {
     d3.event.preventDefault();
     d3.event.stopPropagation();
 
+<<<<<<< HEAD
     var selectedClass = d3.select(this).attr("class");
+=======
+    return {
+      x: org && org.center ? org.center.x : org.x,
+      y: org && org.center ? org.center.y : org.y
+    };
+  }.bind(this);
+
+  // update lines
+  this.DOM.networkGroup.selectAll('line')
+    .attr('x1', function(d) { return getPos(d.org).x; })
+    .attr('y1', function(d) { return getPos(d.org).y; })
+    .attr('x2', function(d) { return getPos(d.collab).x; })
+    .attr('y2', function(d) { return getPos(d.collab).y; });
+};
+>>>>>>> 986642ba917c4e8c4e9ba636feec0de6aad17e95
 
     if (selectedClass !== "hex-cluster") {
       showClusterNetwork(cluster);
