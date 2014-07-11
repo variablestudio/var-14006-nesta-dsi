@@ -263,7 +263,7 @@ MainMap.prototype.buildViz = function() {
 
   this.showOrganisations();
   VizConfig.events.addEventListener('filter', function() {
-    this.showOrganisations;
+    this.showOrganisations();
     this.updateCaseStudiesTitle();
   }.bind(this));
 
