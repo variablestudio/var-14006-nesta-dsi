@@ -552,7 +552,7 @@ MainMap.prototype.drawClusters = function(selection, data, color) {
     .attr('stroke', color)
     .attr('opacity', 0.5)
     .attr('r', function(d) {
-      return d.organisations.length > 1 ? 12 : 5;
+      return d.organisations.length > 1 ? 12 + Math.sqrt(d.organisations.length) : 5;
     });
 
   groupTransform
