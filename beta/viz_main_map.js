@@ -78,6 +78,7 @@ MainMap.prototype.hijackSearch = function() {
     });
 
     if (foundOrgs.length > 0) {
+			// TODO: show cluster on search
       this.showNetwork(foundOrgs[0].org);
     }
 
@@ -282,14 +283,20 @@ MainMap.prototype.showWorldMap = function(center, scale) {
   this.map.addControl(new L.control.zoom({ position: 'topright' }));
   this.map._initPathRoot(); // adds svg layer to leaflet
 
+  // map redraws including zoom
   this.map.on("viewreset", function() {
     VizConfig.popup.close();
-    this.updateTranslation();
+
+    // unfortunately no other way to update clustered organisations
+    this.DOM.orgGroup.selectAll('circle.org').remove();
+    this.showOrganisations(this.organisations);
+
+    // re-draw clusters
+    this.showClusterNetwork();
   }.bind(this));
 
   this.map.on("click", function() {
     VizConfig.popup.close();
-    // this.hideNetworks();
   }.bind(this));
 
   this.map.on("movestart", function() {
@@ -412,8 +419,8 @@ MainMap.prototype.clusterOrganisations = function(organisations) {
   return clusters;
 };
 
-MainMap.prototype.connectOrgByIdWithClusters = function() {
-  var org, pos, found, filtered, orgCluster;
+MainMap.prototype.updateOrgByIdPositions = function() {
+  var org, pos, filtered, orgCluster;
 
   for (org in this.organisationsById) {
     if (this.organisationsById.hasOwnProperty(org)) {
@@ -425,11 +432,10 @@ MainMap.prototype.connectOrgByIdWithClusters = function() {
         found = false;
 
         if (!memo) {
-          filtered = cluster.organisations.filter(function(clusterOrg) {
-            return (clusterOrg.org === org);
-          });
-
-          found = (filtered.length === 1);
+          found = cluster.organisations.reduce(function(memo, clusterOrg) {
+            if (!memo) { memo = (clusterOrg.org === org) }
+            return memo;
+          }, false);
         }
 
         if (found) { memo = cluster; }
@@ -561,7 +567,8 @@ MainMap.prototype.showOrganisations = function() {
     hexes = this.DOM.orgGroup
       .selectAll('g.hex')
       .data(data.hexes.map(function(hex) {
-        var org = hex.organisations[0]
+        var org = hex.organisations[0];
+
         return {
           organisations: hex.organisations,
           r: hexR,
@@ -587,19 +594,15 @@ MainMap.prototype.showOrganisations = function() {
       d3.event.preventDefault();
       d3.event.stopPropagation();
 
-      this.hideNetworks();
+      this.showClusterNetwork(cluster);
 
       var maxOrgCount = 3;
       var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
       var organisations = cluster.organisations;
 
-      if (cutOrganisationsCount) {
-        organisations = organisations.slice(0, maxOrgCount);
-      }
+      if (cutOrganisationsCount) { organisations = organisations.slice(0, maxOrgCount); }
 
       var popupHTML = organisations.map(function(organization) {
-        this.showNetwork(organization.org);
-
         var url = 'http://digitalsocial.eu/organisations/';
         url += organization.org.substr(organization.org.lastIndexOf('/') + 1);
         var popupContent = '<h4><a href="' + url + '">'+organization.label+'</a></h4>';
@@ -655,7 +658,7 @@ MainMap.prototype.showOrganisations = function() {
     selection.on('mouseout', function() {
       VizConfig.tooltip.hide();
     }.bind(this));
-  }
+  };
 
   drawClusters.call(this);
   drawHexes.call(this);
@@ -708,100 +711,90 @@ MainMap.prototype.drawHex = function(selection, data) {
   }
 };
 
-MainMap.prototype.updateTranslation = function() {
-  // unfortunately no other way to update clustered organisations
-  this.DOM.orgGroup.selectAll('circle.org').remove();
-  this.showOrganisations(this.organisations);
+MainMap.prototype.showClusterNetwork = function(cluster) {
+  // cache current cluster
+  if (cluster) {
+    this.currentCluster = cluster;
+  }
+  else {
+    cluster = this.currentCluster;
+  }
 
-  // update orgbyid
-  this.connectOrgByIdWithClusters();
+  if (cluster) {
+    this.getCollaborations().then(function(collaborations) {
+      // find projects for cluster
+      var projects = cluster.organisations.map(function(org) {
+        return collaborations.byOrganisation[org.org];
+      }).reduce(function(memo, projects) {
+        if (projects) { memo.push.apply(memo, projects); }
+        return memo;
+      }, []);
 
-  var getPos = function(org) {
-    org = this.organisationsById[org];
+      // find collaborators working on the same projects
+      var collaborators = projects.reduce(function(memo, project) {
+        collaborations.byProject[project].forEach(function(member) {
+          var alreadyInMemo = memo.indexOf(member) >= 0;
+          var wasInCluster = cluster.organisations.reduce(function(memo, org) {
+            if (!memo) { memo = (org.org === member) }
+            return memo;
+          }, false);
 
-    return {
-      x: org.center ? org.center.x : org.x,
-      y: org.center ? org.center.y : org.y
-    };
-  }.bind(this);
+          if (!alreadyInMemo && !wasInCluster) {
+            memo.push(member);
+          }
+        });
 
-  // update lines
-  this.DOM.networkGroup.selectAll('line')
-    .attr('x1', function(d) { return getPos(d.org).x; })
-    .attr('y1', function(d) { return getPos(d.org).y; })
-    .attr('x2', function(d) { return getPos(d.collab).x; })
-    .attr('y2', function(d) { return getPos(d.collab).y; });
-};
+        return memo;
+      }, []);
 
-MainMap.prototype.showNetwork = function(org, limit) {
-  this.getCollaborations().then(function(collaborations) {
-    var projects = collaborations.byOrganisation[org];
-    var collaborators = [];
+      this.updateOrgByIdPositions();
 
-    if (!projects) {
-      return;
-    }
+      // build data including proper positions
+      collaborators = collaborators.map(function(collaborator) {
+        var getPos = function(org) {
+          org = this.organisationsById[org];
+          return org ? org.center : null;
+        }.bind(this);
 
-    projects.forEach(function(project) {
-      collaborations.byProject[project].forEach(function(member) {
-        if (member === org) {
-          return;
-        }
+        cluster.center = getPos(cluster.organisations[0].org);
 
-        if (collaborators.indexOf('member') === -1) {
-          collaborators.push(member);
-        }
+        return {
+          cluster: cluster,
+          collaborator: {
+            org: collaborator,
+            center: getPos(collaborator)
+          }
+        };
+      }.bind(this)).filter(function(collaborator) {
+        return collaborator.collaborator.center !== null;
       });
-    });
 
-    var ns = 'org';
+      var networkPaths = this.DOM.networkGroup
+        .selectAll('line.network')
+        .data(collaborators);
 
-    if (limit) {
-      collaborators = collaborators.filter(function(c) {
-        return limit.indexOf(c) !== -1;
-      });
-      ns += limit.indexOf(org);
-    }
+      networkPaths
+        .enter()
+        .append('line')
+        .attr('class', 'network')
+        .attr('x1', function(d) { return d.cluster.center.x; })
+        .attr('y1', function(d) { return d.cluster.center.y; })
+        .attr('x2', function(d) { return d.collaborator.center.x; })
+        .attr('y2', function(d) { return d.collaborator.center.y; })
+        .attr('stroke', 'black')
+        .attr('stroke-width', 1);
 
-    collaborators = collaborators.map(function(collaborator) {
-      return { org: org, collab: collaborator };
-    });
+      networkPaths
+        .attr('x1', function(d) { return d.cluster.center.x; })
+        .attr('y1', function(d) { return d.cluster.center.y; })
+        .attr('x2', function(d) { return d.collaborator.center.x; })
+        .attr('y2', function(d) { return d.collaborator.center.y; })
 
-    this.connectOrgByIdWithClusters();
-
-    var getPos = function(org) {
-      org = this.organisationsById[org];
-
-      return {
-        x: org.center ? org.center.x : org.x,
-        y: org.center ? org.center.y : org.y
-      };
-    }.bind(this);
-
-    var networkPaths = this.DOM.networkGroup.selectAll('line.network.' + ns).data(collaborators);
-    networkPaths.enter()
-      .append('line')
-      .attr('class', 'network ' + ns)
-      .attr('x1', function(d) { return getPos(d.org).x; })
-      .attr('y1', function(d) { return getPos(d.org).y; })
-      .attr('x2', function(d) { return getPos(d.collab).x; })
-      .attr('y2', function(d) { return getPos(d.collab).y; })
-      .attr('stroke', 'black')
-      .attr('stroke-width', 1)
-      .attr('opacity', limit ? 0.05 : 1);
-
-    networkPaths.exit().remove();
-
-    if (!limit) {
-      collaborators.forEach(function(org_collab) {
-        this.showNetwork(org_collab, collaborators);
-      }.bind(this));
-    }
-  }.bind(this));
-};
-
-MainMap.prototype.hideNetworks = function() {
-  this.DOM.networkGroup.selectAll("line").remove();
+      networkPaths
+        .exit()
+        .remove();
+    }.bind(this));
+  }
 };
 
 // MainMap.prototype.showIsoLines = function(svg, g, organisations, w, h, zoom) {
