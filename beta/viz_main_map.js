@@ -2,10 +2,6 @@
 
 var MainMap = (function() {
 
-// function hsla(h, s, l, a) {
-//   return 'hsla(' + h + ',' + 100 * s + '%,' + 100 * l + '%,' + a + ')';
-// }
-
 function resultValuesToObj(result) {
   var o = {};
   var prop;
@@ -346,7 +342,7 @@ MainMap.prototype.filterOrganisations = function() {
       return value.indexOf(filter.id) !== -1;
     });
 
-    if (filter.property === 'areaOfDigitalSocialInnovation' && numAreasOfDsi == 1) {
+    if (filter.property === 'areaOfDigitalSocialInnovation' && numAreasOfDsi === 1) {
       color = VizConfig.dsiAreasById[filter.id].color;
     }
   });
@@ -417,10 +413,7 @@ MainMap.prototype.clusterOrganisations = function(organisations) {
     });
   }
   else if (clusterByDistance) {
-    while (!finishedClustering && iterations < maxIterations) {
-      finishedClustering = true;
-      iterations++;
-
+    var calculateClusters = function(clusters) {
       clusters.forEach(function(cluster1, clusterIndex1) {
         clusters.forEach(function(cluster2, clusterIndex2) {
           if (clusterIndex1 !== clusterIndex2) {
@@ -439,12 +432,29 @@ MainMap.prototype.clusterOrganisations = function(organisations) {
         });
       });
 
-      clusters = clusters.filter(function(cluster){
+      return clusters;
+    };
+
+    var filterEmpty = function(clusters) {
+      return clusters.filter(function(cluster){
         return cluster.organisations.length > 0;
-      }).map(function(cluster) {
+      });
+    };
+
+    var updateCenters = function(clusters) {
+      return clusters.map(function(cluster) {
         cluster.center = calcCenter(cluster.organisations);
         return cluster;
       });
+    };
+
+    while (!finishedClustering && iterations < maxIterations) {
+      finishedClustering = true;
+      iterations++;
+
+      clusters = calculateClusters(clusters);
+      clusters = filterEmpty(clusters);
+      clusters = updateCenters(clusters);
     }
   }
 
@@ -452,7 +462,26 @@ MainMap.prototype.clusterOrganisations = function(organisations) {
 };
 
 MainMap.prototype.updateOrgByIdPositions = function() {
-  var org, pos, filtered, orgCluster;
+  var org, pos, orgCluster;
+
+  var findOrgInClusters = function(org, clusters) {
+    var found;
+
+    return clusters.reduce(function(memo, cluster) {
+      found = false;
+
+      if (!memo) {
+        found = cluster.organisations.reduce(function(memo, clusterOrg) {
+          if (!memo) { memo = (clusterOrg.org === org); }
+          return memo;
+        }, false);
+      }
+
+      if (found) { memo = cluster; }
+
+      return memo;
+    }, null);
+  };
 
   for (org in this.organisationsById) {
     if (this.organisationsById.hasOwnProperty(org)) {
@@ -460,24 +489,8 @@ MainMap.prototype.updateOrgByIdPositions = function() {
       this.organisationsById[org].x = pos.x;
       this.organisationsById[org].y = pos.y;
 
-      orgCluster = this.clusters.reduce(function(memo, cluster) {
-        found = false;
-
-        if (!memo) {
-          found = cluster.organisations.reduce(function(memo, clusterOrg) {
-            if (!memo) { memo = (clusterOrg.org === org) }
-            return memo;
-          }, false);
-        }
-
-        if (found) { memo = cluster; }
-
-        return memo;
-      }, null);
-
-      if (orgCluster) {
-        this.organisationsById[org].center = orgCluster.center;
-      }
+      orgCluster = findOrgInClusters(org, this.clusters);
+      if (orgCluster) { this.organisationsById[org].center = orgCluster.center; }
     }
   }
 };
@@ -488,12 +501,12 @@ MainMap.prototype.updateCaseStudiesTitle = function() {
   if (filters.length > 0) {
     title += ' from ';
     title += filters.map(function(filter) {
-      if (filter.property == 'areaOfDigitalSocialInnovation') return VizConfig.dsiAreasById[filter.id].title.replace('<br/>', '');
-      if (filter.property == 'technologyFocus') return VizConfig.technologyFocusesById[filter.id].title;
+      if (filter.property === 'areaOfDigitalSocialInnovation') { return VizConfig.dsiAreasById[filter.id].title.replace('<br/>', ''); }
+      if (filter.property === 'technologyFocus') { return VizConfig.technologyFocusesById[filter.id].title; }
     }).join(', ');
     d3.select('#caseStudiesTitle').text(title);
   }
-}
+};
 
 MainMap.prototype.showOrganisations = function() {
   var filteredOrganisations = this.filterOrganisations();
@@ -503,7 +516,6 @@ MainMap.prototype.showOrganisations = function() {
 
   var hexDisplayZoom = 10;
   var data;
-  var clusters, hexes;
 
   if (this.map.getZoom() >= hexDisplayZoom) {
     data = this.clusters.reduce(function(memo, cluster) {
@@ -632,8 +644,8 @@ MainMap.prototype.drawHexes = function(selection, data, settings) {
     .selectAll('g.' + className)
     .data(data.map(function(hex) {
       var org = hex.organisations[0];
-      var orgCenter = org.center ? org.center : { x: org.x, y: org.y };
-      var pos = hex.center ? hex.center : orgCenter;
+      var orgCenter = org.center || { x: org.x, y: org.y };
+      var pos = hex.center || orgCenter;
 
       return {
         organisations: hex.organisations,
@@ -730,7 +742,12 @@ MainMap.prototype.handleMouse = function(selection, settings) {
   var defaultViewBox = this.defaultViewBox;
   var handleMouse = this.handleMouse.bind(this);
 
+  var isPreloading = function() { return this.preloader.is(":visible"); }.bind(this);
+  var setSelectedOrg = function(org) { this.selectedOrg = org; }.bind(this);
+
   selection.on('click', function(cluster) {
+    if (isPreloading()) { return; }
+
     d3.event.preventDefault();
     d3.event.stopPropagation();
 
@@ -739,15 +756,16 @@ MainMap.prototype.handleMouse = function(selection, settings) {
     if (selectedClass !== "hex-cluster") {
       showClusterNetwork(cluster);
 
-      var isSingleOrganisationCluster = (fromCluster && cluster.organisations.length === 1);
-      var isNetworkHex = (selectedClass === "hex-network");
+      var isMultipleOrganisationCluster = (fromCluster && cluster.organisations.length > 1);
 
       // draw hex if selected item is single organisation
-      if (isNetworkHex || isSingleOrganisationCluster) {
+      if (!isMultipleOrganisationCluster) {
+        setSelectedOrg(cluster.organisations[0].org);
         var hexes = drawHexes(DOM.selectedHexGroup, [ cluster ], { fromCluster: true });
         handleMouse(hexes);
       }
       else {
+        setSelectedOrg();
         DOM.selectedHexGroup.selectAll(".hex-cluster").remove();
       }
     }
@@ -795,6 +813,8 @@ MainMap.prototype.handleMouse = function(selection, settings) {
   });
 
   selection.on('mouseover', function(cluster) {
+    if (isPreloading()) { return; }
+
     VizConfig.tooltip.show();
 
     var maxOrgCount = 6;
@@ -812,11 +832,11 @@ MainMap.prototype.handleMouse = function(selection, settings) {
     }
 
     VizConfig.tooltip.html(html);
-  }.bind(this));
+  });
 
   selection.on('mouseout', function() {
     VizConfig.tooltip.hide();
-  }.bind(this));
+  });
 };
 
 MainMap.prototype.showClusterNetwork = function(cluster) {
@@ -840,7 +860,7 @@ MainMap.prototype.showClusterNetwork = function(cluster) {
 
       var orgInCluster = function(org, cluster) {
         return cluster.organisations.reduce(function(memo, o) {
-          if (!memo) { memo = (o.org === org) }
+          if (!memo) { memo = (o.org === org); }
           return memo;
         }, false);
       };
@@ -907,7 +927,7 @@ MainMap.prototype.showClusterNetwork = function(cluster) {
         .attr('x1', function(d) { return d.cluster.center.x; })
         .attr('y1', function(d) { return d.cluster.center.y; })
         .attr('x2', function(d) { return d.collaborator.center.x; })
-        .attr('y2', function(d) { return d.collaborator.center.y; })
+        .attr('y2', function(d) { return d.collaborator.center.y; });
 
       networkPaths
         .exit()

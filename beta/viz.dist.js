@@ -2075,7 +2075,7 @@ function VizKey(open) {
   var updateFilters = this.updateFilters.bind(this);
 
   VizConfig.dsiAreas.map(function(dsiArea, dsiAreaIndex) {
-    var areaLink = $('<a style="color2:' + dsiArea.color + '"><img src="' + dsiArea.icon + '" height="10"/><span>' + dsiArea.title + '</span></a>');
+    var areaLink = $('<a class="filterLink ' + dsiArea.id + '"><span>' + dsiArea.title + '</span></a>');
     areaLink.on('mouseover', function() {
       VizConfig.tooltip.show();
       VizConfig.tooltip.html('<h4>' + dsiArea.title +'</h4>' + dsiArea.info);
@@ -2097,7 +2097,7 @@ function VizKey(open) {
   sideBar.append($('<h3>' + techTitle + '</h3>'));
 
   VizConfig.technologyFocuses.map(function(technologyFocus, technologyFocusIndex) {
-    var technologyLink = $('<a><img src="' + technologyFocus.icon + '" height="12"/><span>' + technologyFocus.title + '</span></a>');
+    var technologyLink = $('<a class="filterLink ' + technologyFocus.id + '"><span>' + technologyFocus.title + '</span></a>');
     technologyLink.on('mouseover', function() {
       VizConfig.tooltip.show();
       VizConfig.tooltip.html('<h4>' + technologyFocus.title +'</h4>' + technologyFocus.info);
@@ -2158,10 +2158,6 @@ VizKey.prototype.getActiveFilters = function() {
 
 var MainMap = (function() {
 
-// function hsla(h, s, l, a) {
-//   return 'hsla(' + h + ',' + 100 * s + '%,' + 100 * l + '%,' + a + ')';
-// }
-
 function resultValuesToObj(result) {
   var o = {};
   var prop;
@@ -2213,7 +2209,7 @@ MainMap.prototype.initSVG = function() {
   $('#map').css({ 'width': this.w, 'height': this.h });
 
   var scale  = 4;
-  var center = [50, -17];
+  var center = [50, -0];
   this.showWorldMap(center, scale);
 
   this.DOM.svg = d3.select("#map")
@@ -2445,6 +2441,7 @@ MainMap.prototype.buildViz = function() {
   VizConfig.events.addEventListener('filter', function() {
     this.showOrganisations();
     this.showClusterNetwork();
+    this.updateCaseStudiesTitle();
   }.bind(this));
 
   //this.showIsoLines(svg, this.DOM.g, organisations, w, h, zoom);
@@ -2492,13 +2489,16 @@ MainMap.prototype.filterOrganisations = function() {
   var filteredOrganisations = this.organisations;
   var color = '#000000';
 
-  VizConfig.vizKey.getActiveFilters().forEach(function(filter) {
+  var filters = VizConfig.vizKey.getActiveFilters();
+  var numAreasOfDsi = filters.reduce(function(sum, filter) { return sum + ((filter.property === 'areaOfDigitalSocialInnovation') ? 1 : 0); }, 0);
+
+  filters.forEach(function(filter) {
     filteredOrganisations = filteredOrganisations.filter(function(org) {
       var value = org[filter.property] || '';
       return value.indexOf(filter.id) !== -1;
     });
 
-    if (filter.property === 'areaOfDigitalSocialInnovation') {
+    if (filter.property === 'areaOfDigitalSocialInnovation' && numAreasOfDsi === 1) {
       color = VizConfig.dsiAreasById[filter.id].color;
     }
   });
@@ -2515,8 +2515,8 @@ MainMap.prototype.clusterOrganisations = function(organisations) {
   var finishedClustering = false;
 
   var currentZoom = this.map.getZoom();
-  var clusterByCountry = currentZoom < 7;
-  var clusterByDistance = 7 <= currentZoom && currentZoom < 13;
+  var clusterByCountry = currentZoom < 6;
+  var clusterByDistance = 6 <= currentZoom && currentZoom < 13;
 
   var calcDist = function(a, b) {
     var xd = (b.x - a.x);
@@ -2569,10 +2569,7 @@ MainMap.prototype.clusterOrganisations = function(organisations) {
     });
   }
   else if (clusterByDistance) {
-    while (!finishedClustering && iterations < maxIterations) {
-      finishedClustering = true;
-      iterations++;
-
+    var calculateClusters = function(clusters) {
       clusters.forEach(function(cluster1, clusterIndex1) {
         clusters.forEach(function(cluster2, clusterIndex2) {
           if (clusterIndex1 !== clusterIndex2) {
@@ -2591,12 +2588,29 @@ MainMap.prototype.clusterOrganisations = function(organisations) {
         });
       });
 
-      clusters = clusters.filter(function(cluster){
+      return clusters;
+    };
+
+    var filterEmpty = function(clusters) {
+      return clusters.filter(function(cluster){
         return cluster.organisations.length > 0;
-      }).map(function(cluster) {
+      });
+    };
+
+    var updateCenters = function(clusters) {
+      return clusters.map(function(cluster) {
         cluster.center = calcCenter(cluster.organisations);
         return cluster;
       });
+    };
+
+    while (!finishedClustering && iterations < maxIterations) {
+      finishedClustering = true;
+      iterations++;
+
+      clusters = calculateClusters(clusters);
+      clusters = filterEmpty(clusters);
+      clusters = updateCenters(clusters);
     }
   }
 
@@ -2604,7 +2618,26 @@ MainMap.prototype.clusterOrganisations = function(organisations) {
 };
 
 MainMap.prototype.updateOrgByIdPositions = function() {
-  var org, pos, filtered, orgCluster;
+  var org, pos, orgCluster;
+
+  var findOrgInClusters = function(org, clusters) {
+    var found;
+
+    return clusters.reduce(function(memo, cluster) {
+      found = false;
+
+      if (!memo) {
+        found = cluster.organisations.reduce(function(memo, clusterOrg) {
+          if (!memo) { memo = (clusterOrg.org === org); }
+          return memo;
+        }, false);
+      }
+
+      if (found) { memo = cluster; }
+
+      return memo;
+    }, null);
+  };
 
   for (org in this.organisationsById) {
     if (this.organisationsById.hasOwnProperty(org)) {
@@ -2612,25 +2645,22 @@ MainMap.prototype.updateOrgByIdPositions = function() {
       this.organisationsById[org].x = pos.x;
       this.organisationsById[org].y = pos.y;
 
-      orgCluster = this.clusters.reduce(function(memo, cluster) {
-        found = false;
-
-        if (!memo) {
-          found = cluster.organisations.reduce(function(memo, clusterOrg) {
-            if (!memo) { memo = (clusterOrg.org === org) }
-            return memo;
-          }, false);
-        }
-
-        if (found) { memo = cluster; }
-
-        return memo;
-      }, null);
-
-      if (orgCluster) {
-        this.organisationsById[org].center = orgCluster.center;
-      }
+      orgCluster = findOrgInClusters(org, this.clusters);
+      if (orgCluster) { this.organisationsById[org].center = orgCluster.center; }
     }
+  }
+};
+
+MainMap.prototype.updateCaseStudiesTitle = function() {
+  var filters = VizConfig.vizKey.getActiveFilters();
+  var title = VizConfig.text.caseStudiesTitle;
+  if (filters.length > 0) {
+    title += ' from ';
+    title += filters.map(function(filter) {
+      if (filter.property === 'areaOfDigitalSocialInnovation') { return VizConfig.dsiAreasById[filter.id].title.replace('<br/>', ''); }
+      if (filter.property === 'technologyFocus') { return VizConfig.technologyFocusesById[filter.id].title; }
+    }).join(', ');
+    d3.select('#caseStudiesTitle').text(title);
   }
 };
 
@@ -2642,7 +2672,6 @@ MainMap.prototype.showOrganisations = function() {
 
   var hexDisplayZoom = 10;
   var data;
-  var clusters, hexes;
 
   if (this.map.getZoom() >= hexDisplayZoom) {
     data = this.clusters.reduce(function(memo, cluster) {
@@ -2708,7 +2737,7 @@ MainMap.prototype.drawClusters = function(selection, data, color) {
     .attr('stroke', color)
     .attr('opacity', 0.5)
     .attr('r', function(d) {
-      return d.organisations.length > 1 ? 12 : 5;
+      return d.organisations.length > 1 ? 12 + Math.sqrt(d.organisations.length) : 5;
     });
 
   groupTransform
@@ -2771,8 +2800,8 @@ MainMap.prototype.drawHexes = function(selection, data, settings) {
     .selectAll('g.' + className)
     .data(data.map(function(hex) {
       var org = hex.organisations[0];
-      var orgCenter = org.center ? org.center : { x: org.x, y: org.y };
-      var pos = hex.center ? hex.center : orgCenter;
+      var orgCenter = org.center || { x: org.x, y: org.y };
+      var pos = hex.center || orgCenter;
 
       return {
         organisations: hex.organisations,
@@ -2806,6 +2835,16 @@ MainMap.prototype.drawHex = function(selection, data) {
     ];
   };
 
+  var hexBorder = function(x, y, r, i) {
+    var a = i/6 * Math.PI * 2 + Math.PI/6;
+    var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
+    return [
+      [x + r * Math.cos(a), y + r * Math.sin(a)],
+      [x + r * Math.cos(a), y + r * Math.sin(a)],
+      [x + r * Math.cos(na), y + r * Math.sin(na)]
+    ];
+  };
+
   var hex = selection.append("g").attr("class", "hex");
 
   fn.sequence(0, 6).forEach(function(i) {
@@ -2815,8 +2854,19 @@ MainMap.prototype.drawHex = function(selection, data) {
       .attr("d", function() {
         return "M" + hexBite(data.x, data.y, data.r, i).join("L") + "Z";
       })
-      .attr("stroke", "#666")
+      //.attr("stroke", "#666")
       .attr("fill", "#FFF");
+  }.bind(this));
+
+  fn.sequence(0, 6).forEach(function(i) {
+    var bite = hex.append("path");
+
+    bite
+      .attr("d", function() {
+        return "M" + hexBorder(data.x, data.y, data.r, i).join("L") + "Z";
+      })
+      .attr("stroke", "#666")
+      .attr("fill", "none");
   }.bind(this));
 
   // fill hex only if data is passed
@@ -2848,7 +2898,12 @@ MainMap.prototype.handleMouse = function(selection, settings) {
   var defaultViewBox = this.defaultViewBox;
   var handleMouse = this.handleMouse.bind(this);
 
+  var isPreloading = function() { return this.preloader.is(":visible"); }.bind(this);
+  var setSelectedOrg = function(org) { this.selectedOrg = org; }.bind(this);
+
   selection.on('click', function(cluster) {
+    if (isPreloading()) { return; }
+
     d3.event.preventDefault();
     d3.event.stopPropagation();
 
@@ -2857,15 +2912,16 @@ MainMap.prototype.handleMouse = function(selection, settings) {
     if (selectedClass !== "hex-cluster") {
       showClusterNetwork(cluster);
 
-      var isSingleOrganisationCluster = (fromCluster && cluster.organisations.length === 1);
-      var isNetworkHex = (selectedClass === "hex-network");
+      var isMultipleOrganisationCluster = (fromCluster && cluster.organisations.length > 1);
 
       // draw hex if selected item is single organisation
-      if (isNetworkHex || isSingleOrganisationCluster) {
+      if (!isMultipleOrganisationCluster) {
+        setSelectedOrg(cluster.organisations[0].org);
         var hexes = drawHexes(DOM.selectedHexGroup, [ cluster ], { fromCluster: true });
         handleMouse(hexes);
       }
       else {
+        setSelectedOrg();
         DOM.selectedHexGroup.selectAll(".hex-cluster").remove();
       }
     }
@@ -2913,6 +2969,8 @@ MainMap.prototype.handleMouse = function(selection, settings) {
   });
 
   selection.on('mouseover', function(cluster) {
+    if (isPreloading()) { return; }
+
     VizConfig.tooltip.show();
 
     var maxOrgCount = 6;
@@ -2930,11 +2988,11 @@ MainMap.prototype.handleMouse = function(selection, settings) {
     }
 
     VizConfig.tooltip.html(html);
-  }.bind(this));
+  });
 
   selection.on('mouseout', function() {
     VizConfig.tooltip.hide();
-  }.bind(this));
+  });
 };
 
 MainMap.prototype.showClusterNetwork = function(cluster) {
@@ -2958,7 +3016,7 @@ MainMap.prototype.showClusterNetwork = function(cluster) {
 
       var orgInCluster = function(org, cluster) {
         return cluster.organisations.reduce(function(memo, o) {
-          if (!memo) { memo = (o.org === org) }
+          if (!memo) { memo = (o.org === org); }
           return memo;
         }, false);
       };
@@ -3025,7 +3083,7 @@ MainMap.prototype.showClusterNetwork = function(cluster) {
         .attr('x1', function(d) { return d.cluster.center.x; })
         .attr('y1', function(d) { return d.cluster.center.y; })
         .attr('x2', function(d) { return d.collaborator.center.x; })
-        .attr('y2', function(d) { return d.collaborator.center.y; })
+        .attr('y2', function(d) { return d.collaborator.center.y; });
 
       networkPaths
         .exit()
@@ -4173,6 +4231,10 @@ else {
   VizConfig.assetsPath = 'assets';
 }
 
+VizConfig.text = {
+  caseStudiesTitle: 'Case Studies'
+}
+
 VizConfig.dsiAreas = [
   { title: 'Funding acceleration<br/> and incubation', id: 'funding-acceleration-and-incubation', color: '#FDE302', icon: VizConfig.assetsPath + '/triangle-funding-acceleration-and-incubation.png', label: 'Funding Acceleration and Incubation' },
   { title: 'Collaborative economy', id: 'collaborative-economy', color: '#A6CE39', icon: VizConfig.assetsPath + '/triangle-collaborative-economy.png', label: 'Collaborative Economy' },
@@ -4323,7 +4385,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
   }
 
   function initCaseStudies(vizContainer) {
-    var caseStudiesTitle = $('<h1>Case Studies</h1>');
+    var caseStudiesTitle = $('<h1 id="caseStudiesTitle">Case Studies</h1>');
     vizContainer.append(caseStudiesTitle);
 
     var caseStudiesViz = $('<div id="caseStudiesViz"></div>');
