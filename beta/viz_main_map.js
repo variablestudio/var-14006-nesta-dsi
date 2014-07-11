@@ -695,6 +695,16 @@ MainMap.prototype.drawHex = function(selection, data) {
     ];
   };
 
+  var hexBorder = function(x, y, r, i) {
+    var a = i/6 * Math.PI * 2 + Math.PI/6;
+    var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
+    return [
+      [x + r * Math.cos(a), y + r * Math.sin(a)],
+      [x + r * Math.cos(a), y + r * Math.sin(a)],
+      [x + r * Math.cos(na), y + r * Math.sin(na)]
+    ];
+  };
+
   var hex = selection.append("g").attr("class", "hex");
 
   fn.sequence(0, 6).forEach(function(i) {
@@ -704,8 +714,19 @@ MainMap.prototype.drawHex = function(selection, data) {
       .attr("d", function() {
         return "M" + hexBite(data.x, data.y, data.r, i).join("L") + "Z";
       })
-      .attr("stroke", "#666")
+      //.attr("stroke", "#666")
       .attr("fill", "#FFF");
+  }.bind(this));
+
+  fn.sequence(0, 6).forEach(function(i) {
+    var bite = hex.append("path");
+
+    bite
+      .attr("d", function() {
+        return "M" + hexBorder(data.x, data.y, data.r, i).join("L") + "Z";
+      })
+      .attr("stroke", "#666")
+      .attr("fill", "none");
   }.bind(this));
 
   // fill hex only if data is passed
