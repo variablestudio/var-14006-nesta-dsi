@@ -2234,7 +2234,7 @@ MainMap.prototype.hijackSearch = function() {
     });
 
     if (foundOrgs.length > 0) {
-			// TODO: show cluster on search
+      // TODO: show cluster on search
       this.showNetwork(foundOrgs[0].org);
     }
 
@@ -2419,7 +2419,10 @@ MainMap.prototype.buildViz = function() {
   }, {});
 
   this.showOrganisations();
-  VizConfig.events.addEventListener('filter', this.showOrganisations.bind(this));
+  VizConfig.events.addEventListener('filter', function() {
+    this.showOrganisations();
+    this.showClusterNetwork();
+  }.bind(this));
 
   //this.showIsoLines(svg, this.DOM.g, organisations, w, h, zoom);
 };
@@ -2443,11 +2446,10 @@ MainMap.prototype.showWorldMap = function(center, scale) {
   this.map.on("viewreset", function() {
     VizConfig.popup.close();
 
-    // unfortunately no other way to update clustered organisations
-    this.DOM.orgGroup.selectAll('circle.org').remove();
+    // update organisations
     this.showOrganisations(this.organisations);
 
-    // re-draw clusters
+    // update clusters
     this.showClusterNetwork();
   }.bind(this));
 
@@ -2618,209 +2620,144 @@ MainMap.prototype.showOrganisations = function() {
   if (this.map.getZoom() >= hexDisplayZoom) {
     data = this.clusters.reduce(function(memo, cluster) {
       if (cluster.organisations.length > 1) {
-        memo.circles.push(cluster);
+        memo.clusters.push(cluster);
       }
       else if (cluster.organisations[0]) {
         memo.hexes.push(cluster);
       }
 
       return memo;
-    }, { hexes: [], circles: [] });
+    }, { hexes: [], clusters: [] });
   }
   else {
-    data = { hexes: [], circles: this.clusters };
+    data = { hexes: [], clusters: this.clusters };
   }
 
-  var drawClusters = function() {
-    clusters = this.DOM.orgGroup
-      .selectAll('g.org')
-      .data(data.circles);
+  // draw clusters and hexes
+  var clusters = this.drawClusters(this.DOM.orgGroup, data.clusters, color);
+  var hexes = this.drawHexes(this.DOM.orgGroup, data.hexes);
 
-    var groupEnter = clusters
-      .enter()
-      .append('g')
-      .attr('class', 'org')
-      .attr('transform', function(d) {
-        return "translate(" + d.center.x + "," + d.center.y + ")";
-      });
+  // act on mouse
+  this.handleMouse(clusters, "clusters");
+  this.handleMouse(hexes, "hexes");
+};
 
-    groupEnter
-      .append('circle')
-      .attr('r', 0);
+MainMap.prototype.drawClusters = function(selection, data, color) {
+  var clusters = selection
+    .selectAll('g.org')
+    .data(data);
 
-    groupEnter
-      .append('text')
-      .attr('text-anchor', 'middle')
-      .attr('dx', 0)
-      .attr('dy', 3)
-      .attr('fill', '#fff')
-      .attr('font-size', '11px')
-      .text('');
+  var groupEnter = clusters
+    .enter()
+    .append('g')
+    .attr('class', 'org')
+    .attr('transform', function(d) {
+      return "translate(" + d.center.x + "," + d.center.y + ")";
+    });
 
-    var groupTransform = clusters
-      .attr('transform', function(d) {
-        return "translate(" + d.center.x + "," + d.center.y + ")";
-      });
+  groupEnter
+    .append('circle')
+    .attr('r', 0);
 
-    groupTransform
-      .select("circle")
-      .transition()
-      .duration(300)
-      .attr('fill', color)
-      .attr('stroke', color)
-      .attr('opacity', 0.5)
-      .attr('r', function(d) {
-        return d.organisations.length > 1 ? 12 : 5;
-      });
+  groupEnter
+    .append('text')
+    .attr('text-anchor', 'middle')
+    .attr('dx', 0)
+    .attr('dy', 3)
+    .attr('fill', '#fff')
+    .attr('font-size', '11px')
+    .text('');
 
-    groupTransform
-      .select("text")
-      .transition()
-      .text(function(d) {
-        return d.organisations.length > 1 ? d.organisations.length : '';
-      });
+  var groupTransform = clusters
+    .attr('transform', function(d) {
+      return "translate(" + d.center.x + "," + d.center.y + ")";
+    });
 
-    var groupExit = clusters.exit();
+  groupTransform
+    .select("circle")
+    .transition()
+    .duration(300)
+    .attr('fill', color)
+    .attr('stroke', color)
+    .attr('opacity', 0.5)
+    .attr('r', function(d) {
+      return d.organisations.length > 1 ? 12 : 5;
+    });
 
-    groupExit
-      .select('circle')
-      .transition()
-      .duration(300)
-      .attr('r', 0);
+  groupTransform
+    .select("text")
+    .transition()
+    .text(function(d) {
+      return d.organisations.length > 1 ? d.organisations.length : '';
+    });
 
-    groupExit
-      .select('text')
-      .transition()
-      .duration(300)
-      .attr("opacity", 0);
+  var groupExit = clusters.exit();
 
-    groupExit
-      .transition()
-      .duration(300)
-      .remove();
-  };
+  groupExit
+    .select('circle')
+    .transition()
+    .duration(300)
+    .attr('r', 0);
 
-  var drawHexes = function() {
-    var hexR = 20;
-    var drawHex = this.drawHex;
+  groupExit
+    .select('text')
+    .transition()
+    .duration(300)
+    .attr("opacity", 0);
 
-    var countDataForHex = function(data) {
-      return data.projects ? data.projects.reduce(function(memo, project) {
-        project.areaOfDigitalSocialInnovation.forEach(function(area) {
-          if (memo[area]) {
-            memo[area]++;
-          }
-          else {
-            memo[area] = 1;
-          }
-        });
-        return memo;
-      }, {}) : null;
-    };
+  groupExit
+    .transition()
+    .duration(300)
+    .remove();
 
-    this.DOM.orgGroup.selectAll('g.hex').remove();
+  return clusters;
+};
 
-    hexes = this.DOM.orgGroup
-      .selectAll('g.hex')
-      .data(data.hexes.map(function(hex) {
-        var org = hex.organisations[0];
+MainMap.prototype.drawHexes = function(selection, data) {
+  var hexR = 20;
+  var drawHex = this.drawHex;
 
-        return {
-          organisations: hex.organisations,
-          r: hexR,
-          x: org.x,
-          y: org.y,
-          center: { x: org.x, y: org.y },
-          counts: countDataForHex(hex.organisations[0])
-        };
-      }));
-
-    hexes.enter()
-      .append('g')
-      .attr('class', 'hex')
-      .each(function(d) {
-        drawHex(d3.select(this), d);
-      });
-
-    hexes.exit().remove();
-  };
-
-  var handleMouse = function(selection) {
-    selection.on('click', function(cluster) {
-      d3.event.preventDefault();
-      d3.event.stopPropagation();
-
-      this.showClusterNetwork(cluster);
-
-      var maxOrgCount = 3;
-      var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
-      var organisations = cluster.organisations;
-
-      if (cutOrganisationsCount) { organisations = organisations.slice(0, maxOrgCount); }
-
-      var popupHTML = organisations.map(function(organization) {
-        var url = 'http://digitalsocial.eu/organisations/';
-        url += organization.org.substr(organization.org.lastIndexOf('/') + 1);
-        var popupContent = '<h4><a href="' + url + '">'+organization.label+'</a></h4>';
-        popupContent += '<span>' + organization.street + ", " + organization.city + ", " + organization.country + '</span>';
-
-        if (organization.projects) {
-          popupContent += 'Projects:';
-
-          organization.projects.forEach(function(project) {
-            var projectUrl = 'http://digitalsocial.eu/projects/' + project.p.substr(project.p.lastIndexOf('/')+1);
-            popupContent += '<a href="' + projectUrl + '">'+project.label+'</a>';
-          });
+  var countDataForHex = function(data) {
+    return data.projects ? data.projects.reduce(function(memo, project) {
+      project.areaOfDigitalSocialInnovation.forEach(function(area) {
+        if (memo[area]) {
+          memo[area]++;
         }
-
-        return popupContent;
-      }.bind(this)).join("<br/>");
-
-      if (cutOrganisationsCount) {
-        popupHTML += "<br/><div style='text-align:center'>...</div>";
-      }
-
-      VizConfig.popup.html($(popupHTML));
-
-      var windowOffset = $("#map").offset();
-      var viewBox = d3.select("#map").select("svg").attr("viewBox").split(" ").map(function(v) { return +v; });
-
-      var dx = windowOffset.left + this.defaultViewBox[0] - viewBox[0];
-      var dy = windowOffset.top + this.defaultViewBox[1] - viewBox[1];
-
-      VizConfig.popup.open(cluster.center.x, cluster.center.y - 8, dx, dy);
-    }.bind(this));
-
-    selection.on('mouseover', function(cluster) {
-      VizConfig.tooltip.show();
-
-      var maxOrgCount = 6;
-      var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
-      var organisations = cluster.organisations;
-
-      if (cutOrganisationsCount) {
-        organisations = organisations.slice(0, maxOrgCount);
-      }
-
-      var html = organisations.map(function(o) { return o.label; }).join("<br/>");
-
-      if (cutOrganisationsCount) {
-        html += "<br/>...";
-      }
-
-      VizConfig.tooltip.html(html);
-    }.bind(this));
-
-    selection.on('mouseout', function() {
-      VizConfig.tooltip.hide();
-    }.bind(this));
+        else {
+          memo[area] = 1;
+        }
+      });
+      return memo;
+    }, {}) : null;
   };
 
-  drawClusters.call(this);
-  drawHexes.call(this);
+  this.DOM.orgGroup.selectAll('g.hex').remove();
 
-  handleMouse.call(this, clusters);
-  handleMouse.call(this, hexes);
+  var hexes = selection
+    .selectAll('g.hex')
+    .data(data.map(function(hex) {
+      var org = hex.organisations[0];
+
+      return {
+        organisations: hex.organisations,
+        r: hexR,
+        x: org.x,
+        y: org.y,
+        center: { x: org.x, y: org.y },
+        counts: countDataForHex(hex.organisations[0])
+      };
+    }));
+
+  hexes.enter()
+    .append('g')
+    .attr('class', 'hex')
+    .each(function(d) {
+      drawHex(d3.select(this), d);
+    });
+
+  hexes.exit().remove();
+
+  return hexes;
 };
 
 MainMap.prototype.drawHex = function(selection, data) {
@@ -2867,6 +2804,79 @@ MainMap.prototype.drawHex = function(selection, data) {
   }
 };
 
+MainMap.prototype.handleMouse = function(selection, type) {
+  selection.on('click', function(cluster) {
+    d3.event.preventDefault();
+    d3.event.stopPropagation();
+
+    // TODO: check if cluster with single organisation and turn it into hex
+
+    this.showClusterNetwork(cluster);
+
+    var maxOrgCount = 3;
+    var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
+    var organisations = cluster.organisations;
+
+    if (cutOrganisationsCount) { organisations = organisations.slice(0, maxOrgCount); }
+
+    var popupHTML = organisations.map(function(organization) {
+      var url = 'http://digitalsocial.eu/organisations/';
+      url += organization.org.substr(organization.org.lastIndexOf('/') + 1);
+      var popupContent = '<h4><a href="' + url + '">'+organization.label+'</a></h4>';
+      popupContent += '<span>' + organization.street + ", " + organization.city + ", " + organization.country + '</span>';
+
+      if (organization.projects) {
+        popupContent += 'Projects:';
+
+        organization.projects.forEach(function(project) {
+          var projectUrl = 'http://digitalsocial.eu/projects/' + project.p.substr(project.p.lastIndexOf('/')+1);
+          popupContent += '<a href="' + projectUrl + '">'+project.label+'</a>';
+        });
+      }
+
+      return popupContent;
+    }.bind(this)).join("<br/>");
+
+    if (cutOrganisationsCount) {
+      popupHTML += "<br/><div style='text-align:center'>...</div>";
+    }
+
+    VizConfig.popup.html($(popupHTML));
+
+    var windowOffset = $("#map").offset();
+    var viewBox = d3.select("#map").select("svg").attr("viewBox").split(" ").map(function(v) { return +v; });
+
+    var dx = windowOffset.left + this.defaultViewBox[0] - viewBox[0];
+    var dy = windowOffset.top + this.defaultViewBox[1] - viewBox[1];
+
+    VizConfig.popup.open(cluster.center.x, cluster.center.y - 8, dx, dy);
+  }.bind(this));
+
+  selection.on('mouseover', function(cluster) {
+    VizConfig.tooltip.show();
+
+    var maxOrgCount = 6;
+    var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
+    var organisations = cluster.organisations;
+
+    if (cutOrganisationsCount) {
+      organisations = organisations.slice(0, maxOrgCount);
+    }
+
+    var html = organisations.map(function(o) { return o.label; }).join("<br/>");
+
+    if (cutOrganisationsCount) {
+      html += "<br/>...";
+    }
+
+    VizConfig.tooltip.html(html);
+  }.bind(this));
+
+  selection.on('mouseout', function() {
+    VizConfig.tooltip.hide();
+  }.bind(this));
+};
+
 MainMap.prototype.showClusterNetwork = function(cluster) {
   // cache current cluster
   if (cluster) {
@@ -2886,22 +2896,33 @@ MainMap.prototype.showClusterNetwork = function(cluster) {
         return memo;
       }, []);
 
+      var orgInCluster = function(org, cluster) {
+        return cluster.organisations.reduce(function(memo, o) {
+          if (!memo) { memo = (o.org === org) }
+          return memo;
+        }, false);
+      };
+
       // find collaborators working on the same projects
       var collaborators = projects.reduce(function(memo, project) {
         collaborations.byProject[project].forEach(function(member) {
           var alreadyInMemo = memo.indexOf(member) >= 0;
-          var wasInCluster = cluster.organisations.reduce(function(memo, org) {
-            if (!memo) { memo = (org.org === member) }
+
+          var wasInCluster = orgInCluster(member, cluster);
+
+          // additional check for filters
+          var isInClusters = this.clusters.reduce(function(memo, cluster) {
+            if (!memo) { memo = orgInCluster(member, cluster); }
             return memo;
           }, false);
 
-          if (!alreadyInMemo && !wasInCluster) {
+          if (!alreadyInMemo && !wasInCluster && isInClusters) {
             memo.push(member);
           }
-        });
+        }.bind(this));
 
         return memo;
-      }, []);
+      }.bind(this), []);
 
       this.updateOrgByIdPositions();
 
