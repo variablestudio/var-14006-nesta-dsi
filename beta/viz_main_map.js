@@ -770,9 +770,11 @@ MainMap.prototype.handleMouse = function(selection, settings) {
       }
     }
 
-    var maxOrgCount = 3;
+    var maxOrgCount = 6;
+    var maxProjectCount = 3;
     var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
     var organisations = cluster.organisations;
+    var isSingleOrganisation = cluster.organisations.length === 1;
 
     if (cutOrganisationsCount) { organisations = organisations.slice(0, maxOrgCount); }
 
@@ -780,15 +782,30 @@ MainMap.prototype.handleMouse = function(selection, settings) {
       var url = 'http://digitalsocial.eu/organisations/';
       url += organization.org.substr(organization.org.lastIndexOf('/') + 1);
       var popupContent = '<h4><a href="' + url + '">'+organization.label+'</a></h4>';
-      popupContent += '<span>' + organization.street + ", " + organization.city + ", " + organization.country + '</span>';
 
-      if (organization.projects) {
+      if (isSingleOrganisation) {
+        popupContent += '<span>';
+        popupContent += organization.street;
+        popupContent += ", " + organization.city;
+        popupContent += ", " + organization.country;
+        popupContent += '</span>';
+      }
+
+      if (organization.projects && isSingleOrganisation) {
         popupContent += 'Projects:';
 
-        organization.projects.forEach(function(project) {
+        var projects = organization.projects;
+        var cutProjectCount = projects.length > maxProjectCount;
+        if (cutProjectCount) { projects = projects.slice(0, maxProjectCount); }
+
+        projects.forEach(function(project) {
           var projectUrl = 'http://digitalsocial.eu/projects/' + project.p.substr(project.p.lastIndexOf('/')+1);
           popupContent += '<a href="' + projectUrl + '">'+project.label+'</a>';
         });
+
+        if (cutProjectCount) {
+          popupContent += "<div>...</div>";
+        }
       }
 
       return popupContent;
