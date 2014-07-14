@@ -18,14 +18,43 @@ d3.chart("IconChart", {
 
 					this
 						.attr("class", "icon")
-						.attr("xlink:href", chart.image())
+						.attr("xlink:href", function(d, i) {
+							var image = chart.image();
+
+							// if passed image array, cycle through each image
+							if (image instanceof Array) {
+								image = image[i % image.length];
+							}
+
+							return image;
+						})
 						.attr("width", chart.imageSize().width)
 						.attr("height", chart.imageSize().height)
 						.attr("x", function(d, i) {
-							return i % numPerRow * chart.imageSize().width;
+							var x = i % numPerRow * chart.imageSize().width;
+
+							// special hex layout
+							if (chart.layout() === "hex") {
+								if (Math.floor(i / numPerRow) % 2 === 0) {
+									x += chart.imageSize().width / 2;
+								}
+							}
+
+							return x;
 						})
 						.attr("y", function(d, i) {
-							return chart.height() - (Math.floor(i / numPerRow) + 1) * chart.imageSize().height;
+							var y = Math.floor(i / numPerRow) + 1;
+
+							// special hex layout
+							if (chart.layout() === "hex") {
+								y *= Math.ceil(chart.imageSize().height / 2) + 3;
+								y += chart.imageSize().height / 2;
+							}
+							else {
+								y *= chart.imageSize().height;
+							}
+
+							return chart.height() - y;
 						});
 				},
 
@@ -69,6 +98,15 @@ d3.chart("IconChart", {
 		}
 
 		this._imageSize = newImageSize;
+		return this;
+	},
+
+	layout: function(newLayout) {
+		if (!newLayout) {
+			return this._layout;
+		}
+
+		this._layout = newLayout;
 		return this;
 	}
 });

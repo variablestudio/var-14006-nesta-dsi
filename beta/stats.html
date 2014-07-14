@@ -28,7 +28,7 @@
 	<body>
 		<div id="mainStatsViz"></div>
 		<script>
-			var mainStats = new MainStats("#mainStatsViz");
+			var mainStats = new MainStats("#mainStatsViz", { minValue: 10 });
 			mainStats.draw();
 		</script>
 	</body>

@@ -143,11 +143,11 @@
 /*---------------------------------- main map -------------------------------------*/
 
 #map .leaflet-fullscreen-button {
-	background-image: url(assets/leaflet-fullscreen.png);
+  background-image: url(assets/leaflet-fullscreen.png);
 }
 
 #map .leaflet-center-button {
-	background-image: url(assets/leaflet-center.png);
+  background-image: url(assets/leaflet-center.png);
 }
 
 /*---------------------------------- carousel -------------------------------------*/
@@ -414,40 +414,46 @@
 
 #mainStatsViz {
   width: 994px;
-	margin: 0 auto;
+  margin: 0 auto;
+}
+
+#mainStatsViz .section {
+  position: relative;
+  overflow: auto;
 }
 
 #mainStatsViz div.title {
-	font-size: 24px;
-	margin-top: 10px;
-	margin-bottom: 6px;
+  font-size: 24px;
+  margin-top: 10px;
+  margin-bottom: 6px;
 }
 
 #mainStatsViz div.subtitle {
-	margin-bottom: 30px;
-	font-size: 18px;
-	color: #9B9B9B;
+  margin-bottom: 30px;
+  font-size: 18px;
+  color: #9B9B9B;
 }
 
 #mainStatsViz div.column {
-	float: left;
-	margin-bottom: 20px;
+  float: left;
+  margin-bottom: 20px;
 }
 
 #mainStatsViz svg {
-	display: block;
+  display: block;
 }
 
 #mainStatsViz div.count {
-	font-size: 24px;
-	margin-top: 16px;
-	margin-bottom: 6px;
+  font-size: 24px;
+  margin-top: 16px;
+  margin-bottom: 6px;
 }
 
 #mainStatsViz div.name {
-	overflow: hidden;
-	font-size: 16px;
-	color: #9B9B9B;
+  height: 50px;
+  overflow: hidden;
+  font-size: 16px;
+  color: #9B9B9B;
 }
 
 /*---------------------------------- key ----------------------------------------*/
