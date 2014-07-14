@@ -53,6 +53,38 @@ SPARQLDataSource.prototype.predicateValues = function(predicate) {
     .where('?o', predicate, '?s')
     .where('?s', 'rdfs:label', '?s_label')
     .execute().then(function(results) {
+      function map(list, fn) {
+        return list.map(fn);
+      }
+
+      function get(prop) {
+        return function(o) {
+          return o[prop];
+        }
+      }
+
+      function compose(a, b) {
+        return function() {
+          return b(a(arguments[0]));
+        }
+      }
+
+      function countValues(list) {
+        var o = {};
+        list.forEach(function(value) {
+          if (!o[value]) o[value] = 0;
+          o[value]++;
+        });
+        var result = [];
+        for(var value in o) {
+          result.push({ value: value, count: o[value] });
+        }
+        result.sort(function(a, b) {
+          return -(a.count - b.count);
+        })
+        return result;
+      }
+
       var values = map(results, compose(get('s_label'), get('value')));
       values.sort();
       deferred.resolve(countValues(values));

@@ -410,6 +410,24 @@
   padding-bottom: 10px;
 }
 
+/*---------------------------------- main stats ---------------------------------*/
+
+#mainStatsViz {
+  width: 994px;
+	margin: 0 auto;
+}
+
+#mainStatsViz div.column {
+	float: left;
+}
+
+#mainStatsViz svg {
+	display: block;
+}
+
+#mainStatsViz div.name {
+	overflow: hidden;
+}
 /*---------------------------------- key ----------------------------------------*/
 
 #vizKeyContainer {

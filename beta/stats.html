@@ -1,42 +1,22 @@
 <html>
 	<head>
-		<script src='../js/SPARQL.js'></script>
 		<script src='../js/fn.js'></script>
+		<script src='../js/SPARQL.js'></script>
 		<script src="../lib/d3.v3.min.js"></script>
 		<script src='../lib/d3.chart.min.js'></script>
+		<script src='../lib/q.min.js'></script>
+		<script src='../lib/jquery-2.1.1.min.js'></script>
 		<script src='viz_config.js'></script>
 		<script src='viz_tooltip.js'></script>
 		<script src='viz_iconchart.js'></script>
+		<script src='viz_stats.js'></script>
 		<link href='viz.css' rel='stylesheet'>
 	</head>
 	<body>
-		<div id="test"></div>
+		<div id="mainStatsViz"></div>
 		<script>
-			var width = 90;
-			var image = "assets/iconchart-triangle.png";
-			var imageSize = { width: 13, height: 14 };
-			var count = 94;
-
-			var estimateIconChartHeight = function(width, imageSize, count) {
-				var height = 0;
-				var numPerRow = Math.floor(width / imageSize.width);
-				var numRows = Math.ceil(count / numPerRow);
-
-				height = numRows * imageSize.height;
-
-				return height;
-			};
-
-			var chart = d3.select("#test")
-				.append("svg")
-				.chart("IconChart")
-				.width(width)
-				.height(estimateIconChartHeight(width, imageSize, count))
-				.image(image)
-				.imageSize(imageSize);
-
-			var data = fn.sequence(0, count);
-			chart.draw(data);
+			var mainStats = new MainStats("#mainStatsViz");
+			mainStats.draw();
 		</script>
 	</body>
 </html>

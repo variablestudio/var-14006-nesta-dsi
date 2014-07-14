@@ -25,7 +25,7 @@ d3.chart("IconChart", {
 							return i % numPerRow * chart.imageSize().width;
 						})
 						.attr("y", function(d, i) {
-							return chart.height() - Math.floor(i / numPerRow) * chart.imageSize().height;
+							return chart.height() - (Math.floor(i / numPerRow) + 1) * chart.imageSize().height;
 						});
 				},
 
