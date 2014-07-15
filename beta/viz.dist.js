@@ -60,6 +60,38 @@ SPARQLDataSource.prototype.predicateValues = function(predicate) {
     .where('?o', predicate, '?s')
     .where('?s', 'rdfs:label', '?s_label')
     .execute().then(function(results) {
+      function map(list, fn) {
+        return list.map(fn);
+      }
+
+      function get(prop) {
+        return function(o) {
+          return o[prop];
+        }
+      }
+
+      function compose(a, b) {
+        return function() {
+          return b(a(arguments[0]));
+        }
+      }
+
+      function countValues(list) {
+        var o = {};
+        list.forEach(function(value) {
+          if (!o[value]) o[value] = 0;
+          o[value]++;
+        });
+        var result = [];
+        for(var value in o) {
+          result.push({ value: value, count: o[value] });
+        }
+        result.sort(function(a, b) {
+          return -(a.count - b.count);
+        })
+        return result;
+      }
+
       var values = map(results, compose(get('s_label'), get('value')));
       values.sort();
       deferred.resolve(countValues(values));
@@ -2792,20 +2824,36 @@ MainMap.prototype.drawClusters = function(selection, data, color) {
     .enter()
     .append('g')
     .attr('class', 'org')
+    .each(function(d) {
+      d.iconScale = Math.max(12 - Math.sqrt(d.organisations.length), 7);
+    })
     .attr('transform', function(d) {
       return "translate(" + d.center.x + "," + d.center.y + ")";
     });
 
   groupEnter
-    .append('circle')
+    .append('svg:image')
+    .attr('xlink:href', 'assets/drop-icon.png')
+    .attr('width', function(d) {
+      return 257 / d.iconScale;
+    })
+    .attr('height', function(d) {
+      return 308 / d.iconScale;
+    })
+    .attr('x', function(d) {
+      return -(257 / d.iconScale) / 2;
+    })
+    .attr('y', function(d) {
+      return -(308 / d.iconScale) / 2.1;
+    })
     .attr('r', 0);
 
   groupEnter
     .append('text')
     .attr('text-anchor', 'middle')
     .attr('dx', 0)
-    .attr('dy', 3)
-    .attr('fill', '#fff')
+    .attr('dy', 1)
+    .attr('fill', '#000')
     .attr('font-size', '11px')
     .text('');
 
@@ -2815,21 +2863,10 @@ MainMap.prototype.drawClusters = function(selection, data, color) {
     });
 
   groupTransform
-    .select("circle")
-    .transition()
-    .duration(300)
-    .attr('fill', color)
-    .attr('stroke', color)
-    .attr('opacity', 0.5)
-    .attr('r', function(d) {
-      return d.organisations.length > 1 ? 12 + Math.sqrt(d.organisations.length) : 5;
-    });
-
-  groupTransform
     .select("text")
     .transition()
     .text(function(d) {
-      return d.organisations.length > 1 ? d.organisations.length : '';
+      return d.organisations.length;
     });
 
   var groupExit = clusters.exit();
