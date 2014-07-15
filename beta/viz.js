@@ -51,7 +51,7 @@
       initMainHexes(vizContainer);
     }
 
-    initCaseStudies(vizContainer);
+:   initCaseStudies(vizContainer);
     initEUCountries(vizContainer);
     initChoropleth(vizContainer);
     initExplorer(vizContainer);

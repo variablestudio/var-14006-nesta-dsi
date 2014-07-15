@@ -2238,6 +2238,10 @@ function resultValuesToObj(result) {
   return o;
 }
 
+function indexOfProp(data, prop, val) {
+  return data.map(function(o) { return o[prop]; }).indexOf(val);
+}
+
 function MainMap(mainVizContainer) {
   this.DOM = {};
   this.mainVizContainer = mainVizContainer;
@@ -2258,6 +2262,7 @@ MainMap.prototype.init = function() {
      //pre cache
     this.getCollaborations().then(function(collaborations) {
       this.getProjectsInfo(collaborations).then(function() {
+        this.showClusterNetwork();
         this.preloader.fadeOut('slow');
       }.bind(this));
     }.bind(this));
@@ -2299,7 +2304,7 @@ MainMap.prototype.hijackSearch = function() {
     });
 
     if (foundOrgs.length > 0) {
-      var cluster = this.drawOrganisationWithNetwork(foundOrgs[0].org);
+      var cluster = this.drawOrganisationHex(foundOrgs[0].org);
       if (cluster) { this.displayPopup(cluster); }
     }
 
@@ -2309,15 +2314,12 @@ MainMap.prototype.hijackSearch = function() {
   }.bind(this));
 };
 
-MainMap.prototype.drawOrganisationWithNetwork = function(org) {
+MainMap.prototype.drawOrganisationHex = function(org) {
   if (org) {
     this.selectedOrg = org;
   }
   else if (this.selectedOrg) {
     org = this.selectedOrg;
-  }
-  else {
-    return undefined;
   }
 
   var orgCluster;
@@ -2328,8 +2330,6 @@ MainMap.prototype.drawOrganisationWithNetwork = function(org) {
       center: org.center || { x: org.x, y: org.y },
       organisations: [ org ]
     };
-
-    this.showClusterNetwork(orgCluster);
 
     var selectedHex = this.drawHexes(this.DOM.selectedHexGroup, [ orgCluster ], { fromCluster: true });
     this.handleMouse(selectedHex);
@@ -2516,8 +2516,6 @@ MainMap.prototype.buildViz = function() {
     this.showClusterNetwork();
     this.updateCaseStudiesTitle();
   }.bind(this));
-
-  //this.showIsoLines(svg, this.DOM.g, organisations, w, h, zoom);
 };
 
 MainMap.prototype.showWorldMap = function(center, scale) {
@@ -2587,7 +2585,7 @@ MainMap.prototype.showWorldMap = function(center, scale) {
     this.showOrganisations();
 
     // update selected organisation
-    this.drawOrganisationWithNetwork();
+    this.drawOrganisationHex();
 
     // update clusters
     this.showClusterNetwork();
@@ -2627,13 +2625,13 @@ MainMap.prototype.filterOrganisations = function() {
 };
 
 MainMap.prototype.clusterOrganisations = function(organisations) {
-  var groupingDist = 30;
+  var groupingDist = 160;
   var iterations = 0, maxIterations = 2;
   var finishedClustering = false;
 
   var currentZoom = this.map.leaflet.getZoom();
-  var clusterByCountry = currentZoom < 6;
-  var clusterByDistance = 6 <= currentZoom && currentZoom < 13;
+  var clusterByCountry = currentZoom < 8;
+  var clusterByDistance = 8 <= currentZoom && currentZoom < 13;
 
   var calcDist = function(a, b) {
     var xd = (b.x - a.x);
@@ -2652,10 +2650,6 @@ MainMap.prototype.clusterOrganisations = function(organisations) {
     avg.y /= arr.length;
 
     return avg;
-  };
-
-  var indexOfProp = function(data, prop, val) {
-    return data.map(function(o) { return o[prop]; }).indexOf(val);
   };
 
   var clusters = organisations.map(function(org) {
@@ -2782,6 +2776,7 @@ MainMap.prototype.updateCaseStudiesTitle = function() {
 };
 
 MainMap.prototype.showOrganisations = function() {
+  // in order to show organisations we need to update clusters, saving them globally for network drawing
   var filteredOrganisations = this.filterOrganisations();
   this.clusters = this.clusterOrganisations(filteredOrganisations.organisations);
   this.updateOrgByIdPositions();
@@ -2815,7 +2810,7 @@ MainMap.prototype.showOrganisations = function() {
   this.handleMouse(hexes);
 };
 
-MainMap.prototype.drawClusters = function(selection, data, color) {
+MainMap.prototype.drawClusters = function(selection, data) {
   var clusters = selection
     .selectAll('g.org')
     .data(data);
@@ -2844,7 +2839,7 @@ MainMap.prototype.drawClusters = function(selection, data, color) {
       return -(257 / d.iconScale) / 2;
     })
     .attr('y', function(d) {
-      return -(308 / d.iconScale) / 2.1;
+      return -(308 / d.iconScale);
     })
     .attr('r', 0);
 
@@ -2852,7 +2847,9 @@ MainMap.prototype.drawClusters = function(selection, data, color) {
     .append('text')
     .attr('text-anchor', 'middle')
     .attr('dx', 0)
-    .attr('dy', 1)
+    .attr('dy', function(d) {
+      return -(154 / d.iconScale);
+    })
     .attr('fill', '#000')
     .attr('font-size', '11px')
     .text('');
@@ -2891,15 +2888,10 @@ MainMap.prototype.drawClusters = function(selection, data, color) {
   return clusters;
 };
 
-MainMap.prototype.drawHexes = function(selection, data, settings) {
+MainMap.prototype.drawHexes = function(selection, data) {
   var hexR = 20;
   var drawHex = this.drawHex;
   var className = "hex-default";
-
-  var hexFromCluster = (settings && settings.fromCluster === true);
-  var hexFromNetwork = (settings && settings.fromNetwork === true);
-  if (hexFromCluster) { className = "hex-cluster"; }
-  if (hexFromNetwork) { className = "hex-network"; }
 
   var countDataForHex = function(data) {
     return data.projects ? data.projects.reduce(function(memo, project) {
@@ -3069,47 +3061,20 @@ MainMap.prototype.displayPopup = function(cluster) {
   var y = cluster.center ? cluster.center.y : cluster.y;
 
   // ugly hack for nice popup positioning
-  y -= this.map.fullscreen ? 50 : 8;
+  y -= this.map.fullscreen ? 70 : 26;
 
   VizConfig.popup.open(x, y, dx, dy);
 };
 
-MainMap.prototype.handleMouse = function(selection, settings) {
-  var fromCluster = (settings && settings.fromCluster === true);
-
-  var drawHexes = this.drawHexes.bind(this);
-  var DOM = this.DOM;
-  var showClusterNetwork = this.showClusterNetwork.bind(this);
-  var handleMouse = this.handleMouse.bind(this);
+MainMap.prototype.handleMouse = function(selection) {
   var displayPopup = this.displayPopup.bind(this);
-
   var isPreloading = function() { return this.preloader.is(":visible"); }.bind(this);
-  var setSelectedOrg = function(org) { this.selectedOrg = org; }.bind(this);
 
   selection.on('click', function(cluster) {
-    if (isPreloading()) { return; }
-
     d3.event.preventDefault();
     d3.event.stopPropagation();
 
-    var selectedClass = d3.select(this).attr("class");
-
-    if (selectedClass !== "hex-cluster") {
-      showClusterNetwork(cluster);
-
-      var isMultipleOrganisationCluster = (fromCluster && cluster.organisations.length > 1);
-
-      // draw hex if selected item is single organisation
-      if (!isMultipleOrganisationCluster) {
-        setSelectedOrg(cluster.organisations[0].org);
-        var hexes = drawHexes(DOM.selectedHexGroup, [ cluster ], { fromCluster: true });
-        handleMouse(hexes);
-      }
-      else {
-        setSelectedOrg();
-        DOM.selectedHexGroup.selectAll(".hex-cluster").remove();
-      }
-    }
+    if (isPreloading()) { return; }
 
     displayPopup(cluster);
   });
@@ -3141,249 +3106,71 @@ MainMap.prototype.handleMouse = function(selection, settings) {
   });
 };
 
-MainMap.prototype.showClusterNetwork = function(cluster) {
-  // cache current cluster
-  if (cluster) {
-    this.currentCluster = cluster;
-  }
-  else {
-    cluster = this.currentCluster;
-  }
+MainMap.prototype.showClusterNetwork = function() {
+  this.getCollaborations().then(function(collaborations) {
+    var collaborators = this.clusters.map(function(cluster) {
+      return cluster.organisations.reduce(function(memo, org) {
+        if (org.projects) {
+          org.projects.forEach(function(project) {
+            if (collaborations.byProject.hasOwnProperty(project.p)) {
+              collaborations.byProject[project.p].forEach(function(collaborator) {
+                var isInCluster = this.clusters.reduce(function(memo, cluster) {
+                  if (!memo) { memo = (indexOfProp(cluster.organisations, "org", collaborator) >= 0); }
+                  return memo;
+                }, false);
 
-  if (cluster) {
-    this.getCollaborations().then(function(collaborations) {
-      // find projects for cluster
-      var projects = cluster.organisations.map(function(org) {
-        return collaborations.byOrganisation[org.org];
-      }).reduce(function(memo, projects) {
-        if (projects) { memo.push.apply(memo, projects); }
-        return memo;
-      }, []);
+                var collaboratorOrg = this.organisationsById[collaborator];
 
-      var orgInCluster = function(org, cluster) {
-        return cluster.organisations.reduce(function(memo, o) {
-          if (!memo) { memo = (o.org === org); }
-          return memo;
-        }, false);
-      };
-
-      // find collaborators working on the same projects
-      var collaborators = projects.reduce(function(memo, project) {
-        collaborations.byProject[project].forEach(function(member) {
-          var alreadyInMemo = memo.indexOf(member) >= 0;
-
-          var wasInCluster = orgInCluster(member, cluster);
-
-          // additional check for filters
-          var isInClusters = this.clusters.reduce(function(memo, cluster) {
-            if (!memo) { memo = orgInCluster(member, cluster); }
-            return memo;
-          }, false);
-
-          if (!alreadyInMemo && !wasInCluster && isInClusters) {
-            memo.push(member);
-          }
-        }.bind(this));
+                if (collaboratorOrg && isInCluster) {
+                  memo.push({ org: org, collaborator: collaboratorOrg });
+                }
+              }.bind(this));
+            }
+          }.bind(this));
+        }
 
         return memo;
       }.bind(this), []);
+    }.bind(this)).reduce(function(memo, array) {
+      if (array) { memo.push.apply(memo, array); }
+      return memo;
+    }, []);
 
-      this.updateOrgByIdPositions();
+    var networkPaths = this.DOM.networkGroup
+      .selectAll('line.network')
+      .data(collaborators);
 
-      // build data including proper positions
-      collaborators = collaborators.map(function(collaborator) {
-        var getPos = function(org) {
-          org = this.organisationsById[org];
-          return org ? org.center : undefined;
-        }.bind(this);
+    networkPaths
+      .enter()
+      .append('line')
+      .attr('class', 'network')
+      .attr('x1', function(d) { return d.org.center.x; })
+      .attr('y1', function(d) { return d.org.center.y; })
+      .attr('x2', function(d) { return d.collaborator.center.x; })
+      .attr('y2', function(d) { return d.collaborator.center.y; })
+      .attr('stroke', 'black')
+      .attr('stroke-opacity', 0)
+      .attr('stroke-width', 1);
 
-        cluster.center = getPos(cluster.organisations[0].org);
+    networkPaths
+      .attr('x1', function(d) { return d.org.center.x; })
+      .attr('y1', function(d) { return d.org.center.y; })
+      .attr('x2', function(d) { return d.collaborator.center.x; })
+      .attr('y2', function(d) { return d.collaborator.center.y; })
+      .transition()
+      .duration(200)
+      .attr('stroke-opacity', 0.2);
 
-        return {
-          cluster: cluster,
-          collaborator: {
-            org: collaborator,
-            center: getPos(collaborator)
-          }
-        };
-      }.bind(this)).filter(function(collaborator) {
-        return collaborator.collaborator.center !== undefined;
-      });
-
-      var networkPaths = this.DOM.networkGroup
-        .selectAll('line.network')
-        .data(collaborators);
-
-      networkPaths
-        .enter()
-        .append('line')
-        .attr('class', 'network')
-        .attr('x1', function(d) { return d.cluster.center.x; })
-        .attr('y1', function(d) { return d.cluster.center.y; })
-        .attr('x2', function(d) { return d.collaborator.center.x; })
-        .attr('y2', function(d) { return d.collaborator.center.y; })
-        .attr('stroke', 'black')
-        .attr('stroke-width', 1);
-
-      networkPaths
-        .attr('x1', function(d) { return d.cluster.center.x; })
-        .attr('y1', function(d) { return d.cluster.center.y; })
-        .attr('x2', function(d) { return d.collaborator.center.x; })
-        .attr('y2', function(d) { return d.collaborator.center.y; });
-
-      networkPaths
-        .exit()
-        .remove();
-
-      // draw collaborators hexes
-      var collabHexesData = collaborators.map(function(collab) {
-        var org = this.organisationsById[collab.collaborator.org];
-        return {
-          center: collab.collaborator.center,
-          organisations: [ org ]
-        };
-      }.bind(this));
-
-      var collabHexes = this.drawHexes(this.DOM.hexGroup, collabHexesData, { fromNetwork: true });
-      this.handleMouse(collabHexes);
-    }.bind(this));
-  }
+    networkPaths
+      .exit()
+      .transition()
+      .duration(200)
+      .attr('stroke-opacity', 0)
+      .remove();
+  }.bind(this));
 };
 
-// MainMap.prototype.showIsoLines = function(svg, g, organisations, w, h, zoom) {
-//   var randomPoints;
-//   var numPoints = 4002;
-
-//   var color = hsla(0, 0, 0, 0.2);
-
-//   if (localStorage['randomPoints'] && localStorage['randomPoints'] !== 'null') {
-//     randomPoints = JSON.parse(localStorage['randomPoints']);
-//     if (randomPoints.length !== numPoints) {
-//       randomPoints = null;
-//     }
-//   }
-//   if (!randomPoints) {
-//     var d = 30;
-//     randomPoints = d3.range(0, numPoints).map(function() {
-//       return [ Math.random() * w, Math.random() * h, 1];
-//       //return [ 200 + (i % d)/d * (w - 200), Math.floor(i / d)/d * h, 1];
-//     });
-//     localStorage['randomPoints'] = JSON.stringify(randomPoints);
-//   }
-
-//   var minR = 30;
-//   var minR2 = minR * minR;
-
-//   randomPoints.forEach(function(p) {
-//     organisations.forEach(function(org) {
-//       var dx = p[0] - org.x;
-//       var dy = p[1] - org.y;
-//       if (dx*dx + dy*dy < minR2) {
-//         p[2]++;
-//       }
-//     });
-//   });
-
-//   /*
-//   //Debug circles
-//   var points = g.selectAll('circle.triPoint').data(randomPoints);
-//   points.enter()
-//     .append('circle')
-//     .attr('class', 'triPoint')
-//     //.style('fill', 'rgba(255,0,0,0.2)');
-//     .style('fill', 'none')
-//     .style('stroke', 'rgba(255,0,0,0.2)');
-
-//   points.exit().remove()
-
-//   points
-//     .attr('cx', function(d) { return d[0]; })
-//     .attr('cy', function(d) { return d[1]; })
-//     //.attr('r', function(d) { return Math.pow(d[2], 0.47); })
-//     .attr('r', minR)
-//     //.style('display', 'none');
-//   */
-
-//   var triangles = d3.geom.delaunay(randomPoints);
-//   var toArrayOfPoints = function(p) { return [p[0], p[1]]; };
-
-//   var linePoints = [];
-
-//   function sections(p1, p2, mod, p3) {
-//     var val1 = p1[2];
-//     var val2 = p2[2];
-//     var val3 = p3[2];
-//     if (val1 < val2) {
-//       var start = Math.ceil(val1 / mod) * mod;
-//       var dist = val2 - val1;
-//       var results = [];
-//       var v, ratio;
-//       for(v = start; v <= val2; v += mod) {
-//         ratio = (val1 === val2) ? 0 : (v-val1)/(val2-val1);
-//         results.push({ value: v, ratio: ratio, point: [p1[0]+(p2[0]-p1[0])*ratio, p1[1]+(p2[1]-p1[1])*ratio] });
-//       }
-//       return results;
-//     }
-//     else {
-//       var start = Math.ceil(val2 / mod) * mod;
-//       var dist = val1 - val2;
-//       var results = [];
-//       for(var v = start; v <= val1; v += mod) {
-//         var ratio = (val1 == val2) ? 0 : 1.0-(v-val2)/(val1-val2);
-//         if (ratio == 0 && (val1 == val2 && val2 == val3)) continue;
-//         results.push({ value: v, ratio: ratio, point: [p1[0]+(p2[0]-p1[0])*ratio, p1[1]+(p2[1]-p1[1])*ratio] });
-//       }
-//       return results;
-//     }
-//   }
-
-//   function addLines(sections1, sections2) {
-//     for(var i=0; i<sections1.length; i++) {
-//       for(var j=0; j<sections2.length; j++) {
-//         if (sections1[i].value == sections2[j].value) {
-//           linePoints.push([sections1[i].point, sections2[j].point, sections2[j].value])
-//         }
-//       }
-//     }
-//   }
-
-//   triangles.forEach(function(triangle, triangeIndex) {
-//     var p0 = triangle[0];
-//     var p1 = triangle[1];
-//     var p2 = triangle[2];
-//     var sections0 = sections(p0, p1, 10, p2);
-//     var sections1 = sections(p0, p2, 10, p1);
-//     var sections2 = sections(p1, p2, 10, p0);
-//     addLines(sections0, sections1);
-//     addLines(sections0, sections2);
-//     addLines(sections1, sections2);
-//   })
-
-//   g.selectAll("g.isoLine").remove();
-//   var path = g.append("g").attr("class", 'isoLine').selectAll("path.isoLine");
-//   path = path.data(linePoints.map(function(d) {
-//     return {
-//       data: "M" + toArrayOfPoints(d).join("L") + "",
-//       value: d[2]
-//     };
-//   }));
-//   path.exit().remove();
-//   path.enter()
-//     .append("path")
-//     .attr('stroke', color)
-//     .attr("d", function(d) { return d.data });
-//   path.style('fill', 'none');
-
-//   zoom.on('zoom.isolines', function() {
-//     path.attr('stroke-width', function() {
-//       return 2 /  d3.event.scale;
-//     })
-//   });
-// }
-
-
 return MainMap;
-
 }());
 
 /*jslint todo: true */
@@ -4492,7 +4279,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
       initMainHexes(vizContainer);
     }
 
-    initCaseStudies(vizContainer);
+:   initCaseStudies(vizContainer);
     initEUCountries(vizContainer);
     initChoropleth(vizContainer);
     initExplorer(vizContainer);
