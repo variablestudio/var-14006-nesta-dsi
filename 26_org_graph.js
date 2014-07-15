@@ -350,6 +350,9 @@ OrgGraph.prototype.draw = function() {
           var edgeR = 0;
           if (item.areaOfDigitalSocialInnovation.indexOf(VizConfig.dsiAreas[i].id) !== -1) {
             edgeR = r;
+            if (VizConfig.style === "triangle") {
+              edgeR += 2;
+            }
           }
           //edgeR = r;
           if (VizConfig.style === "hex") {
@@ -363,7 +366,9 @@ OrgGraph.prototype.draw = function() {
         return path;
       }.bind(this));
       bite.attr('fill', VizConfig.dsiAreas[i].color);
-      bite.attr('stroke', function(d) { return d.projects ? 'none' : 'white'; });
+      bite.attr('stroke', function(d) {
+        return (!d.project && VizConfig.style === "hex") ? "white" : "none";
+      });
     });
   }
 
