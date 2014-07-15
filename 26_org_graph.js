@@ -448,7 +448,7 @@ OrgGraph.prototype.draw = function() {
 
   collaboratorNodes.exit().remove()
 
-  if (VizConfig.projectStyle === "hex") {
+  if (VizConfig.orgStyle === "hex") {
     var collaboratorCircle = collaboratorNodes.select('circle.collaboratorCircle');
     collaboratorCircle
       .attr('cx', function(d) { return d.x; })
