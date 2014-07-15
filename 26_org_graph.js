@@ -9,7 +9,8 @@ VizConfig.dsiAreas = [
   { title: 'Open access', id: 'open-access', color: '#7BAFDE', icon: VizConfig.assetsPath + '/triangle-open-access.png', label: 'Open Access' }
 ];
 
-VizConfig.style = "triangle"; // "hex"
+VizConfig.orgStyle = "hex";
+VizConfig.projectStyle = "triangle";
 
 
 function OrgGraph(container, org) {
@@ -203,7 +204,19 @@ OrgGraph.prototype.draw = function() {
   }
 
   function triangleBorder(x, y, r, i) {
-    return triangleBite(x, y, r, r, i);
+    var ret = triangleBite(x, y, r, r, i);
+
+    if (i === 0 || i === 5) {
+      if (i === 5) {
+        ret = [ ret[1], ret[2], ret[0], ret[2] ];
+      }
+      else {
+        ret = [ ret[0], ret[1], ret[2], ret[1] ];
+      }
+      return ret;
+    }
+
+    return [ ret[2], ret[1] ]
   }
 
   function triangleEdge(x, y, r, tr, i) {
@@ -265,7 +278,7 @@ OrgGraph.prototype.draw = function() {
   //PROJECTS
 
   org.projects.forEach(function(project, projectIndex) {
-    if (VizConfig.style === "hex") {
+    if (VizConfig.projectStyle === "hex") {
       project.x = w/2 + (projectIndex - Math.floor(org.projects.length/2) + 0.5) * 60;
     }
     else {
@@ -297,12 +310,7 @@ OrgGraph.prototype.draw = function() {
       bite.attr('d', function(item, itemIndex) {
         var x = item.x;
         var y = item.y;
-        if (VizConfig.style === "hex") {
-          return "M" + hexBite(x, y, r + 2, i).join("L") + "Z";
-        }
-        else {
-          return "M" + triangleBite(x, y, r + 2, r + 2, i).join("L") + "Z";
-        }
+        return "M" + hexBite(x, y, r + 2, i).join("L") + "Z";
       });
       bite.attr('stroke', function(d) { return d.projects ? '#EEE' : 'none'; });
       bite.attr('fill', '#FFF');
@@ -313,12 +321,7 @@ OrgGraph.prototype.draw = function() {
       bite.attr('d', function(item, itemIndex) {
         var x = item.x;
         var y = item.y;
-        if (VizConfig.style === "hex") {
-          return "M" + hexBorder(x, y, r + 2, i).join("L") + "Z";
-        }
-        else {
-          return "M" + triangleBorder(x, y, r + 2, i).join("L") + "Z";
-        }
+        return "M" + hexBorder(x, y, r + 2, i).join("L") + "Z";
       });
       bite.attr('stroke', function(d) { return d.projects ? '#999' : '#999'; });
       bite.attr('fill', 'none');
@@ -339,43 +342,88 @@ OrgGraph.prototype.draw = function() {
               areaR = Math.min(r, 5 + 2 * item.areaOfDigitalSocialInnovationCounted[VizConfig.dsiAreas[i].id]);
             }
           }
-          if (VizConfig.style === "hex") {
-            path = "M" + hexBite(x, y, areaR, i).join("L") + "Z";
-          }
-          else {
-            path = "M" + triangleBite(x, y, areaR, r + 2, i).join("L") + "Z";
-          }
+          path = "M" + hexBite(x, y, areaR, i).join("L") + "Z";
         }
         else {
           var edgeR = 0;
           if (item.areaOfDigitalSocialInnovation.indexOf(VizConfig.dsiAreas[i].id) !== -1) {
             edgeR = r;
-            if (VizConfig.style === "triangle") {
-              edgeR += 2;
-            }
           }
           //edgeR = r;
-          if (VizConfig.style === "hex") {
-            path = "M" + hexEdge(x, y, edgeR, i).join("L") + "Z";
-          }
-          else {
-            path = "M" + triangleEdge(x, y, edgeR, r + 2, i).join("L") + "Z";
-          }
+          path = "M" + hexEdge(x, y, edgeR, i).join("L") + "Z";
         }
 
         return path;
       }.bind(this));
       bite.attr('fill', VizConfig.dsiAreas[i].color);
       bite.attr('stroke', function(d) {
-        return (!d.project && VizConfig.style === "hex") ? "white" : "none";
+        return (!d.project) ? "white" : "none";
       });
     });
   }
 
+  function makeTriangles(nodes, r) {
+    fn.sequence(0,6).map(function(i) {
+      var bite = nodes.append('path');
+      bite.attr('d', function(item, itemIndex) {
+        var x = item.x;
+        var y = item.y;
+        return "M" + triangleBite(x, y, r + 2, r + 2, i).join("L") + "Z";
+      });
+      bite.attr('stroke', function(d) { return d.projects ? '#EEE' : 'none'; });
+      bite.attr('fill', '#FFF');
+    }.bind(this));
+
+    fn.sequence(0,6).map(function(i) {
+      var bite = nodes.append('path');
+      bite.attr('d', function(item, itemIndex) {
+        var x = item.x;
+        var y = item.y;
+        return "M" + triangleBorder(x, y, r + 2, i).join("L") + "Z";
+      });
+      bite.attr('stroke', function(d) { return d.projects ? '#999' : '#999'; });
+      bite.attr('fill', 'none');
+    }.bind(this));
+
+    fn.sequence(0,6).map(function(i) {
+      var bite = nodes.append('path');
+      bite.attr('d', function(item, itemIndex) {
+        var x = item.x;
+        var y = item.y;
+
+        var path;
+
+        if (item.projects) {
+          var areaR = 0;
+          if (item.areaOfDigitalSocialInnovation && item.areaOfDigitalSocialInnovation.indexOf(VizConfig.dsiAreas[i].id) !== -1) {
+            if (item.areaOfDigitalSocialInnovationCounted) {
+              areaR = Math.min(r, 5 + 2 * item.areaOfDigitalSocialInnovationCounted[VizConfig.dsiAreas[i].id]);
+            }
+          }
+          path = "M" + triangleBite(x, y, areaR, r + 2, i).join("L") + "Z";
+        }
+        else {
+          var edgeR = 0;
+          if (item.areaOfDigitalSocialInnovation.indexOf(VizConfig.dsiAreas[i].id) !== -1) {
+            edgeR = r;
+            edgeR += 2;
+          }
+          // path = "M" + triangleEdge(x, y, edgeR, r + 2, i).join("L") + "Z";
+          path = "M" + triangleBite(x, y, edgeR, r + 2, i).join("L") + "Z";
+        }
+
+        return path;
+      }.bind(this));
+      bite.attr('fill', VizConfig.dsiAreas[i].color);
+      bite.attr('stroke', function(d) {
+        // return (!d.project && VizConfig.style === "hex") ? "white" : "none";
+      });
+    });
+  }
   //COLLABORATORS
 
   org.collaborators.forEach(function(collaborator, collaboratorIndex) {
-    if (VizConfig.style === "hex") {
+    if (VizConfig.orgStyle === "hex") {
       collaborator.x = w/2 + (collaboratorIndex - org.collaborators.length/2) * (w-30)/org.collaborators.length + 15;
       collaborator.y = h * 0.15;
     }
@@ -400,7 +448,7 @@ OrgGraph.prototype.draw = function() {
 
   collaboratorNodes.exit().remove()
 
-  if (VizConfig.style === "hex") {
+  if (VizConfig.projectStyle === "hex") {
     var collaboratorCircle = collaboratorNodes.select('circle.collaboratorCircle');
     collaboratorCircle
       .attr('cx', function(d) { return d.x; })
@@ -423,9 +471,21 @@ OrgGraph.prototype.draw = function() {
     })
   }
 
-  makeHexes(projectNodes, r);
-  makeHexes(rootNode, r);
-  makeHexes(collaboratorNodes, r * 0.8);
+  if (VizConfig.projectStyle === "hex") {
+    makeHexes(projectNodes, r);
+  }
+  else {
+    makeTriangles(projectNodes, r);
+  }
+
+  if (VizConfig.orgStyle === "hex") {
+    makeHexes(rootNode, r);
+    makeHexes(collaboratorNodes, r * 0.8);
+  }
+  else {
+    makeTriangles(rootNode, r);
+    makeTriangles(collaboratorNodes, r * 0.8);
+  }
 
   //LINKS
 
