@@ -18,7 +18,7 @@ function MainStats(dom, settings) {
 				"assets/iconchart-techmethod-0.png",
 				"assets/iconchart-techmethod-1.png"
 			],
-			imageSize: { width: 15, height: 18 },
+			imageSize: { width: 10, height: 12 },
 			width: 124,
 			margin: 4
 		},
