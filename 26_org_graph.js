@@ -9,6 +9,8 @@ VizConfig.dsiAreas = [
   { title: 'Open access', id: 'open-access', color: '#7BAFDE', icon: VizConfig.assetsPath + '/triangle-open-access.png', label: 'Open Access' }
 ];
 
+VizConfig.style = "triangle"; // "hex"
+
 
 function OrgGraph(container, org) {
   this.DOM = {
@@ -176,6 +178,62 @@ OrgGraph.prototype.draw = function() {
     ];
   }
 
+  function triangleBite(x, y, r, tr, i) {
+    var a = Math.PI / 3;
+    var trMod = tr;
+    var yMod = y;
+    var yMod2 = Math.sin(a) * r;
+    x += tr * ((i % 2) - 1.5);
+
+    if (i % 2 === 0) {
+      trMod *= i / 2;
+      trMod += tr / 2;
+      yMod += Math.sin(a) * tr;
+      yMod2 = -yMod2;
+    }
+    else {
+      trMod *= Math.floor(i / 2);
+    }
+
+    return [
+      [x + trMod, yMod],
+      [x - r / 2 + trMod, yMod + yMod2],
+      [x + r / 2 + trMod, yMod + yMod2],
+    ]
+  }
+
+  function triangleBorder(x, y, r, i) {
+    return triangleBite(x, y, r, r, i);
+  }
+
+  function triangleEdge(x, y, r, tr, i) {
+    var a = Math.PI / 3;
+    var trMod = tr;
+    var yMod = y;
+    var yMod2 = Math.sin(a) * r;
+    var r2 = r ? r - 5 : 0;
+    var yMod3 = Math.sin(a) * r2;
+    x += tr * ((i % 2) - 1.5);
+
+    if (i % 2 === 0) {
+      trMod *= i / 2;
+      trMod += tr / 2;
+      yMod += Math.sin(a) * tr;
+      yMod2 = -yMod2;
+      yMod3 = -yMod3;
+    }
+    else {
+      trMod *= Math.floor(i / 2);
+    }
+
+    return [
+      [x - r2 / 2 + trMod, yMod + yMod3],
+      [x + r2 / 2 + trMod, yMod + yMod3],
+      [x + r / 2 + trMod, yMod + yMod2],
+      [x - r / 2 + trMod, yMod + yMod2],
+    ]
+  }
+
   //ORG
 
   var org = { label: 'Nesta', projects: this.projects, collaborators: this.collaborators };
@@ -207,7 +265,13 @@ OrgGraph.prototype.draw = function() {
   //PROJECTS
 
   org.projects.forEach(function(project, projectIndex) {
-    project.x = w/2 + (projectIndex - Math.floor(org.projects.length/2) + 0.5) * 60;
+    if (VizConfig.style === "hex") {
+      project.x = w/2 + (projectIndex - Math.floor(org.projects.length/2) + 0.5) * 60;
+    }
+    else {
+      project.x = w/2 + (projectIndex - Math.floor(org.projects.length/2) + 0.5) * 120;
+    }
+
     project.y = h*0.52;
   });
 
@@ -233,7 +297,12 @@ OrgGraph.prototype.draw = function() {
       bite.attr('d', function(item, itemIndex) {
         var x = item.x;
         var y = item.y;
-        return "M" + hexBite(x, y, r + 2, i).join("L") + "Z";
+        if (VizConfig.style === "hex") {
+          return "M" + hexBite(x, y, r + 2, i).join("L") + "Z";
+        }
+        else {
+          return "M" + triangleBite(x, y, r + 2, r + 2, i).join("L") + "Z";
+        }
       });
       bite.attr('stroke', function(d) { return d.projects ? '#EEE' : 'none'; });
       bite.attr('fill', '#FFF');
@@ -244,7 +313,12 @@ OrgGraph.prototype.draw = function() {
       bite.attr('d', function(item, itemIndex) {
         var x = item.x;
         var y = item.y;
-        return "M" + hexBorder(x, y, r + 2, i).join("L") + "Z";
+        if (VizConfig.style === "hex") {
+          return "M" + hexBorder(x, y, r + 2, i).join("L") + "Z";
+        }
+        else {
+          return "M" + triangleBorder(x, y, r + 2, i).join("L") + "Z";
+        }
       });
       bite.attr('stroke', function(d) { return d.projects ? '#999' : '#999'; });
       bite.attr('fill', 'none');
@@ -265,7 +339,12 @@ OrgGraph.prototype.draw = function() {
               areaR = Math.min(r, 5 + 2 * item.areaOfDigitalSocialInnovationCounted[VizConfig.dsiAreas[i].id]);
             }
           }
-          path = "M" + hexBite(x, y, areaR, i).join("L") + "Z";
+          if (VizConfig.style === "hex") {
+            path = "M" + hexBite(x, y, areaR, i).join("L") + "Z";
+          }
+          else {
+            path = "M" + triangleBite(x, y, areaR, r + 2, i).join("L") + "Z";
+          }
         }
         else {
           var edgeR = 0;
@@ -273,7 +352,12 @@ OrgGraph.prototype.draw = function() {
             edgeR = r;
           }
           //edgeR = r;
-          path = "M" + hexEdge(x, y, edgeR, i).join("L") + "Z";
+          if (VizConfig.style === "hex") {
+            path = "M" + hexEdge(x, y, edgeR, i).join("L") + "Z";
+          }
+          else {
+            path = "M" + triangleEdge(x, y, edgeR, r + 2, i).join("L") + "Z";
+          }
         }
 
         return path;
@@ -286,8 +370,21 @@ OrgGraph.prototype.draw = function() {
   //COLLABORATORS
 
   org.collaborators.forEach(function(collaborator, collaboratorIndex) {
-    collaborator.x = w/2 + (collaboratorIndex - org.collaborators.length/2) * (w-30)/org.collaborators.length + 15;
-    collaborator.y = h * 0.15;
+    if (VizConfig.style === "hex") {
+      collaborator.x = w/2 + (collaboratorIndex - org.collaborators.length/2) * (w-30)/org.collaborators.length + 15;
+      collaborator.y = h * 0.15;
+    }
+    else {
+      if (collaboratorIndex % 2 === 0) {
+        collaborator.y = h * 0.15;
+      }
+      else {
+        collaborator.y = h * 0.30;
+      }
+
+      collaboratorIndex = Math.floor(collaboratorIndex / 2);
+      collaborator.x = w/2 + (collaboratorIndex - org.collaborators.length/4) * (w + 700)/org.collaborators.length + 15;
+    }
   });
 
   var collaboratorNodes = nodeGroup.selectAll('.collaborator').data(org.collaborators);
@@ -298,26 +395,28 @@ OrgGraph.prototype.draw = function() {
 
   collaboratorNodes.exit().remove()
 
-  var collaboratorCircle = collaboratorNodes.select('circle.collaboratorCircle');
-  collaboratorCircle
-    .attr('cx', function(d) { return d.x; })
-    .attr('cy', function(d) { return d.y; })
-    .attr('r', function(d) { return 5 + 2 * d.projects.length})
-    .style('stroke', '#333')
-    .style('fill', '#FFF')
+  if (VizConfig.style === "hex") {
+    var collaboratorCircle = collaboratorNodes.select('circle.collaboratorCircle');
+    collaboratorCircle
+      .attr('cx', function(d) { return d.x; })
+      .attr('cy', function(d) { return d.y; })
+      .attr('r', function(d) { return 5 + 2 * d.projects.length})
+      .style('stroke', '#333')
+      .style('fill', '#FFF')
 
-  collaboratorCircle.on('mouseover', function(d) {
-    if (d3.event.target.nodeName == 'circle') {
-      tooltip.style('display', 'block')
-      tooltipBg.style('fill', '#000000');
-      console.log(d)
-      tooltipText.text(d.label);
-    }
-  })
+    collaboratorCircle.on('mouseover', function(d) {
+      if (d3.event.target.nodeName == 'circle') {
+        tooltip.style('display', 'block')
+        tooltipBg.style('fill', '#000000');
+        console.log(d)
+        tooltipText.text(d.label);
+      }
+    })
 
-  collaboratorCircle.on('mouseout', function() {
-    tooltip.style('display', 'none');
-  })
+    collaboratorCircle.on('mouseout', function() {
+      tooltip.style('display', 'none');
+    })
+  }
 
   makeHexes(projectNodes, r);
   makeHexes(rootNode, r);
