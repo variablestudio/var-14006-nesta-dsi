@@ -20,6 +20,8 @@ function indexOfProp(data, prop, val) {
 function MainMap(mainVizContainer) {
   this.DOM = {};
   this.mainVizContainer = mainVizContainer;
+  this.selectedOrg = null;
+  this.collaborators = null;
   this.init();
 }
 
@@ -37,7 +39,7 @@ MainMap.prototype.init = function() {
      //pre cache
     this.getCollaborations().then(function(collaborations) {
       this.getProjectsInfo(collaborations).then(function() {
-        this.showClusterNetwork();
+        this.showClusterNetwork(this.map.leaflet.getZoom());
         this.preloader.fadeOut('slow');
       }.bind(this));
     }.bind(this));
@@ -80,6 +82,9 @@ MainMap.prototype.hijackSearch = function() {
 
     if (foundOrgs.length > 0) {
       var cluster = this.drawOrganisationHex(foundOrgs[0].org);
+      this.selectedOrg = foundOrgs[0].org;
+      this.showOrganisations(this.map.leaflet.getZoom());
+      this.showClusterNetwork(this.map.leaflet.getZoom());
       if (cluster) { this.displayPopup(cluster); }
     }
 
@@ -113,6 +118,10 @@ MainMap.prototype.drawOrganisationHex = function(org) {
   return orgCluster;
 };
 
+MainMap.prototype.hideOrganisationHex = function() {
+  var selectedHex = this.drawHexes(this.DOM.selectedHexGroup, [  ], { fromCluster: true });
+}
+
 MainMap.prototype.getOrganisations = function() {
   var deferred = Q.defer();
   this.runOrganisationsQuery().then(function(results) {
@@ -129,6 +138,7 @@ MainMap.prototype.getCollaborations = function() {
       byProject: {},
       byOrganisation: {}
     };
+    var self = this;
     this.runCollaboratorsQuery().then(function(results) {
       results.forEach(function(c) {
         var org = c.org.value;
@@ -144,6 +154,7 @@ MainMap.prototype.getCollaborations = function() {
           }
           collaborations.byOrganisation[org].push(project);
         });
+        self.collaborations = collaborations;
         deferred.resolve(collaborations);
       });
     });
@@ -284,12 +295,15 @@ MainMap.prototype.buildViz = function() {
     return memo;
   }, {});
 
-  this.showOrganisations();
+  this.showOrganisations(this.map.leaflet.getZoom());
 
   VizConfig.events.addEventListener('filter', function() {
-    this.showOrganisations();
-    this.showClusterNetwork();
+    this.selectedOrg = null;
+    this.showOrganisations(this.map.leaflet.getZoom());
+    this.showClusterNetwork(this.map.leaflet.getZoom());
     this.updateCaseStudiesTitle();
+    this.hideOrganisationHex();
+    VizConfig.popup.close();
   }.bind(this));
 };
 
@@ -402,9 +416,8 @@ MainMap.prototype.showWorldMap = function(center, scale) {
   }.bind(this));
 
   this.map.leaflet.on("zoomend", function() {
-    this.showOrganisations();
-    this.showClusterNetwork();
-    this.drawOrganisationHex();
+    this.showOrganisations(this.map.leaflet.getZoom());
+    this.showClusterNetwork(this.map.leaflet.getZoom());
 
     if (this.map.leaflet.getZoom() >= 7) {
       if (!this.map.leaflet.hasLayer(streetLayer)) {
@@ -434,11 +447,26 @@ MainMap.prototype.showWorldMap = function(center, scale) {
 };
 
 MainMap.prototype.filterOrganisations = function() {
+  var deferred = Q.defer();
   var filteredOrganisations = this.organisations;
   var color = '#000000';
 
   var filters = VizConfig.vizKey.getActiveFilters();
   var numAreasOfDsi = filters.reduce(function(sum, filter) { return sum + ((filter.property === 'areaOfDigitalSocialInnovation') ? 1 : 0); }, 0);
+
+  var collaborators = this.collaborations;
+  if (this.selectedOrg && collaborators) {
+    var orgProjects = collaborators.byOrganisation[this.selectedOrg];
+    filteredOrganisations = filteredOrganisations.filter(function(org) {
+      var found = false;
+      var anotherOrgProjects = collaborators.byOrganisation[org.org];
+      if (!anotherOrgProjects) return false;
+      anotherOrgProjects.forEach(function(project) {
+        if (orgProjects.indexOf(project) != -1) found = true;
+      });
+      return found;
+    }.bind(this))
+  }
 
   filters.forEach(function(filter) {
     filteredOrganisations = filteredOrganisations.filter(function(org) {
@@ -451,18 +479,20 @@ MainMap.prototype.filterOrganisations = function() {
     }
   });
 
-  return {
+  deferred.resolve({
     organisations: filteredOrganisations,
     color: color
-  };
+  });
+
+  return deferred.promise;
 };
 
-MainMap.prototype.clusterOrganisations = function(organisations) {
+MainMap.prototype.clusterOrganisations = function(organisations, zoom) {
   var groupingDist = 140;
   var iterations = 0, maxIterations = 2;
   var finishedClustering = false;
 
-  var currentZoom = this.map.leaflet.getZoom();
+  var currentZoom = zoom;
   var clusterByCountry = 3 < currentZoom && currentZoom < 7;
   var clusterByDistance = (currentZoom <= 3) || (7 <= currentZoom && currentZoom < 15);
 
@@ -608,39 +638,42 @@ MainMap.prototype.updateCaseStudiesTitle = function() {
   }
 };
 
-MainMap.prototype.showOrganisations = function() {
+MainMap.prototype.showOrganisations = function(zoom) {
   // in order to show organisations we need to update clusters, saving them globally for network drawing
-  var filteredOrganisations = this.filterOrganisations();
-  this.clusters = this.clusterOrganisations(filteredOrganisations.organisations);
-  this.updateOrgByIdPositions();
-  var color = filteredOrganisations.color;
+  this.filterOrganisations().then(function(filteredOrganisations) {
+    this.clusters = this.clusterOrganisations(filteredOrganisations.organisations, zoom);
+    this.updateOrgByIdPositions();
+    var color = filteredOrganisations.color;
 
-  var hexDisplayZoom = 10;
-  var data;
+    var hexDisplayZoom = 10;
+    var data;
 
-  if (this.map.leaflet.getZoom() >= hexDisplayZoom) {
-    data = this.clusters.reduce(function(memo, cluster) {
-      if (cluster.organisations.length > 1) {
-        memo.clusters.push(cluster);
-      }
-      else if (cluster.organisations[0]) {
-        memo.hexes.push(cluster);
-      }
+    if (zoom >= hexDisplayZoom) {
+      data = this.clusters.reduce(function(memo, cluster) {
+        if (cluster.organisations.length > 1) {
+          memo.clusters.push(cluster);
+        }
+        else if (cluster.organisations[0]) {
+          memo.hexes.push(cluster);
+        }
 
-      return memo;
-    }, { hexes: [], clusters: [] });
-  }
-  else {
-    data = { hexes: [], clusters: this.clusters };
-  }
+        return memo;
+      }, { hexes: [], clusters: [] });
+    }
+    else {
+      data = { hexes: [], clusters: this.clusters };
+    }
 
-  // draw clusters and hexes
-  var clusters = this.drawClusters(this.DOM.orgGroup, data.clusters, color);
-  var hexes = this.drawHexes(this.DOM.hexGroup, data.hexes);
+    // draw clusters and hexes
+    var clusters = this.drawClusters(this.DOM.orgGroup, data.clusters, color);
+    var hexes = this.drawHexes(this.DOM.hexGroup, data.hexes);
 
-  // act on mouse
-  this.handleMouse(clusters, { fromCluster: true });
-  this.handleMouse(hexes);
+    // act on mouse
+    this.handleMouse(clusters, { fromCluster: true });
+    this.handleMouse(hexes);
+
+    this.drawOrganisationHex();
+  }.bind(this));
 };
 
 MainMap.prototype.drawClusters = function(selection, data) {
@@ -939,7 +972,7 @@ MainMap.prototype.handleMouse = function(selection) {
   });
 };
 
-MainMap.prototype.showClusterNetwork = function() {
+MainMap.prototype.showClusterNetwork = function(zoom) {
   this.getCollaborations().then(function(collaborations) {
     var collaborators = this.clusters.map(function(cluster) {
       return cluster.organisations.reduce(function(memo, org) {
@@ -1026,7 +1059,6 @@ MainMap.prototype.showClusterNetwork = function() {
       .attr('stroke-opacity', 0)
       .attr('stroke-width', 1);
 
-    var zoom = this.map.leaflet.getZoom();
     var zoomStrokeWidth  = Math.max(0, (zoom-5));
 
     networkPaths
@@ -1034,11 +1066,15 @@ MainMap.prototype.showClusterNetwork = function() {
       .attr('y1', function(d) { return d.org.center.y; })
       .attr('x2', function(d) { return d.collaborator.center.x; })
       .attr('y2', function(d) { return d.collaborator.center.y; })
+      .attr('stroke-width', 1)
       .transition()
       .delay(400)
       .duration(200)
       .attr('stroke-opacity', function(d) { return Math.max(0.05, Math.min(d.strength/5, 1)); })
-      .attr('stroke-width', function(d) { return Math.max(0.2, Math.min((2*d.strength+zoomStrokeWidth)/10, 20)); });
+      .attr('stroke-width', function(d) { 
+        var width = Math.max(0.2, Math.min((2*d.strength+zoomStrokeWidth)/10, 20));
+        return width;
+      });
 
     networkPaths
       .exit()
