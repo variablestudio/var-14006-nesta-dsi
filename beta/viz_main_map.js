@@ -303,7 +303,7 @@ MainMap.prototype.showWorldMap = function(center, scale) {
       inertia: false,
       bounceAtZoomLimits: false,
       zoomControl: false,
-      layers: [ new L.TileLayer(mapLayerStr, { maxZoom: 16, minZoom: 3 }) ]
+      layers: [ new L.TileLayer(mapLayerStr, { maxZoom: 16, minZoom: 2 }) ]
     }),
     fullscreeen: false
   };
