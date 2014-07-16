@@ -489,7 +489,7 @@
 
 #vizKeyContainer h3 img {
   vertical-align: middle;
-  margin-bottom: 0.1em;
+  margin-bottom: 0.5em;
 }
 
 #vizKeyContainer a {
@@ -538,10 +538,15 @@
 #vizKeyContainer a.filterLink.new-ways-of-making.active { background-color: #F58220; }
 #vizKeyContainer a.filterLink.open-access.active { background-color: #7BAFDE; }
 
-#vizKeyContainer a.filterLink.open-hardware { background-image: url(assets/tech-open-hardware.png)}
-#vizKeyContainer a.filterLink.open-networks { background-image: url(assets/tech-open-networks.png)}
-#vizKeyContainer a.filterLink.open-knowledge { background-image: url(assets/tech-open-knowledge.png)}
-#vizKeyContainer a.filterLink.open-data { background-image: url(assets/tech-open-data.png)}
+#vizKeyContainer a.filterLink.open-hardware { background-image: url(assets/tech-open-hardware-off.png)}
+#vizKeyContainer a.filterLink.open-networks { background-image: url(assets/tech-open-network-off.png)}
+#vizKeyContainer a.filterLink.open-knowledge { background-image: url(assets/tech-open-knowledge-off.png)}
+#vizKeyContainer a.filterLink.open-data { background-image: url(assets/tech-open-data-off.png)}
+
+#vizKeyContainer a.filterLink.open-hardware.active { background-image: url(assets/tech-open-hardware.png)}
+#vizKeyContainer a.filterLink.open-networks.active { background-image: url(assets/tech-open-network.png)}
+#vizKeyContainer a.filterLink.open-knowledge.active { background-image: url(assets/tech-open-knowledge.png)}
+#vizKeyContainer a.filterLink.open-data.active { background-image: url(assets/tech-open-data.png)}
 
 #vizKeyContainer a.filterLink.funding-acceleration-and-incubation.active,
 #vizKeyContainer a.filterLink.collaborative-economy.active,
