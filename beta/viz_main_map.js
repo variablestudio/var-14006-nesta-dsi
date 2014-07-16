@@ -870,7 +870,7 @@ MainMap.prototype.drawHex = function(selection, data) {
 };
 
 MainMap.prototype.displayPopup = function(cluster) {
-  var maxOrgCount = 6;
+  var maxOrgCount = 99;
   var maxProjectCount = 3;
   var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
   var organisations = cluster.organisations;
@@ -909,7 +909,7 @@ MainMap.prototype.displayPopup = function(cluster) {
     }
 
     return popupContent;
-  }).join("<br/>");
+  }).join(isSingleOrganisation ? "<br/>" : "");
 
   if (cutOrganisationsCount) {
     popupHTML += "<br/><div style='text-align:center'>...</div>";

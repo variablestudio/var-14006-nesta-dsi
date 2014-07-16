@@ -641,6 +641,11 @@
   transform: rotate(45deg); -webkit-transform: rotate(45deg); -moz-transform: rotate(45deg);
 }
 
+#vizPopupContent {
+  max-height: 200px;
+  overflow: scroll;
+}
+
 #vizPopupContent a {
   color: white;
   display: block;
