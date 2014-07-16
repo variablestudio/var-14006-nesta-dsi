@@ -355,6 +355,24 @@ MainMap.prototype.showWorldMap = function(center, scale) {
 
   this.map.leaflet.addControl(new L.control.zoom({ position: 'topright' }));
 
+  $(".leaflet-control-zoom-in").on("mouseover", function(e) {
+    VizConfig.tooltip.html("Zoom In");
+    VizConfig.tooltip.show();
+  });
+
+  $(".leaflet-control-zoom-in").on("mouseout", function(e) {
+    VizConfig.tooltip.hide();
+  });
+
+  $(".leaflet-control-zoom-out").on("mouseover", function(e) {
+    VizConfig.tooltip.html("Zoom Out");
+    VizConfig.tooltip.show();
+  });
+
+  $(".leaflet-control-zoom-out").on("mouseout", function(e) {
+    VizConfig.tooltip.hide();
+  });
+
   this.map.leaflet.addControl(new L.control.customButton({
     title: 'Center',
 
