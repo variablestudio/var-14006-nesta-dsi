@@ -18,7 +18,7 @@ function MainStats(dom, settings) {
 				"assets/iconchart-techmethod-0.png",
 				"assets/iconchart-techmethod-1.png"
 			],
-			imageSize: { width: 10, height: 12 },
+			imageSize: { width: 12, height: 16 },
 			width: 124,
 			margin: 4
 		},
@@ -32,7 +32,7 @@ function MainStats(dom, settings) {
 				"Open Networks": "assets/iconchart-star.png",
 				"Open Hardware": "assets/iconchart-rect.png"
 			},
-			imageSize: { width: 14, height: 14 },
+			imageSize: { width: 12, height: 12 },
 			width: 124,
 			margin: 4
 		},
@@ -41,7 +41,7 @@ function MainStats(dom, settings) {
 			predicate: "ds:organizationType",
 			name: "Organization Type",
 			image: "assets/iconchart-hex.png",
-			imageSize: { width: 13, height: 15 },
+			imageSize: { width: 12, height: 13 },
 			width: 124,
 			margin: 4,
 			layout: "hex"
@@ -51,7 +51,7 @@ function MainStats(dom, settings) {
 			predicate: "ds:activityType",
 			name: "Project Type",
 			image: "assets/iconchart-hex-empty.png",
-			imageSize: { width: 13, height: 15 },
+			imageSize: { width: 12, height: 13 },
 			width: 124,
 			margin: 4,
 			layout: "hex"
@@ -62,7 +62,7 @@ function MainStats(dom, settings) {
 	this.statsCities = {
 		name: "Cities",
 		image: "assets/iconchart-city.png",
-		imageSize: { width: 13, height: 13 },
+		imageSize: { width: 11, height: 12 },
 		width: 124,
 		margin: 4
 	};
