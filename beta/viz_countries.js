@@ -165,7 +165,7 @@ Countries.prototype.init = function() {
 							data[index].geo = country;
 						}
 						else {
-							console.log("no data for",  name);
+							//console.log("no data for",  name);
 						}
 					});
 
