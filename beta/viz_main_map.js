@@ -950,9 +950,50 @@ MainMap.prototype.showClusterNetwork = function() {
       return memo;
     }, []);
 
+    function makePosHash(orgA, orgB) {
+      return orgA.center.x + ' ' + orgA.center.y + ' ' + orgB.center.x + ' ' + orgB.center.y
+    }
+    function makeIdHash(orgA, orgB) {
+      return orgA.org + ' ' + orgB.org;
+    }
+
+    //group collaborators by source and target to have only unique connections
+    var collabMap = {};
+    var uniqueLinks = [];
+    collaborators = collaborators
+    .filter(function(collab) {
+      if (collab.org.org == collab.collaborator.org) {
+        return false;
+      }
+      else {
+        return true;
+      }
+    })
+
+    collaborators.forEach(function(collab) {
+      var posHash = makePosHash(collab.org, collab.collaborator);
+      var idHash = makeIdHash(collab.org, collab.collaborator);
+      var reversePosHash = makePosHash(collab.collaborator, collab.org);
+      var reverseIdHash = makeIdHash(collab.collaborator, collab.org);
+      if (collabMap[posHash] && collabMap[posHash].orgs.indexOf(idHash) == -1 && collabMap[posHash].orgs.indexOf(reverseIdHash) == -1) {
+        collabMap[posHash].strength++;
+      }
+      if (collabMap[reversePosHash] && collabMap[reversePosHash].orgs.indexOf(idHash) == -1 && collabMap[reversePosHash].orgs.indexOf(reverseIdHash) == -1) {
+        collabMap[reversePosHash].strength++;
+      }
+      else {
+        uniqueLinks.push(collab);
+        collabMap[posHash] = collab;
+        collabMap[posHash].orgs = [];
+        collabMap[posHash].orgs.push(idHash);
+        collabMap[posHash].orgs.push(reverseIdHash);
+        collabMap[posHash].strength = 1;
+      }
+    })
+
     var networkPaths = this.DOM.networkGroup
       .selectAll('line.network')
-      .data(collaborators);
+      .data(uniqueLinks);
 
     networkPaths
       .enter()
@@ -962,9 +1003,13 @@ MainMap.prototype.showClusterNetwork = function() {
       .attr('y1', function(d) { return d.org.center.y; })
       .attr('x2', function(d) { return d.collaborator.center.x; })
       .attr('y2', function(d) { return d.collaborator.center.y; })
-      .attr('stroke', 'black')
+      .attr('stroke', '#00B993')
       .attr('stroke-opacity', 0)
       .attr('stroke-width', 1);
+
+    console.log('zoom', this.map.leaflet.getZoom());
+
+    var zoom = this.map.leaflet.getZoom();
 
     networkPaths
       .attr('x1', function(d) { return d.org.center.x; })
@@ -974,7 +1019,8 @@ MainMap.prototype.showClusterNetwork = function() {
       .transition()
       .delay(400)
       .duration(200)
-      .attr('stroke-opacity', 0.1);
+      .attr('stroke-opacity', function(d) { return Math.max(0.05, Math.min(d.strength/5, 1)); })
+      .attr('stroke-width', function(d) { return Math.max(0.2, Math.min((2*d.strength+zoom/2)/10, 20)); });
 
     networkPaths
       .exit()
