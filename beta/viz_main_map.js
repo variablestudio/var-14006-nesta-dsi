@@ -312,8 +312,10 @@ MainMap.prototype.showWorldMap = function(center, scale) {
 
   this.map.leaflet.addControl(new L.control.customButton({
     title: 'Fullscreen',
+
     className: 'leaflet-fullscreen-button',
-    callback: function() {
+
+    click: function() {
       if (this.map.fullscreen) {
         $('#map').css({
           'height': this.h,
@@ -339,17 +341,37 @@ MainMap.prototype.showWorldMap = function(center, scale) {
 
       this.map.leaflet.invalidateSize();
       this.map.fullscreen = !this.map.fullscreen;
-    }.bind(this)
+    }.bind(this),
+
+    mouseover: function() {
+      VizConfig.tooltip.html("Fullscreen");
+      VizConfig.tooltip.show();
+    },
+
+    mouseout: function() {
+      VizConfig.tooltip.hide();
+    }
   }));
 
   this.map.leaflet.addControl(new L.control.zoom({ position: 'topright' }));
 
   this.map.leaflet.addControl(new L.control.customButton({
     title: 'Center',
+
     className: 'leaflet-center-button',
-    callback: function() {
+
+    click: function() {
       this.map.leaflet.setView(new L.LatLng(center[0], center[1]), scale);
-    }.bind(this)
+    }.bind(this),
+
+    mouseover: function() {
+      VizConfig.tooltip.html("Center");
+      VizConfig.tooltip.show();
+    },
+
+    mouseout: function() {
+      VizConfig.tooltip.hide();
+    }
   }));
 
   // map redraws including zoom

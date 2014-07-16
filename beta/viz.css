@@ -600,6 +600,7 @@
   font-size: 12px;
   line-height: 140%;
   display: none;
+  z-index: 9999;
 }
 
 #vizTooltip h4 {

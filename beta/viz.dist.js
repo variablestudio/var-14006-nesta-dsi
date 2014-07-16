@@ -364,40 +364,59 @@ var EventDispatcher = {
     return context;
   }
 };
+/*global L */
+
 L.control.customButton = L.Control.extend({
 	options: {
 		position: 'topright',
 		title: 'Custom Button',
-		callback: null,
+		click: null,
+		mouseover: null,
+		mouseout: null,
 		className: 'custom-button'
 	},
 
-	onAdd: function (map) {
+	onAdd: function(map) {
 		var className = this.options.className;
 		var container;
 
 		container = L.DomUtil.create('div', 'leaflet-bar');
 
-		this._createButton(this.options.title, className, container, this.callCallback.bind(this), map);
+		this.createButton(
+			this.options.title,
+			className,
+			container,
+			{
+				"click": this.callback.bind(this, "click"),
+				"mouseover": this.callback.bind(this, "mouseover"),
+				"mouseout": this.callback.bind(this, "mouseout")
+			},
+			map
+		);
 
 		return container;
 	},
 
-	_createButton: function (title, className, container, fn, context) {
+	createButton: function(title, className, container, events, context) {
 		var link = L.DomUtil.create('a', className, container);
 		link.href = '#';
 		link.title = title;
 
-		L.DomEvent
-			.addListener(link, 'click', L.DomEvent.stopPropagation)
-			.addListener(link, 'click', L.DomEvent.preventDefault)
-			.addListener(link, 'click', fn, context);
+		var event;
+		for (event in events) {
+			if (events.hasOwnProperty(event)) {
+				L.DomEvent
+					.addListener(link, event, L.DomEvent.stopPropagation)
+					.addListener(link, event, L.DomEvent.preventDefault)
+					.addListener(link, event, events[event], context);
+			}
+		}
 
 		return link;
 	},
 
-	callCallback: function () {
-		if (this.options.callback) { this.options.callback(); }
+	callback: function(fnName) {
+		if (this.options[fnName]) { this.options[fnName](); }
 	},
 });
 
@@ -2050,9 +2069,17 @@ function VizTooltip() {
   vizTooltip.text('');
 
   $(window).on('mousemove', function(e) {
-    vizTooltip.css('left', e.pageX + 10);
+    var width = $(this.vizTooltip).width();
+    var windowWidth = $(window).width();
+
+    var x = e.pageX + 10;
+    if ((x + width) > windowWidth) {
+      x -= (width + 40);
+    }
+
+    vizTooltip.css('left', x);
     vizTooltip.css('top', e.pageY);
-  });
+  }.bind(this));
 
   this.vizTooltip = vizTooltip;
 }
@@ -2537,8 +2564,10 @@ MainMap.prototype.showWorldMap = function(center, scale) {
 
   this.map.leaflet.addControl(new L.control.customButton({
     title: 'Fullscreen',
+
     className: 'leaflet-fullscreen-button',
-    callback: function() {
+
+    click: function() {
       if (this.map.fullscreen) {
         $('#map').css({
           'height': this.h,
@@ -2564,17 +2593,37 @@ MainMap.prototype.showWorldMap = function(center, scale) {
 
       this.map.leaflet.invalidateSize();
       this.map.fullscreen = !this.map.fullscreen;
-    }.bind(this)
+    }.bind(this),
+
+    mouseover: function() {
+      VizConfig.tooltip.html("Fullscreen");
+      VizConfig.tooltip.show();
+    },
+
+    mouseout: function() {
+      VizConfig.tooltip.hide();
+    }
   }));
 
   this.map.leaflet.addControl(new L.control.zoom({ position: 'topright' }));
 
   this.map.leaflet.addControl(new L.control.customButton({
     title: 'Center',
+
     className: 'leaflet-center-button',
-    callback: function() {
+
+    click: function() {
       this.map.leaflet.setView(new L.LatLng(center[0], center[1]), scale);
-    }.bind(this)
+    }.bind(this),
+
+    mouseover: function() {
+      VizConfig.tooltip.html("Center");
+      VizConfig.tooltip.show();
+    },
+
+    mouseout: function() {
+      VizConfig.tooltip.hide();
+    }
   }));
 
   // map redraws including zoom

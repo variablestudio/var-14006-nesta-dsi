@@ -1,36 +1,55 @@
+/*global L */
+
 L.control.customButton = L.Control.extend({
 	options: {
 		position: 'topright',
 		title: 'Custom Button',
-		callback: null,
+		click: null,
+		mouseover: null,
+		mouseout: null,
 		className: 'custom-button'
 	},
 
-	onAdd: function (map) {
+	onAdd: function(map) {
 		var className = this.options.className;
 		var container;
 
 		container = L.DomUtil.create('div', 'leaflet-bar');
 
-		this._createButton(this.options.title, className, container, this.callCallback.bind(this), map);
+		this.createButton(
+			this.options.title,
+			className,
+			container,
+			{
+				"click": this.callback.bind(this, "click"),
+				"mouseover": this.callback.bind(this, "mouseover"),
+				"mouseout": this.callback.bind(this, "mouseout")
+			},
+			map
+		);
 
 		return container;
 	},
 
-	_createButton: function (title, className, container, fn, context) {
+	createButton: function(title, className, container, events, context) {
 		var link = L.DomUtil.create('a', className, container);
 		link.href = '#';
 		link.title = title;
 
-		L.DomEvent
-			.addListener(link, 'click', L.DomEvent.stopPropagation)
-			.addListener(link, 'click', L.DomEvent.preventDefault)
-			.addListener(link, 'click', fn, context);
+		var event;
+		for (event in events) {
+			if (events.hasOwnProperty(event)) {
+				L.DomEvent
+					.addListener(link, event, L.DomEvent.stopPropagation)
+					.addListener(link, event, L.DomEvent.preventDefault)
+					.addListener(link, event, events[event], context);
+			}
+		}
 
 		return link;
 	},
 
-	callCallback: function () {
-		if (this.options.callback) { this.options.callback(); }
+	callback: function(fnName) {
+		if (this.options[fnName]) { this.options[fnName](); }
 	},
 });

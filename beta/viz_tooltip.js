@@ -4,9 +4,17 @@ function VizTooltip() {
   vizTooltip.text('');
 
   $(window).on('mousemove', function(e) {
-    vizTooltip.css('left', e.pageX + 10);
+    var width = $(this.vizTooltip).width();
+    var windowWidth = $(window).width();
+
+    var x = e.pageX + 10;
+    if ((x + width) > windowWidth) {
+      x -= (width + 40);
+    }
+
+    vizTooltip.css('left', x);
     vizTooltip.css('top', e.pageY);
-  });
+  }.bind(this));
 
   this.vizTooltip = vizTooltip;
 }
