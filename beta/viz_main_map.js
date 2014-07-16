@@ -1026,8 +1026,6 @@ MainMap.prototype.showClusterNetwork = function() {
       .attr('stroke-opacity', 0)
       .attr('stroke-width', 1);
 
-    console.log('zoom', this.map.leaflet.getZoom());
-
     var zoom = this.map.leaflet.getZoom();
     var zoomStrokeWidth  = Math.max(0, (zoom-5));
 
