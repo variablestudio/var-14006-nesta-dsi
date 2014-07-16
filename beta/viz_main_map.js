@@ -294,7 +294,9 @@ MainMap.prototype.buildViz = function() {
 };
 
 MainMap.prototype.showWorldMap = function(center, scale) {
-  var mapLayerStr = "http://b.tiles.mapbox.com/v3/swirrl.ikeb7gn0/{z}/{x}/{y}.png";
+
+  var continentLayer = new L.TileLayer("http://b.tiles.mapbox.com/v3/swirrl.ikeb7gn0/{z}/{x}/{y}.png", { maxZoom: 16, minZoom: 2 })
+  var streetLayer = new L.TileLayer("http://a.tiles.mapbox.com/v3/swirrl.il8el3gj/{z}/{x}/{y}.png", { maxZoom: 16, minZoom: 2 })
 
   this.map = {
     leaflet: L.map('map', {
@@ -303,7 +305,7 @@ MainMap.prototype.showWorldMap = function(center, scale) {
       inertia: false,
       bounceAtZoomLimits: false,
       zoomControl: false,
-      layers: [ new L.TileLayer(mapLayerStr, { maxZoom: 16, minZoom: 2 }) ]
+      layers: [ continentLayer ]
     }),
     fullscreeen: false
   };
@@ -403,6 +405,23 @@ MainMap.prototype.showWorldMap = function(center, scale) {
     this.showOrganisations();
     this.showClusterNetwork();
     this.drawOrganisationHex();
+
+    if (this.map.leaflet.getZoom() >= 7) {
+      if (!this.map.leaflet.hasLayer(streetLayer)) {
+        this.map.leaflet.addLayer(streetLayer);
+        setTimeout(function() {
+          this.map.leaflet.removeLayer(continentLayer);
+        }.bind(this), 500)
+      }
+    }
+    else {
+      if (!this.map.leaflet.hasLayer(continentLayer)) {
+        this.map.leaflet.addLayer(continentLayer);
+        setTimeout(function() {
+          this.map.leaflet.removeLayer(streetLayer);
+        }.bind(this), 500)
+      }
+    }
   }.bind(this));
 
   this.map.leaflet.on("click", function() {
@@ -1010,7 +1029,7 @@ MainMap.prototype.showClusterNetwork = function() {
     console.log('zoom', this.map.leaflet.getZoom());
 
     var zoom = this.map.leaflet.getZoom();
-    var zoomStrokeWidth  = Math.max(0, (zoom-5)/2);
+    var zoomStrokeWidth  = Math.max(0, (zoom-5));
 
     networkPaths
       .attr('x1', function(d) { return d.org.center.x; })
