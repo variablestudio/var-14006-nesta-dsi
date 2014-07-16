@@ -444,8 +444,8 @@ MainMap.prototype.clusterOrganisations = function(organisations) {
   var finishedClustering = false;
 
   var currentZoom = this.map.leaflet.getZoom();
-  var clusterByCountry = currentZoom < 7;
-  var clusterByDistance = 7 <= currentZoom && currentZoom < 15;
+  var clusterByCountry = 3 < currentZoom && currentZoom < 7;
+  var clusterByDistance = (currentZoom <= 3) || (7 <= currentZoom && currentZoom < 15);
 
   var calcDist = function(a, b) {
     var xd = (b.x - a.x);
@@ -1010,6 +1010,7 @@ MainMap.prototype.showClusterNetwork = function() {
     console.log('zoom', this.map.leaflet.getZoom());
 
     var zoom = this.map.leaflet.getZoom();
+    var zoomStrokeWidth  = Math.max(0, (zoom-5)/2);
 
     networkPaths
       .attr('x1', function(d) { return d.org.center.x; })
@@ -1020,7 +1021,7 @@ MainMap.prototype.showClusterNetwork = function() {
       .delay(400)
       .duration(200)
       .attr('stroke-opacity', function(d) { return Math.max(0.05, Math.min(d.strength/5, 1)); })
-      .attr('stroke-width', function(d) { return Math.max(0.2, Math.min((2*d.strength+zoom/2)/10, 20)); });
+      .attr('stroke-width', function(d) { return Math.max(0.2, Math.min((2*d.strength+zoomStrokeWidth)/10, 20)); });
 
     networkPaths
       .exit()
