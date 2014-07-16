@@ -353,17 +353,16 @@ MainMap.prototype.showWorldMap = function(center, scale) {
   }));
 
   // map redraws including zoom
-  this.map.leaflet.on("viewreset", function() {
+  this.map.leaflet.on("zoomstart", function() {
     VizConfig.popup.close();
 
-    // update organisations
+    this.hideClusterNetwork();
+  }.bind(this));
+
+  this.map.leaflet.on("zoomend", function() {
     this.showOrganisations();
-
-    // update selected organisation
-    this.drawOrganisationHex();
-
-    // update clusters
     this.showClusterNetwork();
+    this.drawOrganisationHex();
   }.bind(this));
 
   this.map.leaflet.on("click", function() {
@@ -933,8 +932,9 @@ MainMap.prototype.showClusterNetwork = function() {
       .attr('x2', function(d) { return d.collaborator.center.x; })
       .attr('y2', function(d) { return d.collaborator.center.y; })
       .transition()
+      .delay(400)
       .duration(200)
-      .attr('stroke-opacity', 0.2);
+      .attr('stroke-opacity', 0.1);
 
     networkPaths
       .exit()
@@ -943,6 +943,14 @@ MainMap.prototype.showClusterNetwork = function() {
       .attr('stroke-opacity', 0)
       .remove();
   }.bind(this));
+};
+
+MainMap.prototype.hideClusterNetwork = function() {
+  this.DOM.networkGroup
+    .selectAll('line.network')
+    .transition()
+    .duration(200)
+    .attr('stroke-opacity', 0);
 };
 
 return MainMap;
