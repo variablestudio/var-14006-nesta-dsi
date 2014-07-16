@@ -464,6 +464,7 @@
   position: absolute;
   top: 146px;
   left: -180px;
+  padding-bottom: 10px;
   transition: left 0.5s; -webkit-transition: left 0.5s; -moz-transition: left 0.5s; -ms-transition: left 0.5s;
 }
 
@@ -476,7 +477,6 @@
 }
 
 #vizKeyContainer #vizKeySideBar {
-  padding: 0 1em 1em 1em;
   font-size: 12px;
 }
 
@@ -484,7 +484,7 @@
   color: white;
   font-weight: normal;
   margin: 2em 0 1em 0;
-  font-size: 120%;
+  font-size: 16px;
 }
 
 #vizKeyContainer h3 img {
@@ -493,12 +493,23 @@
 }
 
 #vizKeyContainer a {
-  font-size: 90%;
+  font-size: 14px;
   display: block;
-  margin-bottom: 0.5em;
   line-height: 150%;
   color: #BBB;
   float: none;
+}
+
+#vizKeySideBar > h3,
+#vizKeySideBar > a {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+#vizKeySideBar > a {
+  padding-left: 30px;
+  padding-top: 4px;
+  padding-bottom: 4px;
 }
 
 #vizKeyContainer a:hover, #vizKeyContainer a.active {
@@ -508,18 +519,9 @@
 }
 
 #vizKeyContainer a.filterLink {
-  border: 1px solid rgba(255, 255, 255, 0);
-  border-radius: 0.5em;
-  padding: 0.35em 0.5em 0.35em 2em;
   background-repeat: no-repeat;
-  background-position: 5px 6px;
+  background-position: 10px 9px;
   background-size: 10px 10px;
-}
-
-#vizKeyContainer a.filterLink:hover,
-#vizKeyContainer a.filterLink.active {
-  border-color: rgba(255, 255, 255, 1);
-  border-radius: 0.5em;
 }
 
 #vizKeyContainer a.filterLink.funding-acceleration-and-incubation { background-image: url(assets/triangle-funding-acceleration-and-incubation.png)}
@@ -529,25 +531,33 @@
 #vizKeyContainer a.filterLink.new-ways-of-making { background-image: url(assets/triangle-new-ways-of-making.png)}
 #vizKeyContainer a.filterLink.open-access { background-image: url(assets/triangle-open-access.png)}
 
-#vizKeyContainer a.filterLink.funding-acceleration-and-incubation.active { border-color: #FDE302; }
-#vizKeyContainer a.filterLink.collaborative-economy.active { border-color: #A6CE39; }
-#vizKeyContainer a.filterLink.open-democracy.active { border-color: #F173AC; }
-#vizKeyContainer a.filterLink.awareness-networks.active { border-color: #ED1A3B; }
-#vizKeyContainer a.filterLink.new-ways-of-making.active { border-color: #F58220; }
-#vizKeyContainer a.filterLink.open-access.active { border-color: #7BAFDE; }
-
-#vizKeyContainer a.filterLink.funding-acceleration-and-incubation:hover{ border-color: #FDE302; }
-#vizKeyContainer a.filterLink.collaborative-economy:hover { border-color: #A6CE39; }
-#vizKeyContainer a.filterLink.open-democracy:hover { border-color: #F173AC; }
-#vizKeyContainer a.filterLink.awareness-networks:hover { border-color: #ED1A3B; }
-#vizKeyContainer a.filterLink.new-ways-of-making:hover { border-color: #F58220; }
-#vizKeyContainer a.filterLink.open-access:hover { border-color: #7BAFDE; }
+#vizKeyContainer a.filterLink.funding-acceleration-and-incubation.active { background-color: #FDE302; }
+#vizKeyContainer a.filterLink.collaborative-economy.active { background-color: #A6CE39; }
+#vizKeyContainer a.filterLink.open-democracy.active { background-color: #F173AC; }
+#vizKeyContainer a.filterLink.awareness-networks.active { background-color: #ED1A3B; }
+#vizKeyContainer a.filterLink.new-ways-of-making.active { background-color: #F58220; }
+#vizKeyContainer a.filterLink.open-access.active { background-color: #7BAFDE; }
 
 #vizKeyContainer a.filterLink.open-hardware { background-image: url(assets/tech-open-hardware.png)}
 #vizKeyContainer a.filterLink.open-networks { background-image: url(assets/tech-open-networks.png)}
 #vizKeyContainer a.filterLink.open-knowledge { background-image: url(assets/tech-open-knowledge.png)}
 #vizKeyContainer a.filterLink.open-data { background-image: url(assets/tech-open-data.png)}
 
+#vizKeyContainer a.filterLink.funding-acceleration-and-incubation.active,
+#vizKeyContainer a.filterLink.collaborative-economy.active,
+#vizKeyContainer a.filterLink.open-democracy.active,
+#vizKeyContainer a.filterLink.awareness-networks.active,
+#vizKeyContainer a.filterLink.new-ways-of-making.active,
+#vizKeyContainer a.filterLink.open-access.active {
+  background-image: url(assets/triangle-white.png)
+}
+
+#vizKeyContainer a.filterLink.open-hardware.active,
+#vizKeyContainer a.filterLink.open-networks.active,
+#vizKeyContainer a.filterLink.open-knowledge.active,
+#vizKeyContainer a.filterLink.open-data.active {
+  background-color: #CCC;
+}
 
 #vizKeyContainer img {
   vertical-align: top;

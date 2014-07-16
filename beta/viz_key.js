@@ -10,7 +10,7 @@ function VizKey(open) {
 
   var organizationsTitle = 'Organisations';
   var projectsTitle = 'Projects';
-  var dsiTitle = 'DSI Area';
+  var dsiTitle = 'DSI Areas';
   var techTitle = 'Technology Focus';
   sideBar.append($('<h3><img src="' + VizConfig.assetsPath + '/key-org-solid.png' + '" height="40"/>' + organizationsTitle + '</h3>'));
   sideBar.append($('<h3><img src="' + VizConfig.assetsPath + '/key-project-solid.png' + '" height="40"/>' + projectsTitle + '</h3>'));

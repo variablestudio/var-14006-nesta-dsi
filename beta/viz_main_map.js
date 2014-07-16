@@ -400,13 +400,13 @@ MainMap.prototype.filterOrganisations = function() {
 };
 
 MainMap.prototype.clusterOrganisations = function(organisations) {
-  var groupingDist = 160;
+  var groupingDist = 140;
   var iterations = 0, maxIterations = 2;
   var finishedClustering = false;
 
   var currentZoom = this.map.leaflet.getZoom();
-  var clusterByCountry = currentZoom < 8;
-  var clusterByDistance = 8 <= currentZoom && currentZoom < 13;
+  var clusterByCountry = currentZoom < 7;
+  var clusterByDistance = 7 <= currentZoom && currentZoom < 15;
 
   var calcDist = function(a, b) {
     var xd = (b.x - a.x);

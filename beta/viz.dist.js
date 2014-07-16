@@ -2134,7 +2134,7 @@ function VizKey(open) {
 
   var organizationsTitle = 'Organisations';
   var projectsTitle = 'Projects';
-  var dsiTitle = 'DSI Area';
+  var dsiTitle = 'DSI Areas';
   var techTitle = 'Technology Focus';
   sideBar.append($('<h3><img src="' + VizConfig.assetsPath + '/key-org-solid.png' + '" height="40"/>' + organizationsTitle + '</h3>'));
   sideBar.append($('<h3><img src="' + VizConfig.assetsPath + '/key-project-solid.png' + '" height="40"/>' + projectsTitle + '</h3>'));
@@ -2625,13 +2625,13 @@ MainMap.prototype.filterOrganisations = function() {
 };
 
 MainMap.prototype.clusterOrganisations = function(organisations) {
-  var groupingDist = 160;
+  var groupingDist = 140;
   var iterations = 0, maxIterations = 2;
   var finishedClustering = false;
 
   var currentZoom = this.map.leaflet.getZoom();
-  var clusterByCountry = currentZoom < 8;
-  var clusterByDistance = 8 <= currentZoom && currentZoom < 13;
+  var clusterByCountry = currentZoom < 7;
+  var clusterByDistance = 7 <= currentZoom && currentZoom < 15;
 
   var calcDist = function(a, b) {
     var xd = (b.x - a.x);
