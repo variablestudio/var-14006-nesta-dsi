@@ -484,7 +484,7 @@
   color: white;
   font-weight: normal;
   margin: 2em 0 1em 0;
-  font-size: 16px;
+  font-size: 14px;
 }
 
 #vizKeyContainer h3 img {
@@ -493,7 +493,7 @@
 }
 
 #vizKeyContainer a {
-  font-size: 14px;
+  font-size: 12px;
   display: block;
   line-height: 150%;
   color: #BBB;
