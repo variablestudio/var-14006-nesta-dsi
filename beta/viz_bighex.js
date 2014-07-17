@@ -62,7 +62,11 @@ d3.chart("BigHex", {
           .delay(function(d, di) { return di * 100; })
           .duration(500)
           .attr("d", function(d, di) {
-            return "M" + hexBite(chart.width()/2, chart.height()/2, chart.radiusFromCount(d.count), di).join("L") + "Z";
+            var a = di/6 * 2 * Math.PI + Math.PI/3;
+            var r = 2;
+            var dx = r * Math.cos(a);
+            var dy = r * Math.sin(a);
+            return "M" + hexBite(chart.width()/2 + dx, chart.height()/2 + dy, chart.radiusFromCount(d.count), di).join("L") + "Z";
           })
         },
 
@@ -94,7 +98,11 @@ d3.chart("BigHex", {
               var r2 = chart.radiusFromCount(di + 1);
               //ugly hack
               var parentIndex = Array.prototype.indexOf.call(this.parentNode.parentNode.childNodes, this.parentNode);
-              return "M" + hexBitePart(chart.width()/2, chart.height()/2, r1, r2, parentIndex).join("L") + "Z";
+              var a = parentIndex/6 * 2 * Math.PI + Math.PI/3;
+              var r = 2;
+              var dx = r * Math.cos(a);
+              var dy = r * Math.sin(a);
+              return "M" + hexBitePart(chart.width()/2 + dx, chart.height()/2 + dy, r1, r2, parentIndex).join("L") + "Z";
             })
             .style("fill", function(d) { return "rgba(255,255,255,0)"; })
             .on("mouseover", function() {
