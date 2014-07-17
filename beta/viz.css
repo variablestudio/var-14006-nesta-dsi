@@ -589,6 +589,7 @@
 /*---------------------------------- tooltip ----------------------------------------*/
 
 #vizTooltip {
+  font-family: 'Scene Std', sans-serif;
   position: absolute;
   top: 0;
   left: 0;
@@ -601,6 +602,9 @@
   line-height: 140%;
   display: none;
   z-index: 9999;
+  -webkit-box-shadow: 3px 3px 0px 0px rgba(0,0,0,0.15);
+  -moz-box-shadow: 3px 3px 0px 0px rgba(0,0,0,0.15);
+  box-shadow: 3px 3px 0px 0px rgba(0,0,0,0.15);
 }
 
 #vizTooltip h4 {
