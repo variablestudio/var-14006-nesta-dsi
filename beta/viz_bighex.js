@@ -105,11 +105,17 @@ d3.chart("BigHex", {
               return "M" + hexBitePart(chart.width()/2 + dx, chart.height()/2 + dy, r1, r2, parentIndex).join("L") + "Z";
             })
             .style("fill", function(d) { return "rgba(255,255,255,0)"; })
-            .on("mouseover", function() {
+            .on("mouseover", function(d) {
               d3.select(this).style("fill", function(d) { return "rgba(255,255,255,0.5)"; })
+              //
+              var parentIndex = Array.prototype.indexOf.call(this.parentNode.parentNode.childNodes, this.parentNode);
+              var parentData = d3.select(this.parentNode).datum();
+              VizConfig.tooltip.show();
+              VizConfig.tooltip.html(VizConfig.dsiAreasById[parentData.areaOfDSI].label + ' Project ' + (d + 1), "#FFF", VizConfig.dsiAreasById[parentData.areaOfDSI].color);
             })
             .on("mouseout", function() {
               d3.select(this).style("fill", function(d) { return "rgba(255,255,255,0)"; })
+              VizConfig.tooltip.hide();
             });
 
           projects.exit()
