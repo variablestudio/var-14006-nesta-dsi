@@ -891,7 +891,7 @@ Countries.prototype.init = function() {
 							data[index].geo = country;
 						}
 						else {
-							console.log("no data for",  name);
+							//console.log("no data for",  name);
 						}
 					});
 
@@ -2272,6 +2272,8 @@ function indexOfProp(data, prop, val) {
 function MainMap(mainVizContainer) {
   this.DOM = {};
   this.mainVizContainer = mainVizContainer;
+  this.selectedOrg = null;
+  this.collaborators = null;
   this.init();
 }
 
@@ -2289,7 +2291,7 @@ MainMap.prototype.init = function() {
      //pre cache
     this.getCollaborations().then(function(collaborations) {
       this.getProjectsInfo(collaborations).then(function() {
-        this.showClusterNetwork();
+        this.showClusterNetwork(this.map.leaflet.getZoom());
         this.preloader.fadeOut('slow');
       }.bind(this));
     }.bind(this));
@@ -2332,6 +2334,9 @@ MainMap.prototype.hijackSearch = function() {
 
     if (foundOrgs.length > 0) {
       var cluster = this.drawOrganisationHex(foundOrgs[0].org);
+      this.selectedOrg = foundOrgs[0].org;
+      this.showOrganisations(this.map.leaflet.getZoom());
+      this.showClusterNetwork(this.map.leaflet.getZoom());
       if (cluster) { this.displayPopup(cluster); }
     }
 
@@ -2365,6 +2370,10 @@ MainMap.prototype.drawOrganisationHex = function(org) {
   return orgCluster;
 };
 
+MainMap.prototype.hideOrganisationHex = function() {
+  this.drawHexes(this.DOM.selectedHexGroup, [  ], { fromCluster: true });
+};
+
 MainMap.prototype.getOrganisations = function() {
   var deferred = Q.defer();
   this.runOrganisationsQuery().then(function(results) {
@@ -2381,6 +2390,7 @@ MainMap.prototype.getCollaborations = function() {
       byProject: {},
       byOrganisation: {}
     };
+    var self = this;
     this.runCollaboratorsQuery().then(function(results) {
       results.forEach(function(c) {
         var org = c.org.value;
@@ -2396,6 +2406,7 @@ MainMap.prototype.getCollaborations = function() {
           }
           collaborations.byOrganisation[org].push(project);
         });
+        self.collaborations = collaborations;
         deferred.resolve(collaborations);
       });
     });
@@ -2536,17 +2547,21 @@ MainMap.prototype.buildViz = function() {
     return memo;
   }, {});
 
-  this.showOrganisations();
+  this.showOrganisations(this.map.leaflet.getZoom());
 
   VizConfig.events.addEventListener('filter', function() {
-    this.showOrganisations();
-    this.showClusterNetwork();
+    this.selectedOrg = null;
+    this.showOrganisations(this.map.leaflet.getZoom());
+    this.showClusterNetwork(this.map.leaflet.getZoom());
     this.updateCaseStudiesTitle();
+    this.hideOrganisationHex();
+    VizConfig.popup.close();
   }.bind(this));
 };
 
 MainMap.prototype.showWorldMap = function(center, scale) {
-  var mapLayerStr = "http://b.tiles.mapbox.com/v3/swirrl.ikeb7gn0/{z}/{x}/{y}.png";
+  var continentLayer = new L.TileLayer("http://b.tiles.mapbox.com/v3/swirrl.ikeb7gn0/{z}/{x}/{y}.png", { maxZoom: 16, minZoom: 2 });
+  var streetLayer = new L.TileLayer("http://a.tiles.mapbox.com/v3/swirrl.il8el3gj/{z}/{x}/{y}.png", { maxZoom: 16, minZoom: 2 });
 
   this.map = {
     leaflet: L.map('map', {
@@ -2555,7 +2570,7 @@ MainMap.prototype.showWorldMap = function(center, scale) {
       inertia: false,
       bounceAtZoomLimits: false,
       zoomControl: false,
-      layers: [ new L.TileLayer(mapLayerStr, { maxZoom: 16, minZoom: 2 }) ]
+      layers: [ continentLayer ]
     }),
     fullscreeen: false
   };
@@ -2607,21 +2622,21 @@ MainMap.prototype.showWorldMap = function(center, scale) {
 
   this.map.leaflet.addControl(new L.control.zoom({ position: 'topright' }));
 
-  $(".leaflet-control-zoom-in").on("mouseover", function(e) {
+  $(".leaflet-control-zoom-in").on("mouseover", function() {
     VizConfig.tooltip.html("Zoom In");
     VizConfig.tooltip.show();
   });
 
-  $(".leaflet-control-zoom-in").on("mouseout", function(e) {
+  $(".leaflet-control-zoom-in").on("mouseout", function() {
     VizConfig.tooltip.hide();
   });
 
-  $(".leaflet-control-zoom-out").on("mouseover", function(e) {
+  $(".leaflet-control-zoom-out").on("mouseover", function() {
     VizConfig.tooltip.html("Zoom Out");
     VizConfig.tooltip.show();
   });
 
-  $(".leaflet-control-zoom-out").on("mouseout", function(e) {
+  $(".leaflet-control-zoom-out").on("mouseout", function() {
     VizConfig.tooltip.hide();
   });
 
@@ -2649,12 +2664,29 @@ MainMap.prototype.showWorldMap = function(center, scale) {
     VizConfig.popup.close();
 
     this.hideClusterNetwork();
+		this.hideOrganisations();
   }.bind(this));
 
   this.map.leaflet.on("zoomend", function() {
-    this.showOrganisations();
-    this.showClusterNetwork();
-    this.drawOrganisationHex();
+    this.showOrganisations(this.map.leaflet.getZoom());
+    this.showClusterNetwork(this.map.leaflet.getZoom());
+
+    if (this.map.leaflet.getZoom() >= 7) {
+      if (!this.map.leaflet.hasLayer(streetLayer)) {
+        this.map.leaflet.addLayer(streetLayer);
+        setTimeout(function() {
+          this.map.leaflet.removeLayer(continentLayer);
+        }.bind(this), 500);
+      }
+    }
+    else {
+      if (!this.map.leaflet.hasLayer(continentLayer)) {
+        this.map.leaflet.addLayer(continentLayer);
+        setTimeout(function() {
+          this.map.leaflet.removeLayer(streetLayer);
+        }.bind(this), 500);
+      }
+    }
   }.bind(this));
 
   this.map.leaflet.on("click", function() {
@@ -2667,11 +2699,30 @@ MainMap.prototype.showWorldMap = function(center, scale) {
 };
 
 MainMap.prototype.filterOrganisations = function() {
+  var deferred = Q.defer();
   var filteredOrganisations = this.organisations;
   var color = '#000000';
 
   var filters = VizConfig.vizKey.getActiveFilters();
   var numAreasOfDsi = filters.reduce(function(sum, filter) { return sum + ((filter.property === 'areaOfDigitalSocialInnovation') ? 1 : 0); }, 0);
+
+  var collaborators = this.collaborations;
+  if (this.selectedOrg && collaborators) {
+    var orgProjects = collaborators.byOrganisation[this.selectedOrg];
+    filteredOrganisations = filteredOrganisations.filter(function(org) {
+      var found = false;
+      var anotherOrgProjects = collaborators.byOrganisation[org.org];
+      if (!anotherOrgProjects) {
+				return false;
+			}
+
+      anotherOrgProjects.forEach(function(project) {
+        if (orgProjects.indexOf(project) !== -1) { found = true; }
+      });
+
+      return found;
+    }.bind(this));
+  }
 
   filters.forEach(function(filter) {
     filteredOrganisations = filteredOrganisations.filter(function(org) {
@@ -2684,20 +2735,22 @@ MainMap.prototype.filterOrganisations = function() {
     }
   });
 
-  return {
+  deferred.resolve({
     organisations: filteredOrganisations,
     color: color
-  };
+  });
+
+  return deferred.promise;
 };
 
-MainMap.prototype.clusterOrganisations = function(organisations) {
+MainMap.prototype.clusterOrganisations = function(organisations, zoom) {
   var groupingDist = 140;
   var iterations = 0, maxIterations = 2;
   var finishedClustering = false;
 
-  var currentZoom = this.map.leaflet.getZoom();
-  var clusterByCountry = currentZoom < 7;
-  var clusterByDistance = 7 <= currentZoom && currentZoom < 15;
+  var currentZoom = zoom;
+  var clusterByCountry = 3 < currentZoom && currentZoom < 7;
+  var clusterByDistance = (currentZoom <= 3) || (7 <= currentZoom && currentZoom < 15);
 
   var calcDist = function(a, b) {
     var xd = (b.x - a.x);
@@ -2841,39 +2894,54 @@ MainMap.prototype.updateCaseStudiesTitle = function() {
   }
 };
 
-MainMap.prototype.showOrganisations = function() {
+MainMap.prototype.showOrganisations = function(zoom) {
   // in order to show organisations we need to update clusters, saving them globally for network drawing
-  var filteredOrganisations = this.filterOrganisations();
-  this.clusters = this.clusterOrganisations(filteredOrganisations.organisations);
-  this.updateOrgByIdPositions();
-  var color = filteredOrganisations.color;
+  this.filterOrganisations().then(function(filteredOrganisations) {
+    this.clusters = this.clusterOrganisations(filteredOrganisations.organisations, zoom);
+    this.updateOrgByIdPositions();
+    var color = filteredOrganisations.color;
 
-  var hexDisplayZoom = 10;
-  var data;
+    var hexDisplayZoom = 10;
+    var data;
 
-  if (this.map.leaflet.getZoom() >= hexDisplayZoom) {
-    data = this.clusters.reduce(function(memo, cluster) {
-      if (cluster.organisations.length > 1) {
-        memo.clusters.push(cluster);
-      }
-      else if (cluster.organisations[0]) {
-        memo.hexes.push(cluster);
-      }
+    if (zoom >= hexDisplayZoom) {
+      data = this.clusters.reduce(function(memo, cluster) {
+        if (cluster.organisations.length > 1) {
+          memo.clusters.push(cluster);
+        }
+        else if (cluster.organisations[0]) {
+          memo.hexes.push(cluster);
+        }
 
-      return memo;
-    }, { hexes: [], clusters: [] });
-  }
-  else {
-    data = { hexes: [], clusters: this.clusters };
-  }
+        return memo;
+      }, { hexes: [], clusters: [] });
+    }
+    else {
+      data = { hexes: [], clusters: this.clusters };
+    }
 
-  // draw clusters and hexes
-  var clusters = this.drawClusters(this.DOM.orgGroup, data.clusters, color);
-  var hexes = this.drawHexes(this.DOM.hexGroup, data.hexes);
+    // draw clusters and hexes
+    var clusters = this.drawClusters(this.DOM.orgGroup, data.clusters, color);
+    var hexes = this.drawHexes(this.DOM.hexGroup, data.hexes);
 
-  // act on mouse
-  this.handleMouse(clusters, { fromCluster: true });
-  this.handleMouse(hexes);
+    // act on mouse
+    this.handleMouse(clusters, { fromCluster: true });
+    this.handleMouse(hexes);
+
+    this.drawOrganisationHex();
+  }.bind(this));
+};
+
+MainMap.prototype.hideOrganisations = function() {
+	this.DOM.orgGroup.selectAll('g')
+		.transition()
+		.duration(200)
+		.attr('opacity', 0);
+
+	this.DOM.hexGroup.selectAll('g')
+		.transition()
+		.duration(200)
+		.attr('opacity', 0);
 };
 
 MainMap.prototype.drawClusters = function(selection, data) {
@@ -2890,7 +2958,8 @@ MainMap.prototype.drawClusters = function(selection, data) {
     })
     .attr('transform', function(d) {
       return "translate(" + d.center.x + "," + d.center.y + ")";
-    });
+    })
+		.attr('opacity', 0);
 
   groupEnter
     .append('svg:image')
@@ -2906,8 +2975,7 @@ MainMap.prototype.drawClusters = function(selection, data) {
     })
     .attr('y', function(d) {
       return -(308 / d.iconScale);
-    })
-    .attr('r', 0);
+    });
 
   groupEnter
     .append('text')
@@ -2923,7 +2991,8 @@ MainMap.prototype.drawClusters = function(selection, data) {
   var groupTransform = clusters
     .attr('transform', function(d) {
       return "translate(" + d.center.x + "," + d.center.y + ")";
-    });
+    })
+		.attr('opacity', 1);
 
   groupTransform
     .select("text")
@@ -3070,7 +3139,7 @@ MainMap.prototype.drawHex = function(selection, data) {
 };
 
 MainMap.prototype.displayPopup = function(cluster) {
-  var maxOrgCount = 6;
+  var maxOrgCount = 99;
   var maxProjectCount = 3;
   var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
   var organisations = cluster.organisations;
@@ -3109,7 +3178,7 @@ MainMap.prototype.displayPopup = function(cluster) {
     }
 
     return popupContent;
-  }).join("<br/>");
+  }).join(isSingleOrganisation ? "<br/>" : "");
 
   if (cutOrganisationsCount) {
     popupHTML += "<br/><div style='text-align:center'>...</div>";
@@ -3172,7 +3241,7 @@ MainMap.prototype.handleMouse = function(selection) {
   });
 };
 
-MainMap.prototype.showClusterNetwork = function() {
+MainMap.prototype.showClusterNetwork = function(zoom) {
   this.getCollaborations().then(function(collaborations) {
     var collaborators = this.clusters.map(function(cluster) {
       return cluster.organisations.reduce(function(memo, org) {
@@ -3202,9 +3271,44 @@ MainMap.prototype.showClusterNetwork = function() {
       return memo;
     }, []);
 
+    function makePosHash(orgA, orgB) {
+      return orgA.center.x + ' ' + orgA.center.y + ' ' + orgB.center.x + ' ' + orgB.center.y;
+    }
+    function makeIdHash(orgA, orgB) {
+      return orgA.org + ' ' + orgB.org;
+    }
+
+    //group collaborators by source and target to have only unique connections
+    var collabMap = {};
+    var uniqueLinks = [];
+    collaborators = collaborators.filter(function(collab) {
+			return (collab.org.org !== collab.collaborator.org);
+		});
+
+    collaborators.forEach(function(collab) {
+      var posHash = makePosHash(collab.org, collab.collaborator);
+      var idHash = makeIdHash(collab.org, collab.collaborator);
+      var reversePosHash = makePosHash(collab.collaborator, collab.org);
+      var reverseIdHash = makeIdHash(collab.collaborator, collab.org);
+      if (collabMap[posHash] && collabMap[posHash].orgs.indexOf(idHash) === -1 && collabMap[posHash].orgs.indexOf(reverseIdHash) === -1) {
+        collabMap[posHash].strength++;
+      }
+      if (collabMap[reversePosHash] && collabMap[reversePosHash].orgs.indexOf(idHash) === -1 && collabMap[reversePosHash].orgs.indexOf(reverseIdHash) === -1) {
+        collabMap[reversePosHash].strength++;
+      }
+      else {
+        uniqueLinks.push(collab);
+        collabMap[posHash] = collab;
+        collabMap[posHash].orgs = [];
+        collabMap[posHash].orgs.push(idHash);
+        collabMap[posHash].orgs.push(reverseIdHash);
+        collabMap[posHash].strength = 1;
+      }
+    });
+
     var networkPaths = this.DOM.networkGroup
       .selectAll('line.network')
-      .data(collaborators);
+      .data(uniqueLinks);
 
     networkPaths
       .enter()
@@ -3214,19 +3318,26 @@ MainMap.prototype.showClusterNetwork = function() {
       .attr('y1', function(d) { return d.org.center.y; })
       .attr('x2', function(d) { return d.collaborator.center.x; })
       .attr('y2', function(d) { return d.collaborator.center.y; })
-      .attr('stroke', 'black')
+      .attr('stroke', '#00B993')
       .attr('stroke-opacity', 0)
       .attr('stroke-width', 1);
+
+    var zoomStrokeWidth  = Math.max(0, (zoom-5));
 
     networkPaths
       .attr('x1', function(d) { return d.org.center.x; })
       .attr('y1', function(d) { return d.org.center.y; })
       .attr('x2', function(d) { return d.collaborator.center.x; })
       .attr('y2', function(d) { return d.collaborator.center.y; })
+      .attr('stroke-width', 1)
       .transition()
       .delay(400)
       .duration(200)
-      .attr('stroke-opacity', 0.1);
+      .attr('stroke-opacity', function(d) { return Math.max(0.05, Math.min(d.strength/5, 1)); })
+      .attr('stroke-width', function(d) { 
+        var width = Math.max(0.2, Math.min((2*d.strength+zoomStrokeWidth)/10, 20));
+        return width;
+      });
 
     networkPaths
       .exit()

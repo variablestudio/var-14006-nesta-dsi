@@ -119,8 +119,8 @@ MainMap.prototype.drawOrganisationHex = function(org) {
 };
 
 MainMap.prototype.hideOrganisationHex = function() {
-  var selectedHex = this.drawHexes(this.DOM.selectedHexGroup, [  ], { fromCluster: true });
-}
+  this.drawHexes(this.DOM.selectedHexGroup, [  ], { fromCluster: true });
+};
 
 MainMap.prototype.getOrganisations = function() {
   var deferred = Q.defer();
@@ -308,9 +308,8 @@ MainMap.prototype.buildViz = function() {
 };
 
 MainMap.prototype.showWorldMap = function(center, scale) {
-
-  var continentLayer = new L.TileLayer("http://b.tiles.mapbox.com/v3/swirrl.ikeb7gn0/{z}/{x}/{y}.png", { maxZoom: 16, minZoom: 2 })
-  var streetLayer = new L.TileLayer("http://a.tiles.mapbox.com/v3/swirrl.il8el3gj/{z}/{x}/{y}.png", { maxZoom: 16, minZoom: 2 })
+  var continentLayer = new L.TileLayer("http://b.tiles.mapbox.com/v3/swirrl.ikeb7gn0/{z}/{x}/{y}.png", { maxZoom: 16, minZoom: 2 });
+  var streetLayer = new L.TileLayer("http://a.tiles.mapbox.com/v3/swirrl.il8el3gj/{z}/{x}/{y}.png", { maxZoom: 16, minZoom: 2 });
 
   this.map = {
     leaflet: L.map('map', {
@@ -371,21 +370,21 @@ MainMap.prototype.showWorldMap = function(center, scale) {
 
   this.map.leaflet.addControl(new L.control.zoom({ position: 'topright' }));
 
-  $(".leaflet-control-zoom-in").on("mouseover", function(e) {
+  $(".leaflet-control-zoom-in").on("mouseover", function() {
     VizConfig.tooltip.html("Zoom In");
     VizConfig.tooltip.show();
   });
 
-  $(".leaflet-control-zoom-in").on("mouseout", function(e) {
+  $(".leaflet-control-zoom-in").on("mouseout", function() {
     VizConfig.tooltip.hide();
   });
 
-  $(".leaflet-control-zoom-out").on("mouseover", function(e) {
+  $(".leaflet-control-zoom-out").on("mouseover", function() {
     VizConfig.tooltip.html("Zoom Out");
     VizConfig.tooltip.show();
   });
 
-  $(".leaflet-control-zoom-out").on("mouseout", function(e) {
+  $(".leaflet-control-zoom-out").on("mouseout", function() {
     VizConfig.tooltip.hide();
   });
 
@@ -413,6 +412,7 @@ MainMap.prototype.showWorldMap = function(center, scale) {
     VizConfig.popup.close();
 
     this.hideClusterNetwork();
+		this.hideOrganisations();
   }.bind(this));
 
   this.map.leaflet.on("zoomend", function() {
@@ -424,7 +424,7 @@ MainMap.prototype.showWorldMap = function(center, scale) {
         this.map.leaflet.addLayer(streetLayer);
         setTimeout(function() {
           this.map.leaflet.removeLayer(continentLayer);
-        }.bind(this), 500)
+        }.bind(this), 500);
       }
     }
     else {
@@ -432,7 +432,7 @@ MainMap.prototype.showWorldMap = function(center, scale) {
         this.map.leaflet.addLayer(continentLayer);
         setTimeout(function() {
           this.map.leaflet.removeLayer(streetLayer);
-        }.bind(this), 500)
+        }.bind(this), 500);
       }
     }
   }.bind(this));
@@ -460,12 +460,16 @@ MainMap.prototype.filterOrganisations = function() {
     filteredOrganisations = filteredOrganisations.filter(function(org) {
       var found = false;
       var anotherOrgProjects = collaborators.byOrganisation[org.org];
-      if (!anotherOrgProjects) return false;
+      if (!anotherOrgProjects) {
+				return false;
+			}
+
       anotherOrgProjects.forEach(function(project) {
-        if (orgProjects.indexOf(project) != -1) found = true;
+        if (orgProjects.indexOf(project) !== -1) { found = true; }
       });
+
       return found;
-    }.bind(this))
+    }.bind(this));
   }
 
   filters.forEach(function(filter) {
@@ -676,6 +680,18 @@ MainMap.prototype.showOrganisations = function(zoom) {
   }.bind(this));
 };
 
+MainMap.prototype.hideOrganisations = function() {
+	this.DOM.orgGroup.selectAll('g')
+		.transition()
+		.duration(200)
+		.attr('opacity', 0);
+
+	this.DOM.hexGroup.selectAll('g')
+		.transition()
+		.duration(200)
+		.attr('opacity', 0);
+};
+
 MainMap.prototype.drawClusters = function(selection, data) {
   var clusters = selection
     .selectAll('g.org')
@@ -690,7 +706,8 @@ MainMap.prototype.drawClusters = function(selection, data) {
     })
     .attr('transform', function(d) {
       return "translate(" + d.center.x + "," + d.center.y + ")";
-    });
+    })
+		.attr('opacity', 0);
 
   groupEnter
     .append('svg:image')
@@ -706,8 +723,7 @@ MainMap.prototype.drawClusters = function(selection, data) {
     })
     .attr('y', function(d) {
       return -(308 / d.iconScale);
-    })
-    .attr('r', 0);
+    });
 
   groupEnter
     .append('text')
@@ -723,7 +739,8 @@ MainMap.prototype.drawClusters = function(selection, data) {
   var groupTransform = clusters
     .attr('transform', function(d) {
       return "translate(" + d.center.x + "," + d.center.y + ")";
-    });
+    })
+		.attr('opacity', 1);
 
   groupTransform
     .select("text")
@@ -1003,7 +1020,7 @@ MainMap.prototype.showClusterNetwork = function(zoom) {
     }, []);
 
     function makePosHash(orgA, orgB) {
-      return orgA.center.x + ' ' + orgA.center.y + ' ' + orgB.center.x + ' ' + orgB.center.y
+      return orgA.center.x + ' ' + orgA.center.y + ' ' + orgB.center.x + ' ' + orgB.center.y;
     }
     function makeIdHash(orgA, orgB) {
       return orgA.org + ' ' + orgB.org;
@@ -1012,25 +1029,19 @@ MainMap.prototype.showClusterNetwork = function(zoom) {
     //group collaborators by source and target to have only unique connections
     var collabMap = {};
     var uniqueLinks = [];
-    collaborators = collaborators
-    .filter(function(collab) {
-      if (collab.org.org == collab.collaborator.org) {
-        return false;
-      }
-      else {
-        return true;
-      }
-    })
+    collaborators = collaborators.filter(function(collab) {
+			return (collab.org.org !== collab.collaborator.org);
+		});
 
     collaborators.forEach(function(collab) {
       var posHash = makePosHash(collab.org, collab.collaborator);
       var idHash = makeIdHash(collab.org, collab.collaborator);
       var reversePosHash = makePosHash(collab.collaborator, collab.org);
       var reverseIdHash = makeIdHash(collab.collaborator, collab.org);
-      if (collabMap[posHash] && collabMap[posHash].orgs.indexOf(idHash) == -1 && collabMap[posHash].orgs.indexOf(reverseIdHash) == -1) {
+      if (collabMap[posHash] && collabMap[posHash].orgs.indexOf(idHash) === -1 && collabMap[posHash].orgs.indexOf(reverseIdHash) === -1) {
         collabMap[posHash].strength++;
       }
-      if (collabMap[reversePosHash] && collabMap[reversePosHash].orgs.indexOf(idHash) == -1 && collabMap[reversePosHash].orgs.indexOf(reverseIdHash) == -1) {
+      if (collabMap[reversePosHash] && collabMap[reversePosHash].orgs.indexOf(idHash) === -1 && collabMap[reversePosHash].orgs.indexOf(reverseIdHash) === -1) {
         collabMap[reversePosHash].strength++;
       }
       else {
@@ -1041,7 +1052,7 @@ MainMap.prototype.showClusterNetwork = function(zoom) {
         collabMap[posHash].orgs.push(reverseIdHash);
         collabMap[posHash].strength = 1;
       }
-    })
+    });
 
     var networkPaths = this.DOM.networkGroup
       .selectAll('line.network')
