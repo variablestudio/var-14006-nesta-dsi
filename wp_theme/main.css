@@ -508,8 +508,6 @@ font-weight: bold;WORDPRESS}
 	cursor:pointer;
 }
 
-
-
 .grid {
 	width: 100%;
 	margin: 30px 0;
@@ -557,6 +555,73 @@ font-weight: bold;WORDPRESS}
 
 
 
+
+#page .description {
+	font-size: 14px;
+}
+
+#page.funding-and-support {
+	padding-top: 40px;
+}
+
+#page.funding-and-support .item {
+	width: 100%;
+	float: none;
+	margin: 0;
+	margin-bottom: 20px;
+}
+
+#page.funding-and-support .deadline {
+	float: right;
+	color: #808080;
+}
+
+#page.funding-and-support .item img {
+	float: left;
+	width: 320px;
+}
+
+#page.funding-and-support .item .item-content {
+	float: right;
+	width: 620px;
+	font-size: 14px;
+}
+
+#page.funding-and-support .item .item-content h4 {
+	margin-top: 0;
+}
+
+#page.funding-and-support .item .apply-link {
+	display: inline-block;
+	font-size: 15px;
+	font-weight: bold;
+	padding: 10px;
+	background-color: #FFFF05;
+}
+
+
+#page.research .items {
+	position: relative;
+	overflow: auto;
+}
+
+#page.research .item {
+	width: 33.333%;
+	margin: 0;
+}
+
+#page.research .item p {
+	margin-bottom: 0.5em;
+	font-size: 14px;
+}
+
+#page.research .item p > a:not(:first-child) {
+	text-decoration: underline;
+}
+
+#page.research .item img {
+	width: auto;
+}
 
 
 
