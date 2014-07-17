@@ -678,3 +678,10 @@
   font-family: "Helvetica";
   font-size: 12px;
 }
+
+/*---------------------------------- organisation -----------------------------------*/
+
+#bigHexViz {
+  color: white;
+  font-family: 'Scene Std', sans-serif;
+}

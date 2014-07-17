@@ -1,0 +1,39 @@
+<html>
+  <head>
+    <script src="../lib/d3.v3.min.js"></script>
+    <script src='../lib/d3.chart.min.js'></script>
+    <script src='viz_config.js'></script>
+    <script src='viz_bighex.js'></script>
+    <script src='../js/fn.js'></script>
+    <script src='../js/SPARQL.js'></script>
+    <link href='viz.css' rel='stylesheet'>
+  </head>
+  <body>
+    <div id="bigHexViz"></div>
+    <script>
+      var vizContainer = d3.select("#bigHexViz");
+      var chart = vizContainer
+        .append("svg")
+        .attr("width", window.innerWidth)
+        .attr("height", window.innerHeight)
+        .chart("BigHex")
+        .width(400)
+        .height(400)
+
+      var orgProjectsAreas = [
+        { areaOfDSI: 'funding-acceleration-and-incubation', count: 5 },
+        { areaOfDSI: 'collaborative-economy', count: 2 },
+        { areaOfDSI: 'open-democracy', count: 1 },
+        { areaOfDSI: 'awareness-networks', count: 5 },
+        { areaOfDSI: 'new-ways-of-making', count: 7 },
+        { areaOfDSI: 'open-access', count: 1 }
+      ];
+      orgProjectsAreas.forEach(function(projectsArea) {
+        projectsArea.color = VizConfig.dsiAreasById[projectsArea.areaOfDSI].color;
+        projectsArea.projects = fn.sequence(0, projectsArea.count);
+      });
+
+      chart.draw(orgProjectsAreas);
+    </script>
+  </body>
+</html>
