@@ -18,6 +18,8 @@
       var vizContainer = d3.select("#bigHexViz");
       var chart = vizContainer
         .append("svg")
+        .style("margin-left", "2em")
+        .style("margin-top", "2em")
         .attr("width", window.innerWidth)
         .attr("height", window.innerHeight)
         .chart("BigHex")
