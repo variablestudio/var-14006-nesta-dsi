@@ -605,6 +605,14 @@ font-weight: bold;WORDPRESS}
 	overflow: auto;
 }
 
+#page.research .items {
+	padding: 20px;
+}
+
+#page.research .items:nth-child(2n) {
+	background-color: #F2F2F2;
+}
+
 #page.research .item {
 	width: 33.333%;
 	margin: 0;
@@ -621,6 +629,9 @@ font-weight: bold;WORDPRESS}
 
 #page.research .item img {
 	width: auto;
+	-webkit-box-shadow: 3px 3px 5px 0px rgba(50, 50, 50, 0.6);
+	-moz-box-shadow:    3px 3px 5px 0px rgba(50, 50, 50, 0.6);
+	box-shadow:         3px 3px 5px 0px rgba(50, 50, 50, 0.6);
 }
 
 
