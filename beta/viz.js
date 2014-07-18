@@ -1,6 +1,5 @@
 (function() {
   var showIntro = (document.location.hash !== '#nointro');
-  var showExplorer = (document.location.hash === '#explorer');
 
   function init() {
     var url = window.location.href;
@@ -28,11 +27,9 @@
 
       initEvents();
 
-      if (showIntro && !showExplorer) {
+      initVisualizations(vizContainer);
+      if (showIntro) {
         initIntroViz(vizContainer, initVisualizations);
-      }
-      else {
-        initVisualizations(showExplorer ? "explore" : "map");
       }
     }
   }
@@ -41,16 +38,8 @@
     VizConfig.events = EventDispatcher.extend({});
   }
 
-  function initVisualizations(type) {
-    var vizContainer = $('#viz');
-
-    if (type === "map") {
-      initMainViz(vizContainer);
-    }
-    else if (type === "explore") {
-      initMainHexes(vizContainer);
-    }
-
+  function initVisualizations(vizContainer) {
+    initMainViz(vizContainer);
     initCaseStudies(vizContainer);
     initEUCountries(vizContainer);
     initChoropleth(vizContainer);
@@ -80,13 +69,6 @@
 
     new MainMap("#mainViz");
     //new MainHexes("#mainViz")
-  }
-
-  function initMainHexes(vizContainer) {
-    var mainHexes = $('<div id="mainHexes"></div>');
-    vizContainer.append(mainHexes);
-
-    new MainHexes("#mainHexes");
   }
 
   function initCaseStudies(vizContainer) {
