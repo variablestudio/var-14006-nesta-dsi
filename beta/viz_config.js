@@ -59,6 +59,26 @@ VizConfig.technologyFocusesById = {
   'open-data': VizConfig.technologyFocuses[3]
 };
 
+VizConfig.areaOfSociety = [
+  { title: "Education and Skills", id: "education-and-skills" },
+  { title: "Participation and Democracy", id: "participation-and-democracy" },
+  { title: "Culture and Arts", id: "culture-and-arts" },
+  { title: "Health and Wellbeing", id: "health-and-wellbeing" },
+  { title: "Work and Employment", id: "work-and-employment" },
+  { title: "Neighbourhood Regeneration", id: "neighbourhood-regeneration" },
+  { title: "Energy and Environment", id: "energy-and-environment" },
+  { title: "Finance and Economy", id: "finance-and-economy" },
+  { title: "Science", id: "Science" }
+];
+
+VizConfig.organizationType = [
+  { title: "Social Enterprise Charity Or Foundation", id: "social-enterprise-charity-or-foundation" },
+  { title: "Business", id: "business" },
+  { title: "Grass Roots Organization Or Community Network", id: "grass-roots-organization-or-community-network" },
+  { title: "Academia and Research", id: "academia-and-research" },
+  { title: "Government and Public Sector", id: "government-and-public-sector" }
+];
+
 VizConfig.initialMapHeight = Math.max(400, Math.min(window.innerHeight - 360, 500));
 
 VizConfig.technologyFocusesById['open-hardware'].info = 'New ways of making and using open hard­ware solutions and moving towards and Open Source Internet of Things';
