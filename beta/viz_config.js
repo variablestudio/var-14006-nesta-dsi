@@ -9,7 +9,7 @@ else {
 
 VizConfig.text = {
   caseStudiesTitle: 'Case Studies'
-}
+};
 
 VizConfig.dsiAreas = [
   { title: 'Funding acceleration<br/> and incubation', id: 'funding-acceleration-and-incubation', color: '#FDE302', icon: VizConfig.assetsPath + '/triangle-funding-acceleration-and-incubation.png', label: 'Funding Acceleration and Incubation', labelMultiline: 'Funding\nAcceleration\nand Incubation' },
@@ -68,8 +68,20 @@ VizConfig.areaOfSociety = [
   { title: "Neighbourhood Regeneration", id: "neighbourhood-regeneration" },
   { title: "Energy and Environment", id: "energy-and-environment" },
   { title: "Finance and Economy", id: "finance-and-economy" },
-  { title: "Science", id: "Science" }
+  { title: "Science", id: "science" }
 ];
+
+VizConfig.areaOfSocietyById = {
+  "education-and-skills": VizConfig.areaOfSociety[0],
+  "participation-and-democracy": VizConfig.areaOfSociety[1],
+  "culture-and-arts": VizConfig.areaOfSociety[2],
+  "health-and-wellbeing": VizConfig.areaOfSociety[3],
+  "work-and-employment": VizConfig.areaOfSociety[4],
+  "neighbourhood-regeneration": VizConfig.areaOfSociety[4],
+  "energy-and-environment": VizConfig.areaOfSociety[5],
+  "finance-and-economy": VizConfig.areaOfSociety[6],
+  "science": VizConfig.areaOfSociety[7]
+};
 
 VizConfig.organisationType = [
   { title: "Social Enterprise Charity Or Foundation", id: "social-enterprise-charity-or-foundation" },
@@ -78,6 +90,14 @@ VizConfig.organisationType = [
   { title: "Academia and Research", id: "academia-and-research" },
   { title: "Government and Public Sector", id: "government-and-public-sector" }
 ];
+
+VizConfig.organisationTypeById = {
+  "social-enterprise-charity-or-foundation": VizConfig.organisationType[0],
+  "business": VizConfig.organisationType[1],
+  "grass-roots-organization-or-community-network": VizConfig.organisationType[2],
+  "academia-and-research": VizConfig.organisationType[3],
+  "government-and-public-sector": VizConfig.organisationType[4]
+};
 
 VizConfig.initialMapHeight = Math.max(400, Math.min(window.innerHeight - 360, 500));
 

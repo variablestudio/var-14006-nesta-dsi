@@ -73,10 +73,25 @@ function VizKey(open) {
     sidebarSection.parent.append(section);
   });
 
+  var moreButton = this.moreButton = $('<div class="section more"><h3>MORE</h3></div>');
+
+  rowLeft.append(moreButton);
+
   sideBar.append(rowLeft);
   sideBar.append(rowRight);
 
-  thumb.click(function() {
+  this.row = {
+    'left': rowLeft,
+    'right': rowRight
+  };
+
+  moreButton.on('click', function() {
+    this.row.right.animate({ width: "220px"});
+    this.thumb.animate({ left: "357px" });
+    this.moreButton.fadeOut();
+  }.bind(this));
+
+  thumb.on('click', function() {
     if (vizKeyContainer.hasClass('open')) { this.close(); }
     else { this.open(); }
   }.bind(this));
@@ -85,11 +100,17 @@ function VizKey(open) {
 VizKey.prototype.open = function() {
   this.vizKeyContainer.addClass('open');
   this.thumb.children('span').text('Hide Key');
+  this.vizKeyContainer.animate({ left: 0 });
 };
 
 VizKey.prototype.close = function() {
   this.vizKeyContainer.removeClass('open');
   this.thumb.children('span').text('Open Key');
+
+  this.thumb.animate({ left: "137px" });
+  this.vizKeyContainer.animate({ left: "-220px" });
+
+  this.row.right.animate({ width: 0 }, { complete: function() { this.moreButton.show(); }.bind(this) });
 };
 
 VizKey.prototype.updateFilters = function(filter) {
