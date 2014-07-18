@@ -324,6 +324,7 @@
   background: white;
   border: 1px solid #eee;
   box-shadow: 0px 10px 15px #999;
+  z-index: 2001;
 }
 
 #carousel-popup .title {
