@@ -58,7 +58,7 @@ MainMap.prototype.initSVG = function() {
   $('#map').css({ 'width': this.w, 'height': this.h });
 
   var scale  = 4;
-  var center = [50, -0];
+  var center = [50, 7];
   this.showWorldMap(center, scale);
 
   this.DOM.svg = d3.select("#map")
