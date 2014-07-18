@@ -671,7 +671,7 @@ var MainMap = (function() {
   };
 
   MainMap.prototype.showOrganisations = function(zoom) {
-    if (!this.DOM.orgGroup || !!this.DOM.hexGroup) { return; }
+    if (!this.DOM.orgGroup || !this.DOM.hexGroup) { return; }
 
     // in order to show organisations we need to update clusters, saving them globally for network drawing
     this.filterOrganisations().then(function(filteredOrganisations) {
