@@ -15,6 +15,7 @@ module.exports = function(grunt) {
           'viz_carousel.js',
           'viz_countries.js',
           'viz_intro.js',
+          'viz_introhex.js',
           'viz_choropleth.js',
           'viz_explorer.js',
           'data/new_schema_list_min.js',

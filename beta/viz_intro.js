@@ -17,7 +17,7 @@ function Intro(introVizContainer, clickCb) {
 
   var dsiIntroText = [
     'We are setting up a network of organisations that use the Internet for the social good.',
-    'Explore NUM_ORG organisations with NUM_PROJECTS collaborative research and innovation projects.',
+    'Explore <strong>NUM_ORG</strong> organisations with <strong>NUM_PROJECTS</strong> collaborative research and innovation projects.',
     '<em>"Digital Social Innovation is a type of collaborative innovation in which innovators, users and communities co-create knowledge and solutions for a wide range of social needs exploiting the network effect of the Internet."</em>'
   ];
 
@@ -44,93 +44,40 @@ function Intro(introVizContainer, clickCb) {
 
   content2.append($('<h1>' + titleText + '</h1>'));
 
+  content2.append($('<div id="introHex"></div>'));
+
   var exploreBtn = $('<div class="exploreBtn">' + exploreBtnText + '</div>')
   content2.append(exploreBtn);
   exploreBtn.click(clickCb);
 
   column3.append($('<p><img src="assets/WorldMap.png" width="322"/></p>'));
 
-  /*
+  var vizContainer = d3.select("#introHex");
+  var chart = vizContainer
+    .append("svg")
+    .attr("width", 322)
+    .attr("height", 220)
+    .chart("IntroHex")
+    .width(322)
+    .height(220)
+    .radius(50)
 
-  var content1 = $('<div></div>');
-  introVizContent.append(content1);
-  content1.append($('<h1>' + dsiIntroText.join('<br/><br/>') + '</h1>'));
-
-  var content2 = $('<div></div>');
-  introVizContent.append(content2);
-
-  content2.append($('<h2>' + learnTitle + '</h2>'));
-  content2.append($('<h3>' + dsiTitle + '</h3>'));
-  content2.append($('<h3>' + techTitle + '</h3>'));
-
-  var areasContainer = $('<div class="col"></div>');
-  content2.append(areasContainer);
-  var technologiesContainer = $('<div class="col"></div>');
-  content2.append(technologiesContainer);
-
-  VizConfig.dsiAreas.map(function(dsiArea, dsiAreaIndex) {
-    areasContainer.append($('<a style="color:' + dsiArea.color + '"><img src="' + dsiArea.icon + '" height="14"/><span>' + dsiArea.title + '</span></a>'));
-  })
-
-  VizConfig.technologyFocuses.map(function(technologyFocus, technologyFocusIndex) {
-    technologiesContainer.append($('<a><img src="' + technologyFocus.icon + '" height="16"/><span>' + technologyFocus.title + '</span></a>'));
-  });
-
-  var mapBtn = $('<div id="introVizMapBtn"><img src="assets/intro-map.jpg"/></div>');
-  content2.append(mapBtn);
-  var exploreBtn = $('<div id="introVizExploreBtn"><img src="assets/intro-explore.jpg"/></div>');
-  content2.append(exploreBtn);
-
-  d3.select(content1.get(0))//.style('opacity', 0)
-    .transition()
-    .delay(1500)
-    .duration(2000)
-    .style('opacity', 0)
-
-  d3.select(content2.get(0)).style('opacity', 0)
-    .transition()
-    .delay(1500+2000)
-    .duration(2000)
-    .style('opacity', 1)
-
-  d3.select(content2.get(0)).selectAll('a')
-    .style('opacity', 0)
-    .transition()
-    .delay(function(d, i) { return 1500 + 2000 + 200 * i})
-    .duration(2000)
-    .style('opacity', 1)
-
-  d3.select(mapBtn.get(0)).selectAll('img')
-  .style('opacity', 0)
-  .transition()
-    .delay(1500+2000+2000+500)
-    .duration(2000)
-    .style('opacity', 1)
-
-  d3.select(exploreBtn.get(0)).selectAll('img')
-  .style('opacity', 0)
-  .transition()
-    .delay(1500+2000+2000+1000)
-    .duration(2000)
-    .style('opacity', 1)
-
-  function close(type) {
-    d3.select(introVizContainer.get(0))
-    .transition()
-    .duration(2000)
-    .style('opacity', 0);
-
-    setTimeout(function() {
-      $(introVizContainer).hide();
-    }, 2000)
-
-    if (clickCb) {
-      clickCb(type);
-    }
+  function randomInt(min, max) {
+    return Math.floor(min + Math.random() * (max + 1 - min));
   }
 
-  mapBtn.bind('click', close.bind(this, "map"));
-  exploreBtn.bind('click', close.bind(this, "explore"));
+  var orgProjectsAreas = [
+    { areaOfDSI: 'funding-acceleration-and-incubation', count: 10 },
+    { areaOfDSI: 'collaborative-economy', count: 10 },
+    { areaOfDSI: 'open-democracy', count: 10 },
+    { areaOfDSI: 'awareness-networks', count: 10 },
+    { areaOfDSI: 'new-ways-of-making', count: 10 },
+    { areaOfDSI: 'open-access', count: 10 }
+  ];
+  orgProjectsAreas.forEach(function(projectsArea) {
+    projectsArea.color = VizConfig.dsiAreasById[projectsArea.areaOfDSI].color;
+    projectsArea.projects = fn.sequence(0, projectsArea.count);
+  });
 
-  */
+  chart.draw(orgProjectsAreas);
 }
