@@ -442,9 +442,9 @@ var Carousel = (function() {
 			title += filters.map(function(filter) {
 				return datasourceByProperty[filter.property][filter.id].title.replace('<br/>', '');
 			}).join(', ');
-
-			$('#caseStudiesTitle').text(title);
 		}
+
+		$('#caseStudiesTitle').text(title);
 	};
 
 	return Carousel;
