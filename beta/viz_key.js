@@ -1,3 +1,5 @@
+/*global $, d3, VizConfig */
+
 function VizKey(open) {
   var updateFilters = this.updateFilters.bind(this);
   this.activeFilters = [];
@@ -10,7 +12,10 @@ function VizKey(open) {
   vizKeyContainer.append(thumb);
   $('body').append(vizKeyContainer);
 
-  if (open) vizKeyContainer.addClass('open');
+  if (open) {
+    vizKeyContainer.addClass('open');
+    thumb.children('span').text('Hide Key');
+  }
 
   var organizationsTitle = 'Organisations';
   var projectsTitle = 'Projects';
@@ -38,7 +43,7 @@ function VizKey(open) {
 
     section.append($('<h3>' + sidebarSection.title + '</h3>'));
 
-    sidebarSection.table.forEach(function(object, index) {
+    sidebarSection.table.forEach(function(object) {
       var link = $('<a class="filterLink ' + object.id + '"><span>' + object.title + '</span></a>');
 
       link.on('mouseover', function() {
@@ -55,7 +60,6 @@ function VizKey(open) {
 
       link.click(function() {
         var filter = { property: sidebarSection.property, id: object.id };
-        console.log(filter);
         var active = updateFilters(filter);
 
         d3.select(this).classed('active', active);
@@ -81,12 +85,12 @@ function VizKey(open) {
 VizKey.prototype.open = function() {
   this.vizKeyContainer.addClass('open');
   this.thumb.children('span').text('Hide Key');
-}
+};
 
 VizKey.prototype.close = function() {
   this.vizKeyContainer.removeClass('open');
   this.thumb.children('span').text('Open Key');
-}
+};
 
 VizKey.prototype.updateFilters = function(filter) {
   var wasFilterActive = this.activeFilters.reduce(function(memo, memoFilter) {

@@ -1065,7 +1065,7 @@ function Intro(introVizContainer, clickCb) {
 
   var dsiIntroText = [
     'We are setting up a network of organisations that use the Internet for the social good.',
-    'Explore NUM_ORG organisations with NUM_PROJECTS collaborative research and innovation projects.',
+    'Explore <strong>NUM_ORG</strong> organisations with <strong>NUM_PROJECTS</strong> collaborative research and innovation projects.',
     '<em>"Digital Social Innovation is a type of collaborative innovation in which innovators, users and communities co-create knowledge and solutions for a wide range of social needs exploiting the network effect of the Internet."</em>'
   ];
 
@@ -1091,95 +1091,235 @@ function Intro(introVizContainer, clickCb) {
   column2.append(content2);
 
   content2.append($('<h1>' + titleText + '</h1>'));
-  content2.append($('<div class="exploreBtn">' + exploreBtnText + '</div>'));
 
-  column3.append($('<p><img src="assets/WorldMap.png" width="322"/></p>'));
+  content2.append($('<div id="introHex"></div>'));
 
-  /*
-
-  var content1 = $('<div></div>');
-  introVizContent.append(content1);
-  content1.append($('<h1>' + dsiIntroText.join('<br/><br/>') + '</h1>'));
-
-  var content2 = $('<div></div>');
-  introVizContent.append(content2);
-
-  content2.append($('<h2>' + learnTitle + '</h2>'));
-  content2.append($('<h3>' + dsiTitle + '</h3>'));
-  content2.append($('<h3>' + techTitle + '</h3>'));
-
-  var areasContainer = $('<div class="col"></div>');
-  content2.append(areasContainer);
-  var technologiesContainer = $('<div class="col"></div>');
-  content2.append(technologiesContainer);
-
-  VizConfig.dsiAreas.map(function(dsiArea, dsiAreaIndex) {
-    areasContainer.append($('<a style="color:' + dsiArea.color + '"><img src="' + dsiArea.icon + '" height="14"/><span>' + dsiArea.title + '</span></a>'));
-  })
-
-  VizConfig.technologyFocuses.map(function(technologyFocus, technologyFocusIndex) {
-    technologiesContainer.append($('<a><img src="' + technologyFocus.icon + '" height="16"/><span>' + technologyFocus.title + '</span></a>'));
-  });
-
-  var mapBtn = $('<div id="introVizMapBtn"><img src="assets/intro-map.jpg"/></div>');
-  content2.append(mapBtn);
-  var exploreBtn = $('<div id="introVizExploreBtn"><img src="assets/intro-explore.jpg"/></div>');
+  var exploreBtn = $('<div class="exploreBtn">' + exploreBtnText + '</div>')
   content2.append(exploreBtn);
+  exploreBtn.click(clickCb);
 
-  d3.select(content1.get(0))//.style('opacity', 0)
-    .transition()
-    .delay(1500)
-    .duration(2000)
-    .style('opacity', 0)
 
-  d3.select(content2.get(0)).style('opacity', 0)
-    .transition()
-    .delay(1500+2000)
-    .duration(2000)
-    .style('opacity', 1)
+  column3.append($('<p><a href="http://digitalsocial.eu/organisations/build/new_user"><img src="assets/WorldMap.png" width="322"/></a></p>'));
 
-  d3.select(content2.get(0)).selectAll('a')
-    .style('opacity', 0)
-    .transition()
-    .delay(function(d, i) { return 1500 + 2000 + 200 * i})
-    .duration(2000)
-    .style('opacity', 1)
+  var vizContainer = d3.select("#introHex");
+  var chart = vizContainer
+    .append("svg")
+    .attr("width", 322)
+    .attr("height", 220)
+    .chart("IntroHex")
+    .width(322)
+    .height(220)
+    .radius(50)
 
-  d3.select(mapBtn.get(0)).selectAll('img')
-  .style('opacity', 0)
-  .transition()
-    .delay(1500+2000+2000+500)
-    .duration(2000)
-    .style('opacity', 1)
-
-  d3.select(exploreBtn.get(0)).selectAll('img')
-  .style('opacity', 0)
-  .transition()
-    .delay(1500+2000+2000+1000)
-    .duration(2000)
-    .style('opacity', 1)
-
-  function close(type) {
-    d3.select(introVizContainer.get(0))
-    .transition()
-    .duration(2000)
-    .style('opacity', 0);
-
-    setTimeout(function() {
-      $(introVizContainer).hide();
-    }, 2000)
-
-    if (clickCb) {
-      clickCb(type);
-    }
-  }
-
-  mapBtn.bind('click', close.bind(this, "map"));
-  exploreBtn.bind('click', close.bind(this, "explore"));
-
-  */
+  chart.draw(VizConfig.dsiAreas);
 }
 
+d3.chart("IntroHex", {
+  initialize: function() {
+    function hexBite(x, y, r, i) {
+      var a = i/6 * Math.PI * 2 + Math.PI/6;
+      var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
+      return [
+        [x, y],
+        [x + r * Math.cos(a), y + r * Math.sin(a)],
+        [x + r * Math.cos(na), y + r * Math.sin(na)]
+      ];
+    }
+
+    this.layer("triangles", this.base.append("g"), {
+      dataBind: function(data) {
+        return this.selectAll(".triangle").data(data);
+      },
+
+      insert: function() {
+        return this.append("path");
+      },
+      events: {
+        enter: function() {
+          var chart = this.chart();
+          this.attr("d", function(d, di) {
+            return "M" + hexBite(chart.width()/2, chart.height()/2, 0, di).join("L") + "Z";
+          })
+          .style("fill", function(d) { return d.color; })
+          .transition()
+          .delay(function(d, di) { return 1000 + di * 100; }) //1000
+          .duration(500)
+          .attr("d", function(d, di) {
+            var a = di/6 * 2 * Math.PI + Math.PI/3;
+            var r = 2;
+            var dx = r * Math.cos(a);
+            var dy = r * Math.sin(a);
+            return "M" + hexBite(chart.width()/2 + dx, chart.height()/2 + dy, chart.radius(), di).join("L") + "Z";
+          })
+
+          this.on("mouseover", function(d) {
+            d3.select(this).style("opacity", 0.8);
+            VizConfig.tooltip.show();
+            VizConfig.tooltip.html(d.info);
+          })
+          .on("mouseout", function() {
+            d3.select(this).style("opacity", 1);
+            VizConfig.tooltip.hide();
+          });
+        },
+
+        exit: function() {
+          this.remove();
+        }
+
+
+      }
+    });
+
+
+    this.layer("lines", this.base.append("g"), {
+      dataBind: function(data) {
+        return this.selectAll(".labelLine").data(data);
+      },
+
+      insert: function() {
+        return this.append("path")
+        .style("stroke", function(d) { return d.color; })
+        .style("fill", "none")
+        .style("opacity", 0)
+      },
+      events: {
+        enter: function() {
+          var chart = this.chart();
+
+          this.attr("d", function(d, di) {
+            var onTheRight = labelAnchors[di] == "start";
+            var points = [];
+            var a = di/6 * 2 * Math.PI + Math.PI/3;
+            var r = chart.radius() + 10;
+            var x = chart.width()/2 + 0.7 * r * Math.cos(a);
+            var y = chart.height()/2 + 0.7 * r * Math.sin(a);
+            var x2 = chart.width()/2 + 1 * r * Math.cos(a);
+            var y2 = chart.height()/2 + 1 * r * Math.sin(a);
+            var x3 = onTheRight ? chart.width()/2 + r + 5 : chart.width()/2 - r - 5;
+            var y3 = y2;
+            points.push([x, y]);
+            points.push([x2, y2]);
+            points.push([x3, y3]);
+            return "M" + points.join("L");
+          })
+          .transition()
+          .delay(function(d, di) { return 1500 + di * 100; }) //1000
+          .duration(500)
+          .style("opacity", 1)
+        },
+        exit: function() {
+          this.remove();
+        }
+      }
+    });
+
+    var labelAnchors = ["start", "end", "end", "end", "start", "start"];
+
+    this.layer("labels", this.base.append("g"), {
+      dataBind: function(data) {
+        return this.selectAll(".label").data(data);
+      },
+
+      insert: function() {
+        return this.append("g")
+      },
+      events: {
+        enter: function() {
+          var chart = this.chart();
+
+          this
+            .attr("x", function() { return chart.width()/2; })
+            .attr("y", function() { return chart.height()/2; })
+            .attr("transform", function(d, di) {
+              var onTheRight = labelAnchors[di] == "start";
+              var a = di/6 * 2 * Math.PI + Math.PI/3;
+              var r = chart.radius() + 10;
+              var x = onTheRight ? chart.width()/2 + r + 15 : chart.width()/2 - r - 15;
+              var y = chart.height()/2 + r * Math.sin(a);
+              return "translate("+x+","+y+")";
+            })
+            .style("opacity", 0)
+            .transition()
+            .delay(function(d, di) { return 1500 + di * 100; }) //1000
+            .duration(500)
+            .style("opacity", 1)
+
+          this.on("mouseover", function(d) {
+            d3.select(this).style("opacity", 0.8);
+            VizConfig.tooltip.show();
+            VizConfig.tooltip.html(d.info);
+          })
+          .on("mouseout", function() {
+            d3.select(this).style("opacity", 1);
+            VizConfig.tooltip.hide();
+          });
+
+          var labelLines = this.selectAll(".labelLine")
+            .data(function(d, di) {
+              return d.labelMultiline.split('\n').map(function(line) {
+                return {
+                  text: line,
+                  parentData: d,
+                  parentIndex: di
+                };
+              });
+          });
+
+          labelLines.enter()
+            .append("text")
+            .text(function(d, di) {
+              return d.text
+            })
+            .attr("dy", 4)
+            .attr("font-size", 12)
+            .attr("dy", function(d, di) {
+              return di * 14;
+            })
+            .attr("text-anchor", function(d, di) {
+              return labelAnchors[d.parentIndex];
+            })
+            .style("fill", function(d) {
+              return '#FFF';
+              return d.parentData.color;
+            });
+        },
+
+        exit: function() {
+          this.remove();
+        }
+      }
+    });
+
+  },
+
+  radius: function(newRadius) {
+    if (!newRadius) {
+      return this._radius;
+    }
+
+    this._radius = newRadius;
+    return this;
+  },
+
+  width: function(newWidth) {
+    if (!newWidth) {
+      return this._width;
+    }
+
+    this._width = newWidth;
+    return this;
+  },
+
+  height: function(newHeight) {
+    if (!newHeight) {
+      return this._height;
+    }
+
+    this._height = newHeight;
+    return this;
+  },
+});
 /*global d3, SPARQLDataSource */
 
 var indexOfProp = function(data, prop, val) {
@@ -2173,82 +2313,99 @@ VizPopup.prototype.isOpen = function() {
   return this.vizPopup.is(':visible');
 }
 
+/*global $, d3, VizConfig */
+
 function VizKey(open) {
-  var vizKeyContainer = $('<div id="vizKeyContainer"></div>');
-  var sideBar = $('<div id="vizKeySideBar"></div>');
-  var thumb = $('<div id="vizKeyThumb"><span>Open Key</span></div>');
+  var updateFilters = this.updateFilters.bind(this);
+  this.activeFilters = [];
+
+  var vizKeyContainer = this.vizKeyContainer = $('<div id="vizKeyContainer"></div>');
+  var sideBar = this.sideBar = $('<div id="vizKeySideBar"></div>');
+  var thumb = this.thumb = $('<div id="vizKeyThumb"><span>Open Key</span></div>');
+
   vizKeyContainer.append(sideBar);
   vizKeyContainer.append(thumb);
   $('body').append(vizKeyContainer);
 
-  if (open) vizKeyContainer.addClass('open');
+  if (open) {
+    vizKeyContainer.addClass('open');
+    thumb.children('span').text('Hide Key');
+  }
 
   var organizationsTitle = 'Organisations';
   var projectsTitle = 'Projects';
   var dsiTitle = 'DSI Areas';
   var techTitle = 'Technology Focus';
-  sideBar.append($('<h3><img src="' + VizConfig.assetsPath + '/key-org-new.png' + '" height="40"/><br>' + organizationsTitle + '</h3>'));
-  sideBar.append($('<h3><img src="' + VizConfig.assetsPath + '/key-project-new.png' + '" height="14"/><br>' + projectsTitle + '</h3>'));
-  sideBar.append($('<h3>' + dsiTitle + '</h3>'));
+  var areaTitle = 'Area of Society';
+  var orgTitle = 'Organisation type';
 
-  this.activeFilters = [];
-  var updateFilters = this.updateFilters.bind(this);
+  var rowLeft = $('<div class="row left"></div>');
+  var rowRight = $('<div class="row right"></div>');
 
-  VizConfig.dsiAreas.map(function(dsiArea, dsiAreaIndex) {
-    var areaLink = $('<a class="filterLink ' + dsiArea.id + '"><span>' + dsiArea.title + '</span></a>');
-    areaLink.on('mouseover', function() {
-      VizConfig.tooltip.show();
-      VizConfig.tooltip.html('<h4>' + dsiArea.title +'</h4>' + dsiArea.info);
-    })
-    areaLink.on('mouseout', function() {
-      VizConfig.tooltip.hide();
-    })
-    areaLink.click(function() {
-      var filter = { property: 'areaOfDigitalSocialInnovation', id: dsiArea.id };
-      var active = updateFilters(filter);
+  var sectionTitle = $('<div class="section"></div>');
+  sectionTitle.append($('<h3><img src="' + VizConfig.assetsPath + '/key-org-new.png' + '" height="40"/><br>' + organizationsTitle + '</h3>'));
+  sectionTitle.append($('<h3><img src="' + VizConfig.assetsPath + '/key-project-new.png' + '" height="14"/><br>' + projectsTitle + '</h3>'));
 
-      d3.select(this).classed("active", active);
+  rowLeft.append(sectionTitle);
 
-      VizConfig.events.fire('filter', filter);
+  [
+    { "table": VizConfig.dsiAreas, "property": 'areaOfDigitalSocialInnovation', "title": dsiTitle, "parent": rowLeft },
+    { "table": VizConfig.technologyFocuses, "property": 'technologyFocus', "title": techTitle, "parent": rowLeft },
+    { "table": VizConfig.areaOfSociety, "property": 'areaOfSociety', "title": areaTitle, "parent": rowRight },
+    { "table": VizConfig.organizationType, "property": 'organizationType', "title": orgTitle, "parent": rowRight }
+  ].forEach(function(sidebarSection) {
+    var section = $('<div class="section ' + sidebarSection.property + '"></div>');
+
+    section.append($('<h3>' + sidebarSection.title + '</h3>'));
+
+    sidebarSection.table.forEach(function(object) {
+      var link = $('<a class="filterLink ' + object.id + '"><span>' + object.title + '</span></a>');
+
+      link.on('mouseover', function() {
+        var html = '<h4>' + object.title + '</h4>';
+        if (object.info) { html += object.info; }
+
+        VizConfig.tooltip.html(html);
+        VizConfig.tooltip.show();
+      });
+
+      link.on('mouseout', function() {
+        VizConfig.tooltip.hide();
+      });
+
+      link.click(function() {
+        var filter = { property: sidebarSection.property, id: object.id };
+        var active = updateFilters(filter);
+
+        d3.select(this).classed('active', active);
+
+        VizConfig.events.fire('filter', filter);
+      });
+
+      section.append(link);
     });
-    sideBar.append(areaLink);
+
+    sidebarSection.parent.append(section);
   });
 
-  sideBar.append($('<h3>' + techTitle + '</h3>'));
-
-  VizConfig.technologyFocuses.map(function(technologyFocus, technologyFocusIndex) {
-    var technologyLink = $('<a class="filterLink ' + technologyFocus.id + '"><span>' + technologyFocus.title + '</span></a>');
-    technologyLink.on('mouseover', function() {
-      VizConfig.tooltip.show();
-      VizConfig.tooltip.html('<h4>' + technologyFocus.title +'</h4>' + technologyFocus.info);
-    })
-    technologyLink.on('mouseout', function() {
-      VizConfig.tooltip.hide();
-    });
-    technologyLink.click(function() {
-      var filter = { property: 'technologyFocus', id: technologyFocus.id };
-      var active = updateFilters(filter);
-
-      d3.select(this).classed("active", active);
-
-      VizConfig.events.fire('filter', filter);
-    });
-    sideBar.append(technologyLink);
-  });
-
-  var open = false;
+  sideBar.append(rowLeft);
+  sideBar.append(rowRight);
 
   thumb.click(function() {
-    if (vizKeyContainer.hasClass('open')) {
-      vizKeyContainer.removeClass('open');
-      thumb.children('span').text('Open Key');
-    }
-    else {
-      vizKeyContainer.addClass('open');
-      thumb.children('span').text('Hide Key');
-    }
-  });
+    if (vizKeyContainer.hasClass('open')) { this.close(); }
+    else { this.open(); }
+  }.bind(this));
 }
+
+VizKey.prototype.open = function() {
+  this.vizKeyContainer.addClass('open');
+  this.thumb.children('span').text('Hide Key');
+};
+
+VizKey.prototype.close = function() {
+  this.vizKeyContainer.removeClass('open');
+  this.thumb.children('span').text('Open Key');
+};
 
 VizKey.prototype.updateFilters = function(filter) {
   var wasFilterActive = this.activeFilters.reduce(function(memo, memoFilter) {
@@ -2334,7 +2491,7 @@ MainMap.prototype.initSVG = function() {
   $('#map').css({ 'width': this.w, 'height': this.h });
 
   var scale  = 4;
-  var center = [50, -0];
+  var center = [50, 7];
   this.showWorldMap(center, scale);
 
   this.DOM.svg = d3.select("#map")
@@ -3958,12 +4115,12 @@ VizConfig.text = {
 }
 
 VizConfig.dsiAreas = [
-  { title: 'Funding acceleration<br/> and incubation', id: 'funding-acceleration-and-incubation', color: '#FDE302', icon: VizConfig.assetsPath + '/triangle-funding-acceleration-and-incubation.png', label: 'Funding Acceleration and Incubation' },
-  { title: 'Collaborative economy', id: 'collaborative-economy', color: '#A6CE39', icon: VizConfig.assetsPath + '/triangle-collaborative-economy.png', label: 'Collaborative Economy' },
-  { title: 'Open democracy', id: 'open-democracy', color: '#F173AC', icon: VizConfig.assetsPath + '/triangle-open-democracy.png', label: 'Open Democracy' },
-  { title: 'Awareness networks', id: 'awareness-networks', color: '#ED1A3B', icon: VizConfig.assetsPath + '/triangle-awareness-networks.png', label: 'Awareness Networks' },
-  { title: 'New ways of making', id: 'new-ways-of-making', color: '#F58220', icon: VizConfig.assetsPath + '/triangle-new-ways-of-making.png', label: 'New Ways of Making' },
-  { title: 'Open access', id: 'open-access', color: '#7BAFDE', icon: VizConfig.assetsPath + '/triangle-open-access.png', label: 'Open Access' }
+  { title: 'Funding acceleration<br/> and incubation', id: 'funding-acceleration-and-incubation', color: '#FDE302', icon: VizConfig.assetsPath + '/triangle-funding-acceleration-and-incubation.png', label: 'Funding Acceleration and Incubation', labelMultiline: 'Funding\nAcceleration\nand Incubation' },
+  { title: 'Collaborative economy', id: 'collaborative-economy', color: '#A6CE39', icon: VizConfig.assetsPath + '/triangle-collaborative-economy.png', label: 'Collaborative Economy', labelMultiline: 'Collaborative\nEconomy' },
+  { title: 'Open democracy', id: 'open-democracy', color: '#F173AC', icon: VizConfig.assetsPath + '/triangle-open-democracy.png', label: 'Open Democracy', labelMultiline: 'Open\nDemocracy' },
+  { title: 'Awareness networks', id: 'awareness-networks', color: '#ED1A3B', icon: VizConfig.assetsPath + '/triangle-awareness-networks.png', label: 'Awareness Networks', labelMultiline: 'Awareness\nNetworks' },
+  { title: 'New ways of making', id: 'new-ways-of-making', color: '#F58220', icon: VizConfig.assetsPath + '/triangle-new-ways-of-making.png', label: 'New Ways of Making', labelMultiline: 'New Ways\nof Making' },
+  { title: 'Open access', id: 'open-access', color: '#7BAFDE', icon: VizConfig.assetsPath + '/triangle-open-access.png', label: 'Open Access', labelMultiline: 'Open\nAccess' }
 ];
 
 VizConfig.dsiAreasById = {
@@ -3975,7 +4132,7 @@ VizConfig.dsiAreasById = {
   'open-access': VizConfig.dsiAreas[5]
 };
 
-VizConfig.dsiAreasById['funding-acceleration-and-incubation'].info = '';
+VizConfig.dsiAreasById['funding-acceleration-and-incubation'].info = 'Funding, Accelaration and Incubation';
 VizConfig.dsiAreasById['collaborative-economy'].info = 'Collaborative economy: New collaborative socio-economic models that present novel characteristics, and enable people to share skills, knowledge, food, clothes, housing and so on. It includes crypto digital currencies, new forms of crowdfunding and financing, new platforms for exchanges and sharing resources based on reputation and trust.';
 VizConfig.dsiAreasById['open-democracy'].info = 'Open democracy is transforming the traditional models of representative democracy. Digital technology can enable collective participation at a scale that was impossible before enabling citizens to be engaged in decision-making processes, collective deliberation, and mass mobilisation. ';
 VizConfig.dsiAreasById['awareness-networks'].info = 'Platforms for collaboration are able to aggregate data coming from people and the environment and are used to solve environmental issues and promote sustainable behavioral changes, or to mobilize collective action and respond to community emergencies. ';
@@ -4005,6 +4162,26 @@ VizConfig.technologyFocusesById = {
   'open-data': VizConfig.technologyFocuses[3]
 };
 
+VizConfig.areaOfSociety = [
+  { title: "Education and Skills", id: "education-and-skills" },
+  { title: "Participation and Democracy", id: "participation-and-democracy" },
+  { title: "Culture and Arts", id: "culture-and-arts" },
+  { title: "Health and Wellbeing", id: "health-and-wellbeing" },
+  { title: "Work and Employment", id: "work-and-employment" },
+  { title: "Neighbourhood Regeneration", id: "neighbourhood-regeneration" },
+  { title: "Energy and Environment", id: "energy-and-environment" },
+  { title: "Finance and Economy", id: "finance-and-economy" },
+  { title: "Science", id: "Science" }
+];
+
+VizConfig.organizationType = [
+  { title: "Social Enterprise Charity Or Foundation", id: "social-enterprise-charity-or-foundation" },
+  { title: "Business", id: "business" },
+  { title: "Grass Roots Organization Or Community Network", id: "grass-roots-organization-or-community-network" },
+  { title: "Academia and Research", id: "academia-and-research" },
+  { title: "Government and Public Sector", id: "government-and-public-sector" }
+];
+
 VizConfig.initialMapHeight = Math.max(400, Math.min(window.innerHeight - 360, 500));
 
 VizConfig.technologyFocusesById['open-hardware'].info = 'New ways of making and using open hard­ware solutions and moving towards and Open Source Internet of Things';
@@ -4012,12 +4189,9 @@ VizConfig.technologyFocusesById['open-networks'].info = 'Innovative combinations
 VizConfig.technologyFocusesById['open-knowledge'].info = 'Co-production of new knowledge and crowd mobilisation based on open content, open source and open access';
 VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture, use, analyse, and interpret open data coming from people and from the environment';
 
-console.log('viz');
-
 (function() {
   var showIntro = (document.location.hash !== '#nointro');
 
-  console.log('bla')
   function init() {
     var url = window.location.href;
     var urlIsLocalhost = (url.match(/localhost/) !== null);
@@ -4046,7 +4220,7 @@ console.log('viz');
 
       initVisualizations(vizContainer);
       if (showIntro) {
-        initIntroViz(vizContainer, initVisualizations);
+        initIntroViz(vizContainer);
       }
     }
   }
@@ -4069,7 +4243,11 @@ console.log('viz');
   function initIntroViz(vizContainer, cb) {
     var introViz = $('<div id="introViz"></div>');
     vizContainer.append(introViz);
-    var intro = new Intro(introViz, cb);
+    function onExplore() {
+      VizConfig.vizKey.open();
+      introViz.fadeOut('slow');
+    }
+    var intro = new Intro(introViz, onExplore);
   }
 
   function initTooltip() {
