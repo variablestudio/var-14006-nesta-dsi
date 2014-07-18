@@ -44,7 +44,11 @@
   left: 0;
   color: white;
   font-family: 'Scene Std', sans-serif;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.7);
+}
+
+#introHex {
+  margin: 1em 0;
 }
 
 #introVizContent {
@@ -89,6 +93,7 @@
   text-transform: uppercase;
   width: 322px;
   text-align: center;
+  margin-bottom: 0;
 }
 
 #introVizContent p {

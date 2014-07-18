@@ -62,22 +62,5 @@ function Intro(introVizContainer, clickCb) {
     .height(220)
     .radius(50)
 
-  function randomInt(min, max) {
-    return Math.floor(min + Math.random() * (max + 1 - min));
-  }
-
-  var orgProjectsAreas = [
-    { areaOfDSI: 'funding-acceleration-and-incubation', count: 10 },
-    { areaOfDSI: 'collaborative-economy', count: 10 },
-    { areaOfDSI: 'open-democracy', count: 10 },
-    { areaOfDSI: 'awareness-networks', count: 10 },
-    { areaOfDSI: 'new-ways-of-making', count: 10 },
-    { areaOfDSI: 'open-access', count: 10 }
-  ];
-  orgProjectsAreas.forEach(function(projectsArea) {
-    projectsArea.color = VizConfig.dsiAreasById[projectsArea.areaOfDSI].color;
-    projectsArea.projects = fn.sequence(0, projectsArea.count);
-  });
-
-  chart.draw(orgProjectsAreas);
+  chart.draw(VizConfig.dsiAreas);
 }
