@@ -6,6 +6,7 @@ module.exports = function(grunt) {
       js: {
         src: [
           "../lib/d3.v3.min.js",
+          "../lib/d3.chart.min.js",
           "../lib/topojson.v1.min.js",
           "../lib/q.min.js",
           "../js/SPARQL.js",
