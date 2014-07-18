@@ -503,20 +503,17 @@
 /*---------------------------------- key ----------------------------------------*/
 
 #vizKeyContainer {
-  width: 450px;
   position: absolute;
   top: 146px;
-  left: -440px;
-  padding-bottom: 10px;
-  transition: left 0.5s; -webkit-transition: left 0.5s; -moz-transition: left 0.5s; -ms-transition: left 0.5s;
+  transition: margin 0.5s; -webkit-transition: margin 0.5s; -moz-transition: margin 0.5s; -ms-transition: margin 0.5s;
+}
+
+#vizKeyContainer.open:hover {
+  margin-left: 0;
 }
 
 #vizKeyContainer:hover {
-  left: -430px;
-}
-
-#vizKeyContainer.open {
-  left: 0;
+  margin-left: 6px;
 }
 
 #vizKeyContainer #vizKeySideBar {
@@ -528,7 +525,7 @@
   font-weight: normal;
   padding: 1em 0 1em 0;
   font-size: 14px;
-	margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 #vizKeyContainer h3 img {
@@ -545,14 +542,26 @@
 }
 
 #vizKeySideBar .row {
-	width: 220px;
-	float: left;
+  width: 220px;
+  float: left;
+  overflow: hidden;
+}
+
+#vizKeySideBar .row.right {
+  width: 0;
 }
 
 #vizKeySideBar .section {
-	margin: 1px;
-	padding-bottom: 10px;
-	background: black;
+  margin: 1px;
+  padding-bottom: 10px;
+  background: black;
+  width: 220px;
+}
+
+#vizKeySideBar .section.more {
+  padding-bottom: 0;
+  text-align: center;
+  cursor: pointer;
 }
 
 #vizKeySideBar .section > h3,
@@ -648,7 +657,8 @@
   transform: rotate(-90deg); -webkit-transform: rotate(-90deg); -moz-transform: rotate(-90deg); -ms-transform: rotate(-90deg);
   position: absolute;
   top: 85px;
-  left: 357px;
+  /* left: 357px; */
+  left: 137px;
   width: 197px;
   cursor: pointer;
 }
@@ -756,7 +766,7 @@
   font-size: 12px;
 }
 
-/*---------------------------------- organisation -----------------------------------*/
+/*---------------------------------- bighex -----------------------------------*/
 
 #bigHexViz {
   color: white;

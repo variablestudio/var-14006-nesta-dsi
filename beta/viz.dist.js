@@ -864,9 +864,9 @@ var Carousel = (function() {
 			title += filters.map(function(filter) {
 				return datasourceByProperty[filter.property][filter.id].title.replace('<br/>', '');
 			}).join(', ');
-
-			$('#caseStudiesTitle').text(title);
 		}
+
+		$('#caseStudiesTitle').text(title);
 	};
 
 	return Carousel;
@@ -874,325 +874,329 @@ var Carousel = (function() {
 
 /*global $, d3, SPARQLDataSource, VizConfig */
 
-var indexOfProp = function(data, prop, val) {
-	return data.map(function(o) { return o[prop]; }).indexOf(val);
-};
+var Countries = (function() {
+	var indexOfProp = function(data, prop, val) {
+		return data.map(function(o) { return o[prop]; }).indexOf(val);
+	};
 
-function Countries(div) {
-	this.ADSILabels = [];  // will be filled on SPARQL query
-	this.ADSIMaxCount = 0; // will be filled on SPARQL query
+	function Countries(div) {
+		this.ADSILabels = [];  // will be filled on SPARQL query
+		this.ADSIMaxCount = 0; // will be filled on SPARQL query
 
-	this.data = []; // will be filled on SPARQL query
+		this.data = []; // will be filled on SPARQL query
 
-	// cache DOM elements
-	this.DOM = { "div": d3.select(div) };
+		// cache DOM elements
+		this.DOM = { "div": d3.select(div) };
 
-	this.GEO_ASSET = "assets/world-countries-hires.geo.json";
-	// this.GEO_ASSET = "assets/eu.geo.json";
-	// this.GEO_ASSET = "assets/all_countries.json";
-}
-
-// runs query, calls this.draw() when finished
-Countries.prototype.init = function() {
-	var url = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
-	var ds = new SPARQLDataSource(url);
-
-	ds.query()
-		.prefix("o:", "<http://www.w3.org/ns/org#>")
-		.prefix("rdfs:", "<http://www.w3.org/2000/01/rdf-schema#>")
-		.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
-		.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
-		.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
-		.prefix("reach:", "<http://data.digitalsocial.eu/def/ontology/reach/>")
-		.select("?label ?country ?adsi_label ?funds_invested")
-		.where("?org", "a", "o:Organization")
-		.where("?am", "a", "ds:ActivityMembership")
-		.where("?am", "ds:organization", "?org")
-		.where("?am", "ds:activity", "?activity")
-		.where("?activity", "ds:areaOfDigitalSocialInnovation", "?adsi")
-		.where("?adsi", "rdfs:label", "?adsi_label")
-		.where("?org", "rdfs:label", "?label")
-		.where("?org", "o:hasPrimarySite", "?org_site")
-		.where("?org_site", "o:siteAddress", "?org_address")
-		.where("?org_address", "vcard:country-name", "?country")
-		.where("?rv", "a", "ds:ReachValue")
-		.where("?rv", "ds:activityForReach", "?activity")
-		.where("?rv", "reach:fundsInvested", "?funds_invested", { optional: true })
-		.execute()
-		.then(function(results) {
-			// easier key acces
-			var data = results.map(function(object) {
-				var newObject = {};
-				var key;
-				for (key in object) {
-					if (object.hasOwnProperty(key)) {
-						if (key === "lat" || key === "long" || key === "funds_invested") {
-							newObject[key] = +object[key].value;
-						}
-						else {
-							newObject[key] = object[key].value;
-						}
-					}
-				}
-
-				return newObject;
-			});
-
-			// gather all possible labels
-			this.ADSILabels = data.reduce(function(memo, object) {
-				if (memo.indexOf(object.adsi_label) < 0) {
-					memo.push(object.adsi_label);
-				}
-
-				return memo;
-			}, []);
-
-			// prepare data
-			data = data.reduce(function(memo, object) {
-				var index = indexOfProp(memo, "country", object.country);
-
-				if (index < 0) {
-					object.adsi_labels = {};
-					object.adsi_labels[object.adsi_label] = 1;
-					object.projects_count = 1;
-					delete object.adsi_label;
-					delete object.label;
-					object.funds_invested = object.funds_invested || 0;
-
-					memo.push(object);
-				}
-				else {
-					if (memo[index].adsi_labels[object.adsi_label]) {
-						memo[index].adsi_labels[object.adsi_label]++;
-					}
-					else {
-						memo[index].adsi_labels[object.adsi_label] = 1;
-					}
-
-					memo[index].funds_invested += object.funds_invested || 0;
-					memo[index].projects_count++;
-				}
-
-				return memo;
-			}, []);
-
-
-			data.sort(function(a, b) {
-				return -(a.projects_count - b.projects_count);
-			});
-
-			// add empty labels
-			data = data.map(function(object) {
-				this.ADSILabels.forEach(function(adsiLabel) {
-					if (object.adsi_labels.hasOwnProperty(adsiLabel)) {
-						// find max count for bar chart scaling
-						if (object.adsi_labels[adsiLabel] > this.ADSIMaxCount) {
-							this.ADSIMaxCount = object.adsi_labels[adsiLabel];
-						}
-					}
-					else {
-						// insert 0 for empty labels in object
-						object.adsi_labels[adsiLabel] = 0;
-					}
-				}.bind(this));
-
-				return object;
-			}.bind(this));
-
-			// add geography to data, and callback when finished
-			if (this.GEO_ASSET === "assets/all_countries.json") {
-				d3.json("assets/all_countries.json", function(countries) {
-					data = data
-						.map(function(object) {
-							var index = indexOfProp(countries, "name", object.country);
-
-							if (index > 0) {
-								object.country_code = countries[index]["alpha-3"];
-								object.geo = JSON.parse(countries[index].geo);
-							}
-							else {
-								// remove countries that are not all_countries.json file
-								object = null;
-							}
-
-							return object;
-						})
-						.filter(function(object) {
-							return (object !== null);
-						});
-
-					// save data
-					this.data = data;
-
-					// draw when done
-					this.draw();
-				}.bind(this));
-			}
-
-			else if (this.GEO_ASSET === "assets/eu.geo.json" || this.GEO_ASSET === "assets/world-countries-hires.geo.json") {
-				d3.json(this.GEO_ASSET, function(countries) {
-					countries.features.forEach(function(country) {
-						var name = country.properties.NAME;
-						var index = indexOfProp(data, "country", name);
-
-						if (index >= 0) {
-							data[index].geo = country;
-						}
-						else {
-							//console.log("no data for",  name);
-						}
-					});
-
-					// remove countries not in geojson
-					data = data.filter(function(data) {
-						return data.geo;
-					});
-
-					// save data
-					this.data = data;
-
-					// draw when done
-					this.draw();
-				}.bind(this));
-			}
-
-			else {
-				console.error("no transform for asset: " + this.GEO_ASSET);
-			}
-
-		}.bind(this));
-};
-
-Countries.prototype.draw = function() {
-	this.data.forEach(function(data, dataIndex) {
-		var div = this.DOM.div.append("div").attr("class", "map " + data.country_code);
-
-		var barChartDiv = div.append("div").attr("class", "area-chart");
-		this.drawBarChart(barChartDiv, data);
-
-		var projectCountDiv = div.append("div").attr("class", "project-count");
-		this.drawProjectCount(projectCountDiv, data);
-
-		var countryNameDiv = div.append("div").attr("class", "country-name");
-		this.drawCountryName(countryNameDiv, data);
-
-		var mapDiv = div.append("div").attr("class", "country");
-		this.drawMap(mapDiv, data);
-
-		if (dataIndex >= 8) {
-			$(div[0]).hide();
-		}
-	}.bind(this));
-};
-
-Countries.prototype.drawBarChart = function(div, data) {
-	//(8*14+14)*8-14
-	var width = 100; //8*14
-	var height = 80;
-	var barWidth = 12;
-
-	var scaleX = d3.scale.ordinal()
-		.domain(this.ADSILabels)
-		.rangeBands([0, width]);
-
-	var scaleY = d3.scale.linear()
-		.domain([0, this.ADSIMaxCount])
-		.range([height, 0]);
-
-	var rectData = [];
-	var adsiLabel;
-	for (adsiLabel in data.adsi_labels) {
-		if (data.adsi_labels.hasOwnProperty(adsiLabel)) {
-			rectData.push({ "name": adsiLabel, "count": data.adsi_labels[adsiLabel] });
-		}
+		this.GEO_ASSET = "assets/world-countries-hires.geo.json";
+		// this.GEO_ASSET = "assets/eu.geo.json";
+		// this.GEO_ASSET = "assets/all_countries.json";
 	}
 
-	var svg = div.append("svg")
-		.attr("width", width)
-		.attr("height", height);
+	// runs query, calls this.draw() when finished
+	Countries.prototype.init = function() {
+		var url = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
+		var ds = new SPARQLDataSource(url);
 
-	svg.selectAll(".rect")
-		.data(rectData)
-		.enter()
-		.append("rect")
-		.attr("x", function(d) {
-			return scaleX(d.name);
-		})
-		.attr("y", function(d) {
-			return scaleY(d.count);
-		})
-		.attr("width", barWidth)
-		.attr("height", function(d) {
-			return height - scaleY(d.count);
-		})
-		.attr("fill", function(d) {
-			return VizConfig.dsiAreasByLabel[d.name].color;
-		}.bind(this))
-		.on('mouseover', function(d) {
-			VizConfig.tooltip.show();
-			VizConfig.tooltip.html(d.name + ' : ' + d.count, '#FFF', VizConfig.dsiAreasByLabel[d.name].color);
-		})
-		.on('mouseout', function() {
-			VizConfig.tooltip.hide();
-		});
-};
+		ds.query()
+			.prefix("o:", "<http://www.w3.org/ns/org#>")
+			.prefix("rdfs:", "<http://www.w3.org/2000/01/rdf-schema#>")
+			.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
+			.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
+			.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
+			.prefix("reach:", "<http://data.digitalsocial.eu/def/ontology/reach/>")
+			.select("?label ?country ?adsi_label ?funds_invested")
+			.where("?org", "a", "o:Organization")
+			.where("?am", "a", "ds:ActivityMembership")
+			.where("?am", "ds:organization", "?org")
+			.where("?am", "ds:activity", "?activity")
+			.where("?activity", "ds:areaOfDigitalSocialInnovation", "?adsi")
+			.where("?adsi", "rdfs:label", "?adsi_label")
+			.where("?org", "rdfs:label", "?label")
+			.where("?org", "o:hasPrimarySite", "?org_site")
+			.where("?org_site", "o:siteAddress", "?org_address")
+			.where("?org_address", "vcard:country-name", "?country")
+			.where("?rv", "a", "ds:ReachValue")
+			.where("?rv", "ds:activityForReach", "?activity")
+			.where("?rv", "reach:fundsInvested", "?funds_invested", { optional: true })
+			.execute()
+			.then(function(results) {
+				// easier key acces
+				var data = results.map(function(object) {
+					var newObject = {};
+					var key;
+					for (key in object) {
+						if (object.hasOwnProperty(key)) {
+							if (key === "lat" || key === "long" || key === "funds_invested") {
+								newObject[key] = +object[key].value;
+							}
+							else {
+								newObject[key] = object[key].value;
+							}
+						}
+					}
 
-Countries.prototype.drawProjectCount = function(div, data) {
-	div.append("div")
-		.attr("class", "title")
-		.text("PROJECTS");
+					return newObject;
+				});
 
-	div.append("div")
-		.attr("class", "count")
-		.text(data.projects_count);
-};
+				// gather all possible labels
+				this.ADSILabels = data.reduce(function(memo, object) {
+					if (memo.indexOf(object.adsi_label) < 0) {
+						memo.push(object.adsi_label);
+					}
 
-Countries.prototype.drawFunds = function(div, data) {
-	div.append("div")
-		.attr("class", "title")
-		.text("GRANTS");
+					return memo;
+				}, []);
 
-	div.append("div")
-		.attr("class", "count")
-		.text("\u00A3"+ (data.funds_invested / 1000000) + "m");
-};
+				// prepare data
+				data = data.reduce(function(memo, object) {
+					var index = indexOfProp(memo, "country", object.country);
 
-Countries.prototype.drawCountryName = function(div, data) {
-	div.text(data.country);
-};
+					if (index < 0) {
+						object.adsi_labels = {};
+						object.adsi_labels[object.adsi_label] = 1;
+						object.projects_count = 1;
+						delete object.adsi_label;
+						delete object.label;
+						object.funds_invested = object.funds_invested || 0;
 
-Countries.prototype.drawMap = function(div, data) {
-		var width = 100;
-		var height = 100;
+						memo.push(object);
+					}
+					else {
+						if (memo[index].adsi_labels[object.adsi_label]) {
+							memo[index].adsi_labels[object.adsi_label]++;
+						}
+						else {
+							memo[index].adsi_labels[object.adsi_label] = 1;
+						}
 
-		// initial projection
-		var projection = d3.geo.mercator().scale(1).translate([ 0, 0 ]);
+						memo[index].funds_invested += object.funds_invested || 0;
+						memo[index].projects_count++;
+					}
 
-		// auto scale using path
-		var path = d3.geo.path().projection(projection);
-		var bounds = path.bounds(data.geo);
-		var scale = 0.98 / Math.max(
-			(bounds[1][0] - bounds[0][0]) / width,
-			(bounds[1][1] - bounds[0][1]) / height
-		);
-		var translate = [
-			(width - scale * (bounds[1][0] + bounds[0][0])) / 2,
-			(height - scale * (bounds[1][1] + bounds[0][1])) / 2
-		];
+					return memo;
+				}, []);
 
-		// update projection
-		projection.scale(scale).translate(translate);
 
-		// draw map
-		var svg = div
-			.append("svg")
+				data.sort(function(a, b) {
+					return -(a.projects_count - b.projects_count);
+				});
+
+				// add empty labels
+				data = data.map(function(object) {
+					this.ADSILabels.forEach(function(adsiLabel) {
+						if (object.adsi_labels.hasOwnProperty(adsiLabel)) {
+							// find max count for bar chart scaling
+							if (object.adsi_labels[adsiLabel] > this.ADSIMaxCount) {
+								this.ADSIMaxCount = object.adsi_labels[adsiLabel];
+							}
+						}
+						else {
+							// insert 0 for empty labels in object
+							object.adsi_labels[adsiLabel] = 0;
+						}
+					}.bind(this));
+
+					return object;
+				}.bind(this));
+
+				// add geography to data, and callback when finished
+				if (this.GEO_ASSET === "assets/all_countries.json") {
+					d3.json("assets/all_countries.json", function(countries) {
+						data = data
+							.map(function(object) {
+								var index = indexOfProp(countries, "name", object.country);
+
+								if (index > 0) {
+									object.country_code = countries[index]["alpha-3"];
+									object.geo = JSON.parse(countries[index].geo);
+								}
+								else {
+									// remove countries that are not all_countries.json file
+									object = null;
+								}
+
+								return object;
+							})
+							.filter(function(object) {
+								return (object !== null);
+							});
+
+						// save data
+						this.data = data;
+
+						// draw when done
+						this.draw();
+					}.bind(this));
+				}
+
+				else if (this.GEO_ASSET === "assets/eu.geo.json" || this.GEO_ASSET === "assets/world-countries-hires.geo.json") {
+					d3.json(this.GEO_ASSET, function(countries) {
+						countries.features.forEach(function(country) {
+							var name = country.properties.NAME;
+							var index = indexOfProp(data, "country", name);
+
+							if (index >= 0) {
+								data[index].geo = country;
+							}
+							// else {
+							// 	console.log("no data for",  name);
+							// }
+						});
+
+						// remove countries not in geojson
+						data = data.filter(function(data) {
+							return data.geo;
+						});
+
+						// save data
+						this.data = data;
+
+						// draw when done
+						this.draw();
+					}.bind(this));
+				}
+
+				else {
+					console.error("no transform for asset: " + this.GEO_ASSET);
+				}
+
+			}.bind(this));
+	};
+
+	Countries.prototype.draw = function() {
+		this.data.forEach(function(data, dataIndex) {
+			var div = this.DOM.div.append("div").attr("class", "map " + data.country_code);
+
+			var barChartDiv = div.append("div").attr("class", "area-chart");
+			this.drawBarChart(barChartDiv, data);
+
+			var projectCountDiv = div.append("div").attr("class", "project-count");
+			this.drawProjectCount(projectCountDiv, data);
+
+			var countryNameDiv = div.append("div").attr("class", "country-name");
+			this.drawCountryName(countryNameDiv, data);
+
+			var mapDiv = div.append("div").attr("class", "country");
+			this.drawMap(mapDiv, data);
+
+			if (dataIndex >= 8) {
+				$(div[0]).hide();
+			}
+		}.bind(this));
+	};
+
+	Countries.prototype.drawBarChart = function(div, data) {
+		//(8*14+14)*8-14
+		var width = 100; //8*14
+		var height = 80;
+		var barWidth = 12;
+
+		var scaleX = d3.scale.ordinal()
+			.domain(this.ADSILabels)
+			.rangeBands([0, width]);
+
+		var scaleY = d3.scale.linear()
+			.domain([0, this.ADSIMaxCount])
+			.range([height, 0]);
+
+		var rectData = [];
+		var adsiLabel;
+		for (adsiLabel in data.adsi_labels) {
+			if (data.adsi_labels.hasOwnProperty(adsiLabel)) {
+				rectData.push({ "name": adsiLabel, "count": data.adsi_labels[adsiLabel] });
+			}
+		}
+
+		var svg = div.append("svg")
 			.attr("width", width)
 			.attr("height", height);
 
-		svg.append("path")
-			.datum(data.geo)
-			.attr("d", d3.geo.path().projection(projection));
-};
+		svg.selectAll(".rect")
+			.data(rectData)
+			.enter()
+			.append("rect")
+			.attr("x", function(d) {
+				return scaleX(d.name);
+			})
+			.attr("y", function(d) {
+				return scaleY(d.count);
+			})
+			.attr("width", barWidth)
+			.attr("height", function(d) {
+				return height - scaleY(d.count);
+			})
+			.attr("fill", function(d) {
+				return VizConfig.dsiAreasByLabel[d.name].color;
+			}.bind(this))
+			.on('mouseover', function(d) {
+				VizConfig.tooltip.show();
+				VizConfig.tooltip.html(d.name + ' : ' + d.count, '#FFF', VizConfig.dsiAreasByLabel[d.name].color);
+			})
+			.on('mouseout', function() {
+				VizConfig.tooltip.hide();
+			});
+	};
+
+	Countries.prototype.drawProjectCount = function(div, data) {
+		div.append("div")
+			.attr("class", "title")
+			.text("PROJECTS");
+
+		div.append("div")
+			.attr("class", "count")
+			.text(data.projects_count);
+	};
+
+	Countries.prototype.drawFunds = function(div, data) {
+		div.append("div")
+			.attr("class", "title")
+			.text("GRANTS");
+
+		div.append("div")
+			.attr("class", "count")
+			.text("\u00A3"+ (data.funds_invested / 1000000) + "m");
+	};
+
+	Countries.prototype.drawCountryName = function(div, data) {
+		div.text(data.country);
+	};
+
+	Countries.prototype.drawMap = function(div, data) {
+			var width = 100;
+			var height = 100;
+
+			// initial projection
+			var projection = d3.geo.mercator().scale(1).translate([ 0, 0 ]);
+
+			// auto scale using path
+			var path = d3.geo.path().projection(projection);
+			var bounds = path.bounds(data.geo);
+			var scale = 0.98 / Math.max(
+				(bounds[1][0] - bounds[0][0]) / width,
+				(bounds[1][1] - bounds[0][1]) / height
+			);
+			var translate = [
+				(width - scale * (bounds[1][0] + bounds[0][0])) / 2,
+				(height - scale * (bounds[1][1] + bounds[0][1])) / 2
+			];
+
+			// update projection
+			projection.scale(scale).translate(translate);
+
+			// draw map
+			var svg = div
+				.append("svg")
+				.attr("width", width)
+				.attr("height", height);
+
+			svg.append("path")
+				.datum(data.geo)
+				.attr("d", d3.geo.path().projection(projection));
+	};
+
+	return Countries;
+}());
 
 function Intro(introVizContainer, clickCb) {
   var w = window.innerWidth;
@@ -1470,489 +1474,497 @@ d3.chart("IntroHex", {
 });
 /*global $, d3, SPARQLDataSource, VizConfig */
 
-var indexOfProp = function(data, prop, val) {
-	return data.map(function(o) { return o[prop]; }).indexOf(val);
-};
-
-function Choropleth(dom, colorScale) {
-	// will be filled after SPARQL query
-	this.maxCount = 0;
-	this.techNames = [];
-	this.adsiNames = [];
-	this.data = [];
-
-	this.colorScale = colorScale || ["#f2f0f7", "#dadaeb", "#bcbddc", "#9e9ac8", "#756bb1", "#54278f"];
-
-	this.rect = { "width": 150, "height": 50 };
-	this.margin = { "top": 50, "left": 150 };
-
-	this.DOM = { "div": d3.select(dom) };
-}
-
-Choropleth.prototype.init = function() {
-	var url = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
-	var ds = new SPARQLDataSource(url);
-
-	ds.query()
-		.prefix("o:", "<http://www.w3.org/ns/org#>")
-		.prefix("rdfs:", "<http://www.w3.org/2000/01/rdf-schema#>")
-		.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
-		.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
-		.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
-		.select("?label ?country ?adsi_label ?tech_label")
-		.where("?org", "a", "o:Organization")
-		.where("?am", "a", "ds:ActivityMembership")
-		.where("?am", "ds:organization", "?org")
-		.where("?am", "ds:activity", "?activity")
-		.where("?activity", "ds:areaOfDigitalSocialInnovation", "?adsi")
-		.where("?activity", "ds:technologyFocus", "?tf")
-		.where("?tf", "rdfs:label", "?tech_label")
-		.where("?adsi", "rdfs:label", "?adsi_label")
-		.where("?org", "rdfs:label", "?label")
-		.where("?org", "o:hasPrimarySite", "?org_site")
-		.where("?org_site", "o:siteAddress", "?org_address")
-		.where("?org_address", "vcard:country-name", "?country")
-		.execute()
-		.then(function(results) {
-			this.data = results.reduce(function(memo, result) {
-				var key = result.adsi_label.value + " " + result.tech_label.value;
-				var keyIndex = indexOfProp(memo, "key", key);
-
-				if (this.adsiNames.indexOf(result.adsi_label.value) < 0) {
-					this.adsiNames.push(result.adsi_label.value);
-				}
-
-				if (this.techNames.indexOf(result.tech_label.value) < 0) {
-					this.techNames.push(result.tech_label.value);
-				}
-
-				if (keyIndex < 0) {
-					memo.push({
-						"key": key,
-						"adsi": result.adsi_label.value,
-						"tech": result.tech_label.value,
-						"count": 1
-					});
-				}
-				else {
-					memo[keyIndex].count++;
-				}
-
-				return memo;
-			}.bind(this), []);
-
-			this.maxCount = this.data.reduce(function(memo, object) {
-				if (object.count > memo) { memo = object.count; }
-				return memo;
-			}, -Infinity);
-
-			// get case studies and draw chart
-			this.getCaseStudies(function() {
-				this.draw();
-			}.bind(this));
-		}.bind(this));
-};
-
-Choropleth.prototype.getCaseStudies = function(callback) {
-	var apiUrl = "http://content.digitalsocial.eu/api/get_page/?slug=case-studies&children=true";
-	d3.json(apiUrl, function(caseStudiesData) {
-		caseStudiesData = caseStudiesData.page.children.map(function(data) {
-			var arrayFromCustomField = function(customField) {
-				if (customField) {
-					customField = customField[0];
-
-					if (customField && customField.indexOf(",") >= 0) {
-						customField = customField.split(",").map(function(value) { return value.replace(/^\s+|\s+$/g, ""); });
-					}
-					else {
-						customField = [ customField ];
-					}
-				}
-				else {
-					customField = [];
-				}
-
-				return customField;
-			};
-
-			// prepare tech focus array
-			var techFocus = arrayFromCustomField(data.custom_fields["tech-focus"]);
-			var areaOfDSI = arrayFromCustomField(data.custom_fields["area-of-digital-social-innovation"]);
-
-			// return parsed object
-			return {
-				"name": data.title,
-				"url": data.url,
-				"areaOfDSI": areaOfDSI,
-				"techFocus": techFocus
-			};
-		});
-
-		// merge case studies with this.data
-		this.data = this.data.map(function(data) {
-			var adsiKey = data.adsi.toLowerCase().replace(/\ /g, "-");
-			var techKey = data.tech.toLowerCase().replace(/\ /g, "-");
-
-			data.caseStudies = caseStudiesData.filter(function(caseStudy) {
-				var dsiMatches = caseStudy.areaOfDSI.indexOf(adsiKey) >= 0;
-				var techMatches = caseStudy.techFocus.indexOf(techKey) >= 0;
-
-				return dsiMatches && techMatches;
-			});
-
-			return data;
-		});
-
-		callback();
-	}.bind(this));
-};
-
-Choropleth.prototype.draw = function() {
-	var height = (this.adsiNames.length + 1) * this.rect.height + this.margin.top;
-	var width = 994;
-
-	var svg = this.DOM.div.append("svg")
-		.attr("width", width)
-		.attr("height", height);
-
-	svg.append("rect")
-		.attr("width", width)
-		.attr("height", height)
-		.attr("fill", "#FFF")
-		.on("click", function() {
-			VizConfig.popup.close();
-		});
-
-	this.techNames.forEach(function(tech, techIndex) {
-		this.drawTitle(svg, tech, "top", techIndex);
-	}.bind(this));
-
-	this.adsiNames.forEach(function(adsi, adsiIndex) {
-		this.drawTitle(svg, adsi, "left", adsiIndex);
-	}.bind(this));
-
-	var data = this.data.map(function(data) {
-		data.techIndex = this.techNames.indexOf(data.tech);
-		data.adsiIndex = this.adsiNames.indexOf(data.adsi);
-
-		return data;
-	}.bind(this));
-
-	var color = d3.scale.threshold()
-		.domain([0.1, 0.4, 0.7, 1.0, 1.3])
-		.range(this.colorScale);
-
-	var rectGroups = svg.selectAll(".rect")
-		.data(data)
-		.enter()
-		.append("g")
-		.attr("class", "rect")
-		.on("click", function(d) {
-			var popupContent;
-			var windowOffset = $(svg[0]).offset();
-			var rectOffset = {
-				"x": (d.techIndex + 1.5) * this.rect.width + this.margin.left,
-				"y": d.adsiIndex * this.rect.height + this.margin.top + this.rect.height * 0.25
-			};
-
-			if (d.caseStudies.length > 0) {
-				popupContent = "<h4>Case Studies</h4>";
-				popupContent += d.caseStudies.map(function(caseStudy) {
-					return "<a href=\"" + caseStudy.url + "\">" + caseStudy.name + "</a>";
-				}).join("");
-			}
-			else {
-				popupContent = "No Case Studies for this combination yet...";
-			}
-
-			VizConfig.popup.html(popupContent);
-			VizConfig.popup.open(rectOffset.x, rectOffset.y, windowOffset.left, windowOffset.top);
-		}.bind(this));
-
-	rectGroups
-		.append("rect")
-		.attr("x", function(d) {
-			return (d.techIndex + 1) * this.rect.width + this.margin.left;
-		}.bind(this))
-		.attr("y", function(d) {
-			return d.adsiIndex * this.rect.height + this.margin.top;
-		}.bind(this))
-		.attr("width", this.rect.width)
-		.attr("height", this.rect.height)
-		.attr("fill", function(d) {
-			return color(d.count / this.maxCount);
-		}.bind(this));
-
-	rectGroups
-		.append("text")
-		.attr("x", function(d) {
-			return (d.techIndex + 1) * this.rect.width + this.margin.left + this.rect.width * 0.6;
-		}.bind(this))
-		.attr("y", function(d) {
-			return d.adsiIndex * this.rect.height + this.margin.top + this.rect.height * 0.6;
-		}.bind(this))
-		.text(function(d) {
-			return d.count;
-		})
-		.attr("text-anchor", "end");
-};
-
-Choropleth.prototype.drawTitle = function(svg, name, orient, index) {
-	svg
-		.append("text")
-		.text(name)
-		.attr("text-anchor", function() {
-			var anchor;
-			if (orient === "top") {
-				anchor = "middle";
-			}
-			else {
-				anchor = "end";
-			}
-			return anchor;
-		})
-		.attr("x", function() {
-			var pos = this.margin.left;
-
-			if (orient === "top") {
-				pos += (index + 1) * this.rect.width + this.rect.width / 2;
-			}
-			else {
-				pos += this.rect.width - 12;
-			}
-
-			return pos;
-		}.bind(this))
-		.attr("y", function() {
-			var pos = this.rect.height / 2 + 4;
-
-			if (orient === "left") {
-				pos += index * this.rect.height + this.margin.top;
-			}
-			else {
-				pos += 4;
-			}
-
-			return pos;
-		}.bind(this));
-};
-
-/*global VizConfig, SPARQLDataSource, d3 */
-
-var indexOfProp = function(data, prop, val) {
-	return data.map(function(o) { return o[prop]; }).indexOf(val);
-};
-
-function Explorer(dom) {
-	this.data = []; // will be filled on SPARQL query
-
-	this.fieldProgression = [ "tech_focuses", "tech_methods", "country", "activity_label" ];
-	this.fieldIndex = 0;
-
-	this.size = {
-		"width": 994,
-		"height": 100
+var Choropleth = (function() {
+	var indexOfProp = function(data, prop, val) {
+		return data.map(function(o) { return o[prop]; }).indexOf(val);
 	};
 
-	this.DOM = { "div": d3.select(dom) };
-}
+	function Choropleth(dom, colorScale) {
+		// will be filled after SPARQL query
+		this.maxCount = 0;
+		this.techNames = [];
+		this.adsiNames = [];
+		this.data = [];
 
-Explorer.prototype.init = function() {
-	var SPARQL_URL = "http://data.digitalsocial.eu/sparql.json?utf8=✓&query=";
-	var ds = new SPARQLDataSource(SPARQL_URL);
+		this.colorScale = colorScale || ["#f2f0f7", "#dadaeb", "#bcbddc", "#9e9ac8", "#756bb1", "#54278f"];
 
-	ds.query()
-		.prefix("o:", "<http://www.w3.org/ns/org#>")
-		.prefix("rdfs:", "<http://www.w3.org/2000/01/rdf-schema#>")
-		.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
-		.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
-		.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
-		.select("?label ?country ?activity_label ?tech_method ?tech_focus")
-		.where("?org", "a", "o:Organization")
-		.where("?am", "a", "ds:ActivityMembership")
-		.where("?am", "ds:organization", "?org")
-		.where("?am", "ds:activity", "?activity")
-		.where("?activity", "rdfs:label", "?activity_label")
-		.where("?activity", "ds:technologyMethod", "?tm")
-		.where("?activity", "ds:technologyFocus", "?tf")
-		.where("?tm", "rdfs:label", "?tech_method")
-		.where("?tf", "rdfs:label", "?tech_focus")
-		.where("?org", "rdfs:label", "?label")
-		.where("?org", "o:hasPrimarySite", "?org_site")
-		.where("?org_site", "o:siteAddress", "?org_address")
-		.where("?org_address", "vcard:country-name", "?country")
-		.execute()
-		.then(function(results) {
-			this.data = results
-				.map(function(object) {
-					var newObject = {};
-					var key;
+		this.rect = { "width": 150, "height": 50 };
+		this.margin = { "top": 50, "left": 150 };
 
-					for (key in object) {
-						if (object.hasOwnProperty(key)) {
-							newObject[key] = object[key].value;
-						}
+		this.DOM = { "div": d3.select(dom) };
+	}
+
+	Choropleth.prototype.init = function() {
+		var url = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
+		var ds = new SPARQLDataSource(url);
+
+		ds.query()
+			.prefix("o:", "<http://www.w3.org/ns/org#>")
+			.prefix("rdfs:", "<http://www.w3.org/2000/01/rdf-schema#>")
+			.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
+			.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
+			.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
+			.select("?label ?country ?adsi_label ?tech_label")
+			.where("?org", "a", "o:Organization")
+			.where("?am", "a", "ds:ActivityMembership")
+			.where("?am", "ds:organization", "?org")
+			.where("?am", "ds:activity", "?activity")
+			.where("?activity", "ds:areaOfDigitalSocialInnovation", "?adsi")
+			.where("?activity", "ds:technologyFocus", "?tf")
+			.where("?tf", "rdfs:label", "?tech_label")
+			.where("?adsi", "rdfs:label", "?adsi_label")
+			.where("?org", "rdfs:label", "?label")
+			.where("?org", "o:hasPrimarySite", "?org_site")
+			.where("?org_site", "o:siteAddress", "?org_address")
+			.where("?org_address", "vcard:country-name", "?country")
+			.execute()
+			.then(function(results) {
+				this.data = results.reduce(function(memo, result) {
+					var key = result.adsi_label.value + " " + result.tech_label.value;
+					var keyIndex = indexOfProp(memo, "key", key);
+
+					if (this.adsiNames.indexOf(result.adsi_label.value) < 0) {
+						this.adsiNames.push(result.adsi_label.value);
 					}
 
-					return newObject;
-				})
-				.reduce(function(memo, object) {
-					var activityIndex = indexOfProp(memo, "activity_label", object.activity_label);
+					if (this.techNames.indexOf(result.tech_label.value) < 0) {
+						this.techNames.push(result.tech_label.value);
+					}
 
-					if (activityIndex < 0) {
+					if (keyIndex < 0) {
 						memo.push({
-							"activity_label": object.activity_label,
-							"country": object.country,
-							"city": object.city,
-							"tech_methods": [ object.tech_method ],
-							"tech_focuses": [ object.tech_focus ]
+							"key": key,
+							"adsi": result.adsi_label.value,
+							"tech": result.tech_label.value,
+							"count": 1
 						});
 					}
 					else {
-						var memoObject = memo[activityIndex];
-
-						if (memoObject.tech_methods.indexOf(object.tech_method) < 0) {
-							memoObject.tech_methods.push(object.tech_method);
-						}
-
-						if (memoObject.tech_focuses.indexOf(object.tech_focus) < 0) {
-							memoObject.tech_focuses.push(object.tech_focus);
-						}
-
-						memo[activityIndex] = memoObject;
+						memo[keyIndex].count++;
 					}
 
 					return memo;
-				}, []);
+				}.bind(this), []);
 
-		// draw on finished query
-		this.draw(this.data);
-	}.bind(this));
-};
+				this.maxCount = this.data.reduce(function(memo, object) {
+					if (object.count > memo) { memo = object.count; }
+					return memo;
+				}, -Infinity);
 
-Explorer.prototype.groupByField = function(data, field) {
-	var updateMemo = function(memo, value, object) {
-		if (memo[value] !== undefined) {
-			memo[value].push(object);
-		}
-		else {
-			memo[value] = [ object ];
-		}
+				// get case studies and draw chart
+				this.getCaseStudies(function() {
+					this.draw();
+				}.bind(this));
+			}.bind(this));
 	};
 
-	return data.reduce(function(memo, object) {
-		if (object[field] !== undefined) {
+	Choropleth.prototype.getCaseStudies = function(callback) {
+		var apiUrl = "http://content.digitalsocial.eu/api/get_page/?slug=case-studies&children=true";
+		d3.json(apiUrl, function(caseStudiesData) {
+			caseStudiesData = caseStudiesData.page.children.map(function(data) {
+				var arrayFromCustomField = function(customField) {
+					if (customField) {
+						customField = customField[0];
 
-			if (object[field] instanceof Array) {
+						if (customField && customField.indexOf(",") >= 0) {
+							customField = customField.split(",").map(function(value) { return value.replace(/^\s+|\s+$/g, ""); });
+						}
+						else {
+							customField = [ customField ];
+						}
+					}
+					else {
+						customField = [];
+					}
 
-				object[field].forEach(function(value) {
-					updateMemo(memo, value, object);
+					return customField;
+				};
+
+				// prepare tech focus array
+				var techFocus = arrayFromCustomField(data.custom_fields["tech-focus"]);
+				var areaOfDSI = arrayFromCustomField(data.custom_fields["area-of-digital-social-innovation"]);
+
+				// return parsed object
+				return {
+					"name": data.title,
+					"url": data.url,
+					"areaOfDSI": areaOfDSI,
+					"techFocus": techFocus
+				};
+			});
+
+			// merge case studies with this.data
+			this.data = this.data.map(function(data) {
+				var adsiKey = data.adsi.toLowerCase().replace(/\ /g, "-");
+				var techKey = data.tech.toLowerCase().replace(/\ /g, "-");
+
+				data.caseStudies = caseStudiesData.filter(function(caseStudy) {
+					var dsiMatches = caseStudy.areaOfDSI.indexOf(adsiKey) >= 0;
+					var techMatches = caseStudy.techFocus.indexOf(techKey) >= 0;
+
+					return dsiMatches && techMatches;
 				});
 
-			}
-			else {
-				updateMemo(memo, object[field], object);
-			}
-		}
+				return data;
+			});
 
-		return memo;
-	}, {});
-};
+			callback();
+		}.bind(this));
+	};
 
-Explorer.prototype.draw = function(data) {
-	data = this.groupByField(data, this.fieldProgression[this.fieldIndex]);
-	// console.log(data, this.fieldProgression[this.fieldIndex]);
+	Choropleth.prototype.draw = function() {
+		var height = (this.adsiNames.length + 1) * this.rect.height + this.margin.top;
+		var width = 994;
 
-	var svg = this.DOM.div.append("svg")
-		.attr("width", this.size.width)
-		.attr("height", this.size.height)
-		.attr("class", "depth-" + this.fieldIndex);
+		var svg = this.DOM.div.append("svg")
+			.attr("width", width)
+			.attr("height", height);
 
-	var totalNum = 0;
-	var key;
-	for (key in data) {
-		if (data.hasOwnProperty(key)) {
-			totalNum += data[key].length;
-		}
+		svg.append("rect")
+			.attr("width", width)
+			.attr("height", height)
+			.attr("fill", "#FFF")
+			.on("click", function() {
+				VizConfig.popup.close();
+			});
+
+		this.techNames.forEach(function(tech, techIndex) {
+			this.drawTitle(svg, tech, "top", techIndex);
+		}.bind(this));
+
+		this.adsiNames.forEach(function(adsi, adsiIndex) {
+			this.drawTitle(svg, adsi, "left", adsiIndex);
+		}.bind(this));
+
+		var data = this.data.map(function(data) {
+			data.techIndex = this.techNames.indexOf(data.tech);
+			data.adsiIndex = this.adsiNames.indexOf(data.adsi);
+
+			return data;
+		}.bind(this));
+
+		var color = d3.scale.threshold()
+			.domain([0.1, 0.4, 0.7, 1.0, 1.3])
+			.range(this.colorScale);
+
+		var rectGroups = svg.selectAll(".rect")
+			.data(data)
+			.enter()
+			.append("g")
+			.attr("class", "rect")
+			.on("click", function(d) {
+				var popupContent;
+				var windowOffset = $(svg[0]).offset();
+				var rectOffset = {
+					"x": (d.techIndex + 1.5) * this.rect.width + this.margin.left,
+					"y": d.adsiIndex * this.rect.height + this.margin.top + this.rect.height * 0.25
+				};
+
+				if (d.caseStudies.length > 0) {
+					popupContent = "<h4>Case Studies</h4>";
+					popupContent += d.caseStudies.map(function(caseStudy) {
+						return "<a href=\"" + caseStudy.url + "\">" + caseStudy.name + "</a>";
+					}).join("");
+				}
+				else {
+					popupContent = "No Case Studies for this combination yet...";
+				}
+
+				VizConfig.popup.html(popupContent);
+				VizConfig.popup.open(rectOffset.x, rectOffset.y, windowOffset.left, windowOffset.top);
+			}.bind(this));
+
+		rectGroups
+			.append("rect")
+			.attr("x", function(d) {
+				return (d.techIndex + 1) * this.rect.width + this.margin.left;
+			}.bind(this))
+			.attr("y", function(d) {
+				return d.adsiIndex * this.rect.height + this.margin.top;
+			}.bind(this))
+			.attr("width", this.rect.width)
+			.attr("height", this.rect.height)
+			.attr("fill", function(d) {
+				return color(d.count / this.maxCount);
+			}.bind(this));
+
+		rectGroups
+			.append("text")
+			.attr("x", function(d) {
+				return (d.techIndex + 1) * this.rect.width + this.margin.left + this.rect.width * 0.6;
+			}.bind(this))
+			.attr("y", function(d) {
+				return d.adsiIndex * this.rect.height + this.margin.top + this.rect.height * 0.6;
+			}.bind(this))
+			.text(function(d) {
+				return d.count;
+			})
+			.attr("text-anchor", "end");
+	};
+
+	Choropleth.prototype.drawTitle = function(svg, name, orient, index) {
+		svg
+			.append("text")
+			.text(name)
+			.attr("text-anchor", function() {
+				var anchor;
+				if (orient === "top") {
+					anchor = "middle";
+				}
+				else {
+					anchor = "end";
+				}
+				return anchor;
+			})
+			.attr("x", function() {
+				var pos = this.margin.left;
+
+				if (orient === "top") {
+					pos += (index + 1) * this.rect.width + this.rect.width / 2;
+				}
+				else {
+					pos += this.rect.width - 12;
+				}
+
+				return pos;
+			}.bind(this))
+			.attr("y", function() {
+				var pos = this.rect.height / 2 + 4;
+
+				if (orient === "left") {
+					pos += index * this.rect.height + this.margin.top;
+				}
+				else {
+					pos += 4;
+				}
+
+				return pos;
+			}.bind(this));
+	};
+
+	return Choropleth;
+}());
+
+/*global VizConfig, SPARQLDataSource, d3 */
+
+var Explorer = (function() {
+	var indexOfProp = function(data, prop, val) {
+		return data.map(function(o) { return o[prop]; }).indexOf(val);
+	};
+
+	function Explorer(dom) {
+		this.data = []; // will be filled on SPARQL query
+
+		this.fieldProgression = [ "tech_focuses", "tech_methods", "country", "activity_label" ];
+		this.fieldIndex = 0;
+
+		this.size = {
+			"width": 994,
+			"height": 100
+		};
+
+		this.DOM = { "div": d3.select(dom) };
 	}
 
-	var scale = d3.scale.linear()
-		.domain([0, totalNum])
-		.range([0, this.size.width]);
+	Explorer.prototype.init = function() {
+		var SPARQL_URL = "http://data.digitalsocial.eu/sparql.json?utf8=✓&query=";
+		var ds = new SPARQLDataSource(SPARQL_URL);
 
-	var color = d3.scale.category20c();
+		ds.query()
+			.prefix("o:", "<http://www.w3.org/ns/org#>")
+			.prefix("rdfs:", "<http://www.w3.org/2000/01/rdf-schema#>")
+			.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
+			.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
+			.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
+			.select("?label ?country ?activity_label ?tech_method ?tech_focus")
+			.where("?org", "a", "o:Organization")
+			.where("?am", "a", "ds:ActivityMembership")
+			.where("?am", "ds:organization", "?org")
+			.where("?am", "ds:activity", "?activity")
+			.where("?activity", "rdfs:label", "?activity_label")
+			.where("?activity", "ds:technologyMethod", "?tm")
+			.where("?activity", "ds:technologyFocus", "?tf")
+			.where("?tm", "rdfs:label", "?tech_method")
+			.where("?tf", "rdfs:label", "?tech_focus")
+			.where("?org", "rdfs:label", "?label")
+			.where("?org", "o:hasPrimarySite", "?org_site")
+			.where("?org_site", "o:siteAddress", "?org_address")
+			.where("?org_address", "vcard:country-name", "?country")
+			.execute()
+			.then(function(results) {
+				this.data = results
+					.map(function(object) {
+						var newObject = {};
+						var key;
 
-	var currentSum = 0;
-	var index = 0;
-	var localData;
+						for (key in object) {
+							if (object.hasOwnProperty(key)) {
+								newObject[key] = object[key].value;
+							}
+						}
 
-	var drawNextBar = function(name, depth) {
-		depth += 1;
+						return newObject;
+					})
+					.reduce(function(memo, object) {
+						var activityIndex = indexOfProp(memo, "activity_label", object.activity_label);
 
-		// clear previous depths
-		if (depth <= this.fieldIndex) {
-			for (index = depth; index <= this.fieldIndex; index++) {
-				this.DOM.div.selectAll(".depth-" + index).remove();
+						if (activityIndex < 0) {
+							memo.push({
+								"activity_label": object.activity_label,
+								"country": object.country,
+								"city": object.city,
+								"tech_methods": [ object.tech_method ],
+								"tech_focuses": [ object.tech_focus ]
+							});
+						}
+						else {
+							var memoObject = memo[activityIndex];
+
+							if (memoObject.tech_methods.indexOf(object.tech_method) < 0) {
+								memoObject.tech_methods.push(object.tech_method);
+							}
+
+							if (memoObject.tech_focuses.indexOf(object.tech_focus) < 0) {
+								memoObject.tech_focuses.push(object.tech_focus);
+							}
+
+							memo[activityIndex] = memoObject;
+						}
+
+						return memo;
+					}, []);
+
+			// draw on finished query
+			this.draw(this.data);
+		}.bind(this));
+	};
+
+	Explorer.prototype.groupByField = function(data, field) {
+		var updateMemo = function(memo, value, object) {
+			if (memo[value] !== undefined) {
+				memo[value].push(object);
+			}
+			else {
+				memo[value] = [ object ];
+			}
+		};
+
+		return data.reduce(function(memo, object) {
+			if (object[field] !== undefined) {
+
+				if (object[field] instanceof Array) {
+
+					object[field].forEach(function(value) {
+						updateMemo(memo, value, object);
+					});
+
+				}
+				else {
+					updateMemo(memo, object[field], object);
+				}
+			}
+
+			return memo;
+		}, {});
+	};
+
+	Explorer.prototype.draw = function(data) {
+		data = this.groupByField(data, this.fieldProgression[this.fieldIndex]);
+		// console.log(data, this.fieldProgression[this.fieldIndex]);
+
+		var svg = this.DOM.div.append("svg")
+			.attr("width", this.size.width)
+			.attr("height", this.size.height)
+			.attr("class", "depth-" + this.fieldIndex);
+
+		var totalNum = 0;
+		var key;
+		for (key in data) {
+			if (data.hasOwnProperty(key)) {
+				totalNum += data[key].length;
 			}
 		}
 
-		// update field index
-		this.fieldIndex = depth;
+		var scale = d3.scale.linear()
+			.domain([0, totalNum])
+			.range([0, this.size.width]);
 
-		// draw next depth
-		if (this.fieldIndex < this.fieldProgression.length) {
-			this.draw(data[name]);
+		var color = d3.scale.category20c();
+
+		var currentSum = 0;
+		var index = 0;
+		var localData;
+
+		var drawNextBar = function(name, depth) {
+			depth += 1;
+
+			// clear previous depths
+			if (depth <= this.fieldIndex) {
+				for (index = depth; index <= this.fieldIndex; index++) {
+					this.DOM.div.selectAll(".depth-" + index).remove();
+				}
+			}
+
+			// update field index
+			this.fieldIndex = depth;
+
+			// draw next depth
+			if (this.fieldIndex < this.fieldProgression.length) {
+				this.draw(data[name]);
+			}
+		};
+
+		for (key in data) {
+			if (data.hasOwnProperty(key)) {
+				localData = data[key];
+
+				this.drawBar(svg, currentSum, localData.length, index, scale, color, key, this.fieldIndex, drawNextBar.bind(this));
+
+				currentSum += data[key].length;
+				index++;
+			}
 		}
 	};
 
-	for (key in data) {
-		if (data.hasOwnProperty(key)) {
-			localData = data[key];
+	Explorer.prototype.drawBar = function(svg, currentSum, count, index, scale, color, title, depth, callback) {
+		var text = null;
+		var fillColor = color(index);
 
-			this.drawBar(svg, currentSum, localData.length, index, scale, color, key, this.fieldIndex, drawNextBar.bind(this));
+		svg.append("rect")
+			.attr("class", "grouping")
+			.attr("x", function() {
+				return scale(currentSum);
+			})
+			.attr("y", 0)
+			.attr("width", function() {
+				return scale(count);
+			})
+			.attr("height", this.size.height)
+			.attr("fill", fillColor)
+			.on("click", function() {
+				text.style("fill", "#333");
 
-			currentSum += data[key].length;
-			index++;
-		}
-	}
-};
+				callback(title, depth);
+			}.bind(this))
+			.on("mouseover", function() {
+				VizConfig.tooltip.show();
+				VizConfig.tooltip.html(title + " : " + count, "#FFF", fillColor);
+			})
+			.on("mouseout", function() {
+				VizConfig.tooltip.hide();
+			});
 
-Explorer.prototype.drawBar = function(svg, currentSum, count, index, scale, color, title, depth, callback) {
-	var text = null;
-	var fillColor = color(index);
+		text = svg.append("text")
+			.attr("x", function() {
+				return scale(currentSum) + 20;
+			})
+			.attr("y", 40)
+			.attr("class", "title")
+			.text(title);
+	};
 
-	svg.append("rect")
-		.attr("class", "grouping")
-		.attr("x", function() {
-			return scale(currentSum);
-		})
-		.attr("y", 0)
-		.attr("width", function() {
-			return scale(count);
-		})
-		.attr("height", this.size.height)
-		.attr("fill", fillColor)
-		.on("click", function() {
-			text.style("fill", "#333");
-
-			callback(title, depth);
-		}.bind(this))
-		.on("mouseover", function() {
-			VizConfig.tooltip.show();
-			VizConfig.tooltip.html(title + " : " + count, "#FFF", fillColor);
-		})
-		.on("mouseout", function() {
-			VizConfig.tooltip.hide();
-		});
-
-	text = svg.append("text")
-		.attr("x", function() {
-			return scale(currentSum) + 20;
-		})
-		.attr("y", 40)
-		.attr("class", "title")
-		.text(title);
-};
+	return Explorer;
+}());
 
 var DSIAreasData =[
 ["7795ec63-2cec-dc77-f953-e176368bf0ff", "open-democracy"],
@@ -2541,10 +2553,25 @@ function VizKey(open) {
     sidebarSection.parent.append(section);
   });
 
+  var moreButton = this.moreButton = $('<div class="section more"><h3>MORE</h3></div>');
+
+  rowLeft.append(moreButton);
+
   sideBar.append(rowLeft);
   sideBar.append(rowRight);
 
-  thumb.click(function() {
+  this.row = {
+    'left': rowLeft,
+    'right': rowRight
+  };
+
+  moreButton.on('click', function() {
+    this.row.right.animate({ width: "220px"});
+    this.thumb.animate({ left: "357px" });
+    this.moreButton.fadeOut();
+  }.bind(this));
+
+  thumb.on('click', function() {
     if (vizKeyContainer.hasClass('open')) { this.close(); }
     else { this.open(); }
   }.bind(this));
@@ -2553,11 +2580,17 @@ function VizKey(open) {
 VizKey.prototype.open = function() {
   this.vizKeyContainer.addClass('open');
   this.thumb.children('span').text('Hide Key');
+  this.vizKeyContainer.animate({ left: 0 });
 };
 
 VizKey.prototype.close = function() {
   this.vizKeyContainer.removeClass('open');
   this.thumb.children('span').text('Open Key');
+
+  this.thumb.animate({ left: "137px" });
+  this.vizKeyContainer.animate({ left: "-220px" });
+
+  this.row.right.animate({ width: 0 }, { complete: function() { this.moreButton.show(); }.bind(this) });
 };
 
 VizKey.prototype.updateFilters = function(filter) {
@@ -2587,1690 +2620,1695 @@ VizKey.prototype.getActiveFilters = function() {
 /*global window, localStorage, d3, $, Q, L, fn, SPARQLDataSource, VizConfig */
 
 var MainMap = (function() {
-
-function resultValuesToObj(result) {
-  var o = {};
-  var prop;
-  for (prop in result) {
-    if (result.hasOwnProperty(prop)) {
-      o[prop] = result[prop].value;
+  function resultValuesToObj(result) {
+    var o = {};
+    var prop;
+    for (prop in result) {
+      if (result.hasOwnProperty(prop)) {
+        o[prop] = result[prop].value;
+      }
     }
+    return o;
   }
-  return o;
-}
 
-function indexOfProp(data, prop, val) {
-  return data.map(function(o) { return o[prop]; }).indexOf(val);
-}
+  function indexOfProp(data, prop, val) {
+    return data.map(function(o) { return o[prop]; }).indexOf(val);
+  }
 
-function MainMap(mainVizContainer) {
-  this.DOM = {};
-  this.mainVizContainer = mainVizContainer;
-  this.selectedOrg = null;
-  this.collaborators = null;
-  this.init();
-}
+  function MainMap(mainVizContainer) {
+    this.DOM = {};
+    this.mainVizContainer = mainVizContainer;
+    this.selectedOrg = null;
+    this.collaborators = null;
+    this.init();
+  }
 
-MainMap.prototype.init = function() {
-  this.initSVG();
+  MainMap.prototype.init = function() {
+    this.initSVG();
 
-  this.preloader = $('<img id="vizPreloader" src="'+VizConfig.assetsPath+'/preloader.gif"/>');
-  $(this.mainVizContainer).append(this.preloader);
+    this.preloader = $('<img id="vizPreloader" src="'+VizConfig.assetsPath+'/preloader.gif"/>');
+    $(this.mainVizContainer).append(this.preloader);
 
-  this.getOrganisations().then(function(organisations) {
-    this.organisations = organisations;
-    this.buildViz(organisations);
-    this.hijackSearch();
+    this.getOrganisations().then(function(organisations) {
+      this.organisations = organisations;
+      this.buildViz(organisations);
+      this.hijackSearch();
 
-     //pre cache
-    this.getCollaborations().then(function(collaborations) {
-      this.getProjectsInfo(collaborations).then(function() {
-        this.showClusterNetwork(this.map.leaflet.getZoom());
-        this.preloader.fadeOut('slow');
+      //pre cache
+      this.getCollaborations().then(function(collaborations) {
+        this.getProjectsInfo(collaborations).then(function() {
+          this.showClusterNetwork(this.map.leaflet.getZoom());
+          this.preloader.fadeOut('slow');
+        }.bind(this));
       }.bind(this));
     }.bind(this));
-  }.bind(this));
-};
+  };
 
-MainMap.prototype.initSVG = function() {
-  this.w = window.innerWidth;
-  this.h = VizConfig.initialMapHeight;
+  MainMap.prototype.initSVG = function() {
+    this.w = window.innerWidth;
+    this.h = VizConfig.initialMapHeight;
 
-  this.DOM.map = d3.select(this.mainVizContainer)
-    .append('div')
-    .attr('id', 'map');
+    this.DOM.map = d3.select(this.mainVizContainer)
+      .append('div')
+      .attr('id', 'map');
 
-  // for some strange reason can't set this width d3.style()
-  $('#map').css({ 'width': this.w, 'height': this.h });
+    // for some strange reason can't set this width d3.style()
+    $('#map').css({ 'width': this.w, 'height': this.h });
 
-  var scale  = 4;
-  var center = [50, 7];
-  this.showWorldMap(center, scale);
+    var scale  = 4;
+    var center = [50, 7];
+    this.showWorldMap(center, scale);
 
-  this.DOM.svg = d3.select("#map")
-    .select("svg")
-    .append("g")
-    .attr("class", "viz");
+    this.DOM.svg = d3.select("#map")
+      .select("svg")
+      .append("g")
+      .attr("class", "viz");
 
-  this.defaultViewBox = d3.select("#map").select("svg").attr("viewBox").split(" ").map(function(v) { return +v; });
-};
+    this.defaultViewBox = d3.select("#map").select("svg").attr("viewBox").split(" ").map(function(v) { return +v; });
+  };
 
-MainMap.prototype.hijackSearch = function() {
-  $('#q').parent().submit(function(e) {
-    var searchTerm = $('#q').val();
-    $('#q').val('');
+  MainMap.prototype.hijackSearch = function() {
+    $('#q').parent().submit(function(e) {
+      var searchTerm = $('#q').val();
+      $('#q').val('');
 
-    var foundOrgs = this.organisations.filter(function(org) {
-      return org.label.toLowerCase().indexOf(searchTerm) !== -1;
-    });
+      var foundOrgs = this.organisations.filter(function(org) {
+        return org.label.toLowerCase().indexOf(searchTerm) !== -1;
+      });
 
-    if (foundOrgs.length > 0) {
-      var cluster = this.drawOrganisationHex(foundOrgs[0].org);
-      this.selectedOrg = foundOrgs[0].org;
-      this.showOrganisations(this.map.leaflet.getZoom());
-      this.showClusterNetwork(this.map.leaflet.getZoom());
-      if (cluster) { this.displayPopup(cluster); }
+      if (foundOrgs.length > 0) {
+        var cluster = this.drawOrganisationHex(foundOrgs[0].org);
+        this.selectedOrg = foundOrgs[0].org;
+        this.showOrganisations(this.map.leaflet.getZoom());
+        this.showClusterNetwork(this.map.leaflet.getZoom());
+        if (cluster) { this.displayPopup(cluster); }
+      }
+
+      $('#q').hide();
+      e.preventDefault();
+      return false;
+    }.bind(this));
+  };
+
+  MainMap.prototype.drawOrganisationHex = function(org) {
+    if (org) {
+      this.selectedOrg = org;
+    }
+    else if (this.selectedOrg) {
+      org = this.selectedOrg;
     }
 
-    $('#q').hide();
-    e.preventDefault();
-    return false;
-  }.bind(this));
-};
+    var orgCluster;
+    org = this.organisationsById[org];
 
-MainMap.prototype.drawOrganisationHex = function(org) {
-  if (org) {
-    this.selectedOrg = org;
-  }
-  else if (this.selectedOrg) {
-    org = this.selectedOrg;
-  }
+    if (org) {
+      orgCluster = {
+        center: org.center || { x: org.x, y: org.y },
+        organisations: [ org ]
+      };
 
-  var orgCluster;
-  org = this.organisationsById[org];
+      var selectedHex = this.drawHexes(this.DOM.selectedHexGroup, [ orgCluster ], { fromCluster: true });
+      this.handleMouse(selectedHex);
+    }
 
-  if (org) {
-    orgCluster = {
-      center: org.center || { x: org.x, y: org.y },
-      organisations: [ org ]
+    return orgCluster;
+  };
+
+  MainMap.prototype.hideOrganisationHex = function() {
+    this.drawHexes(this.DOM.selectedHexGroup, [  ], { fromCluster: true });
+  };
+
+  MainMap.prototype.getOrganisations = function() {
+    var deferred = Q.defer();
+    this.runOrganisationsQuery().then(function(results) {
+      var organisations = results.map(resultValuesToObj);
+
+      var reduceOrgByProp = function(data, prop, newPropName) {
+        return data.reduce(function(memo, org) {
+          if (org[prop]) {
+            org[prop] = org[prop].substr(org[prop].lastIndexOf('/') + 1);
+          }
+
+          var index = indexOfProp(memo, "org", org.org);
+
+          if (index >= 0 && org[prop]) {
+            if (memo[index][newPropName].indexOf(org[prop]) < 0) {
+              memo[index][newPropName].push(org[prop]);
+            }
+          }
+          else {
+            if (org[prop]) {
+              org[newPropName] = [ org[prop] ];
+              delete org[prop];
+            }
+
+            memo.push(org);
+          }
+
+          return memo;
+        }, []);
+      };
+
+      organisations = reduceOrgByProp(organisations, "org_type", "organisationType");
+      organisations = reduceOrgByProp(organisations, "area_of_society", "areaOfSociety");
+
+      deferred.resolve(organisations);
+    });
+    return deferred.promise;
+  };
+
+  MainMap.prototype.getCollaborations = function() {
+    if (!this.collaorationsPromise) {
+      var deferred = Q.defer();
+      var collaborations = {
+        byProject: {},
+        byOrganisation: {}
+      };
+      var self = this;
+      this.runCollaboratorsQuery().then(function(results) {
+        results.forEach(function(c) {
+          var org = c.org.value;
+          var projects = c.activity_values.value.split(',');
+          projects.forEach(function(project) {
+            if (!collaborations.byProject[project]) {
+              collaborations.byProject[project] = [];
+            }
+            collaborations.byProject[project].push(org);
+
+            if (!collaborations.byOrganisation[org]) {
+              collaborations.byOrganisation[org] = [];
+            }
+            collaborations.byOrganisation[org].push(project);
+          });
+          self.collaborations = collaborations;
+          deferred.resolve(collaborations);
+        });
+      });
+      this.collaorationsPromise = deferred.promise;
+    }
+
+    return this.collaorationsPromise;
+  };
+
+  MainMap.prototype.getProjectsInfo = function(collaborations) {
+    var deferred = Q.defer();
+    this.runProjectsInfoQuery().then(function(results) {
+      var projects = results.map(function(p) {
+        return {
+          p: p.p.value,
+          label: p.label_values.value,
+          technologyFocus: p.tf_values.value.split(',').map(function(f) { return f.substr(f.lastIndexOf('/')+1); }),
+          areaOfDigitalSocialInnovation: p.adsi_values.value.split(',').map(function(f) { return f.substr(f.lastIndexOf('/')+1); })
+        };
+      });
+
+      projects.forEach(function(project) {
+        var orgs = collaborations.byProject[project.p] || [];
+        orgs.forEach(function(orgId) {
+          var org = this.organisationsById[orgId];
+          if (!org) {
+            return;
+          }
+          if (!org.projects) {
+            org.projects = [];
+          }
+          if (!org.technologyFocus) {
+            org.technologyFocus = [];
+          }
+          if (!org.areaOfDigitalSocialInnovation) {
+            org.areaOfDigitalSocialInnovation = [];
+          }
+          org.projects.push(project);
+          project.technologyFocus.forEach(function(technologyFocus) {
+            if (org.technologyFocus.indexOf(technologyFocus) === -1) {
+              org.technologyFocus.push(technologyFocus);
+            }
+          });
+          project.areaOfDigitalSocialInnovation.forEach(function(areaOfDigitalSocialInnovation) {
+            if (org.areaOfDigitalSocialInnovation.indexOf(areaOfDigitalSocialInnovation) === -1) {
+              org.areaOfDigitalSocialInnovation.push(areaOfDigitalSocialInnovation);
+            }
+          });
+        }.bind(this));
+      }.bind(this));
+
+      deferred.resolve(projects);
+    }.bind(this));
+    return deferred.promise;
+  };
+
+  MainMap.prototype.runOrganisationsQuery = function() {
+    var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
+    var ds = new SPARQLDataSource(SPARQL_URL);
+
+    return ds.query()
+      .prefix('o:', '<http://www.w3.org/ns/org#>')
+      .prefix('rdfs:', '<http://www.w3.org/2000/01/rdf-schema#>')
+      .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
+      .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
+      .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
+      .select('?org ?label ?lon ?lat ?country ?city ?street ?tf ?activity ?activity_label ?org_type ?area_of_society')
+      .where('?org', 'a', 'o:Organization')
+      .where('?org', 'ds:organizationType', '?org_type')
+      .where('?org_type', 'rdfs:label', '?org_type_label')
+      .where('?org', 'rdfs:label', '?label')
+      .where('?org', 'o:hasPrimarySite', '?org_site')
+      .where('?org_site', 'geo:long', '?lon')
+      .where('?org_site', 'geo:lat', '?lat')
+      .where('?org_site', 'o:siteAddress', '?org_address')
+      .where('?org_address', 'vcard:country-name', '?country')
+      .where('?org_address', 'vcard:street-address', '?street')
+      .where('?org_address', 'vcard:locality', '?city')
+      .where("?am", "a", "ds:ActivityMembership")
+      .where("?am", "ds:organization", "?org")
+      .where("?am", "ds:activity", "?activity")
+      .where("?activity", "rdfs:label", "?activity_label")
+      .where("?activity", "ds:areaOfSociety", "?area_of_society", { optional: true })
+      .execute();
+  };
+
+  MainMap.prototype.runCollaboratorsQuery = function() {
+    var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
+    var ds = new SPARQLDataSource(SPARQL_URL);
+
+    return ds.query()
+      .prefix('o:', '<http://www.w3.org/ns/org#>')
+      .prefix('rdfs:', '<http://www.w3.org/2000/01/rdf-schema#>')
+      .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
+      .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
+      .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
+      .select('?org (group_concat(distinct ?activity ; separator = ",") AS ?activity_values)')
+      .where('?org', 'a', 'o:Organization')
+      .where("?am", "a", "ds:ActivityMembership")
+      .where("?am", "ds:organization", "?org")
+      .where("?am", "ds:activity", "?activity")
+      .groupBy("?org")
+      .execute();
+  };
+
+  MainMap.prototype.runProjectsInfoQuery = function() {
+    var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
+    var ds = new SPARQLDataSource(SPARQL_URL);
+
+    return ds.query()
+      .prefix('o:', '<http://www.w3.org/ns/org#>')
+      .prefix('rdfs:', '<http://www.w3.org/2000/01/rdf-schema#>')
+      .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
+      .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
+      .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
+      .select('?p (group_concat(distinct ?label ; separator = ",") AS ?label_values) (group_concat(distinct ?adsi ; separator = ",") AS ?adsi_values) (group_concat(distinct ?tf ; separator = ",") AS ?tf_values)')
+      .where('?p', 'a', 'ds:Activity')
+      .where("?p", "ds:technologyFocus", "?tf")
+      .where("?p", "rdfs:label", "?label")
+      .where("?p", "ds:areaOfDigitalSocialInnovation", "?adsi")
+      .groupBy("?p")
+      .execute(false);
+  };
+
+  MainMap.prototype.buildViz = function() {
+    var svg = this.DOM.svg;
+
+    this.DOM.g = svg.append('g');
+    this.DOM.networkGroup = this.DOM.g.append('g').attr("class", "network");
+    this.DOM.orgGroup = this.DOM.g.append('g').attr("class", "orgs");
+    this.DOM.hexGroup = this.DOM.g.append("g").attr("class", "hexes");
+    this.DOM.selectedHexGroup = this.DOM.g.append("g").attr("class", "hexes-selected");
+
+    this.organisationsById = this.organisations.reduce(function(memo, org) {
+      org.LatLng = new L.LatLng(org.lat, org.lon);
+      memo[org.org] = org;
+
+      return memo;
+    }, {});
+
+    this.showOrganisations(this.map.leaflet.getZoom());
+
+    VizConfig.events.addEventListener('filter', function() {
+      this.selectedOrg = null;
+      this.showOrganisations(this.map.leaflet.getZoom());
+      this.showClusterNetwork(this.map.leaflet.getZoom());
+      this.hideOrganisationHex();
+      VizConfig.popup.close();
+    }.bind(this));
+  };
+
+  MainMap.prototype.showWorldMap = function(center, scale) {
+    var continentLayer = new L.TileLayer("http://b.tiles.mapbox.com/v3/swirrl.ikeb7gn0/{z}/{x}/{y}.png", { maxZoom: 16, minZoom: 2 });
+    var streetLayer = new L.TileLayer("http://a.tiles.mapbox.com/v3/swirrl.il8el3gj/{z}/{x}/{y}.png", { maxZoom: 16, minZoom: 2 });
+
+    this.map = {
+      leaflet: L.map('map', {
+        center: new L.LatLng(center[0], center[1]),
+        zoom: scale,
+        inertia: false,
+        bounceAtZoomLimits: false,
+        zoomControl: false,
+        layers: [ continentLayer ]
+      }),
+      fullscreeen: false
     };
 
-    var selectedHex = this.drawHexes(this.DOM.selectedHexGroup, [ orgCluster ], { fromCluster: true });
-    this.handleMouse(selectedHex);
-  }
+    this.map.leaflet._initPathRoot(); // adds svg layer to leaflet
 
-  return orgCluster;
-};
+    this.map.leaflet.addControl(new L.control.customButton({
+      title: 'Fullscreen',
 
-MainMap.prototype.hideOrganisationHex = function() {
-  this.drawHexes(this.DOM.selectedHexGroup, [  ], { fromCluster: true });
-};
+      className: 'leaflet-fullscreen-button',
 
-MainMap.prototype.getOrganisations = function() {
-  var deferred = Q.defer();
-  this.runOrganisationsQuery().then(function(results) {
-    var organisations = results.map(resultValuesToObj);
+      click: function() {
+        if (this.map.fullscreen) {
+          $('#map').css({
+            'height': this.h,
+            'position': 'relative'
+          });
 
-    var reduceOrgByProp = function(data, prop, newPropName) {
-      return data.reduce(function(memo, org) {
-        if (org[prop]) {
-          org[prop] = org[prop].substr(org[prop].lastIndexOf('/') + 1);
-        }
-
-        var index = indexOfProp(memo, "org", org.org);
-
-        if (index >= 0 && org[prop]) {
-          if (memo[index][newPropName].indexOf(org[prop]) < 0) {
-            memo[index][newPropName].push(org[prop]);
-          }
+          // ugly workarounds for fixed positioning / z-index
+          $('.nav-bar .search').show();
+          $('#caseStudiesViz').show();
         }
         else {
-          if (org[prop]) {
-            org[newPropName] = [ org[prop] ];
-            delete org[prop];
-          }
+          $('#map').css({
+            'height': window.innerHeight,
+            'position': 'fixed',
+            'top': 0,
+            'left': 0
+          });
 
-          memo.push(org);
+          // ugly workarounds for fixed positioning / z-index
+          $('.nav-bar .search').hide();
+          $('#caseStudiesViz').hide();
+        }
+
+        this.map.leaflet.invalidateSize();
+        this.map.fullscreen = !this.map.fullscreen;
+      }.bind(this),
+
+      mouseover: function() {
+        VizConfig.tooltip.html("Fullscreen");
+        VizConfig.tooltip.show();
+      },
+
+      mouseout: function() {
+        VizConfig.tooltip.hide();
+      }
+    }));
+
+    this.map.leaflet.addControl(new L.control.zoom({ position: 'topright' }));
+
+    $(".leaflet-control-zoom-in").on("mouseover", function() {
+      VizConfig.tooltip.html("Zoom In");
+      VizConfig.tooltip.show();
+    });
+
+    $(".leaflet-control-zoom-in").on("mouseout", function() {
+      VizConfig.tooltip.hide();
+    });
+
+    $(".leaflet-control-zoom-out").on("mouseover", function() {
+      VizConfig.tooltip.html("Zoom Out");
+      VizConfig.tooltip.show();
+    });
+
+    $(".leaflet-control-zoom-out").on("mouseout", function() {
+      VizConfig.tooltip.hide();
+    });
+
+    this.map.leaflet.addControl(new L.control.customButton({
+      title: 'Center',
+
+      className: 'leaflet-center-button',
+
+      click: function() {
+        this.map.leaflet.setView(new L.LatLng(center[0], center[1]), scale);
+      }.bind(this),
+
+      mouseover: function() {
+        VizConfig.tooltip.html("Center");
+        VizConfig.tooltip.show();
+      },
+
+      mouseout: function() {
+        VizConfig.tooltip.hide();
+      }
+    }));
+
+    // map redraws including zoom
+    this.map.leaflet.on("zoomstart", function() {
+      VizConfig.popup.close();
+
+      this.hideClusterNetwork();
+      this.hideOrganisations();
+    }.bind(this));
+
+    this.map.leaflet.on("zoomend", function() {
+      this.showOrganisations(this.map.leaflet.getZoom());
+      this.showClusterNetwork(this.map.leaflet.getZoom());
+
+      if (this.map.leaflet.getZoom() >= 7) {
+        if (!this.map.leaflet.hasLayer(streetLayer)) {
+          this.map.leaflet.addLayer(streetLayer);
+          setTimeout(function() {
+            this.map.leaflet.removeLayer(continentLayer);
+          }.bind(this), 500);
+        }
+      }
+      else {
+        if (!this.map.leaflet.hasLayer(continentLayer)) {
+          this.map.leaflet.addLayer(continentLayer);
+          setTimeout(function() {
+            this.map.leaflet.removeLayer(streetLayer);
+          }.bind(this), 500);
+        }
+      }
+    }.bind(this));
+
+    this.map.leaflet.on("click", function() {
+      VizConfig.popup.close();
+    }.bind(this));
+
+    this.map.leaflet.on("movestart", function() {
+      VizConfig.popup.close();
+    });
+  };
+
+  MainMap.prototype.filterOrganisations = function() {
+    var deferred = Q.defer();
+    var filteredOrganisations = this.organisations;
+    var color = '#000000';
+
+    var filters = VizConfig.vizKey.getActiveFilters();
+    var numAreasOfDsi = filters.reduce(function(sum, filter) { return sum + ((filter.property === 'areaOfDigitalSocialInnovation') ? 1 : 0); }, 0);
+
+    var collaborators = this.collaborations;
+    if (this.selectedOrg && collaborators) {
+      var orgProjects = collaborators.byOrganisation[this.selectedOrg];
+      filteredOrganisations = filteredOrganisations.filter(function(org) {
+        var found = false;
+        var anotherOrgProjects = collaborators.byOrganisation[org.org];
+        if (!anotherOrgProjects) {
+          return false;
+        }
+
+        anotherOrgProjects.forEach(function(project) {
+          if (orgProjects.indexOf(project) !== -1) { found = true; }
+        });
+
+        return found;
+      }.bind(this));
+    }
+
+    filters.forEach(function(filter) {
+      filteredOrganisations = filteredOrganisations.filter(function(org) {
+        var value = org[filter.property] || '';
+        return value.indexOf(filter.id) !== -1;
+      });
+
+      if (filter.property === 'areaOfDigitalSocialInnovation' && numAreasOfDsi === 1) {
+        color = VizConfig.dsiAreasById[filter.id].color;
+      }
+    });
+
+    deferred.resolve({
+      organisations: filteredOrganisations,
+      color: color
+    });
+
+    return deferred.promise;
+  };
+
+  MainMap.prototype.clusterOrganisations = function(organisations, zoom) {
+    var groupingDist = 140;
+    var iterations = 0, maxIterations = 2;
+    var finishedClustering = false;
+
+    var currentZoom = zoom;
+    var clusterByCountry = 3 < currentZoom && currentZoom < 7;
+    var clusterByDistance = (currentZoom <= 3) || (7 <= currentZoom && currentZoom < 15);
+
+    var calcDist = function(a, b) {
+      var xd = (b.x - a.x);
+      var yd = (b.y - a.y);
+      return Math.sqrt(xd * xd + yd * yd);
+    };
+
+    var calcCenter = function(arr) {
+      var avg = arr.reduce(function(memo, o) {
+        memo.x += o.x;
+        memo.y += o.y;
+        return memo;
+      }, { x: 0, y: 0 });
+
+      avg.x /= arr.length;
+      avg.y /= arr.length;
+
+      return avg;
+    };
+
+    var clusters = organisations.map(function(org) {
+      var pos = this.map.leaflet.latLngToLayerPoint(org.LatLng);
+
+      org.x = pos.x;
+      org.y = pos.y;
+
+      return { center: pos, organisations: [ org ] };
+    }.bind(this));
+
+    if (clusterByCountry) {
+      clusters = clusters.reduce(function(memo, cluster) {
+        var org = cluster.organisations[0];
+        var index = indexOfProp(memo, "country", org.country);
+
+        if (index < 0) {
+          memo.push({ country: org.country, organisations: [ org ] });
+        }
+        else {
+          memo[index].organisations.push(org);
         }
 
         return memo;
-      }, []);
-    };
-
-    organisations = reduceOrgByProp(organisations, "org_type", "organisationType");
-    organisations = reduceOrgByProp(organisations, "area_of_society", "areaOfSociety");
-
-    deferred.resolve(organisations);
-  });
-  return deferred.promise;
-};
-
-MainMap.prototype.getCollaborations = function() {
-  if (!this.collaorationsPromise) {
-    var deferred = Q.defer();
-    var collaborations = {
-      byProject: {},
-      byOrganisation: {}
-    };
-    var self = this;
-    this.runCollaboratorsQuery().then(function(results) {
-      results.forEach(function(c) {
-        var org = c.org.value;
-        var projects = c.activity_values.value.split(',');
-        projects.forEach(function(project) {
-          if (!collaborations.byProject[project]) {
-            collaborations.byProject[project] = [];
-          }
-          collaborations.byProject[project].push(org);
-
-          if (!collaborations.byOrganisation[org]) {
-            collaborations.byOrganisation[org] = [];
-          }
-          collaborations.byOrganisation[org].push(project);
-        });
-        self.collaborations = collaborations;
-        deferred.resolve(collaborations);
-      });
-    });
-    this.collaorationsPromise = deferred.promise;
-  }
-
-  return this.collaorationsPromise;
-};
-
-MainMap.prototype.getProjectsInfo = function(collaborations) {
-  var deferred = Q.defer();
-  this.runProjectsInfoQuery().then(function(results) {
-    var projects = results.map(function(p) {
-      return {
-        p: p.p.value,
-        label: p.label_values.value,
-        technologyFocus: p.tf_values.value.split(',').map(function(f) { return f.substr(f.lastIndexOf('/')+1); }),
-        areaOfDigitalSocialInnovation: p.adsi_values.value.split(',').map(function(f) { return f.substr(f.lastIndexOf('/')+1); })
-      };
-    });
-
-    projects.forEach(function(project) {
-      var orgs = collaborations.byProject[project.p] || [];
-      orgs.forEach(function(orgId) {
-        var org = this.organisationsById[orgId];
-        if (!org) {
-          return;
-        }
-        if (!org.projects) {
-          org.projects = [];
-        }
-        if (!org.technologyFocus) {
-          org.technologyFocus = [];
-        }
-        if (!org.areaOfDigitalSocialInnovation) {
-          org.areaOfDigitalSocialInnovation = [];
-        }
-        org.projects.push(project);
-        project.technologyFocus.forEach(function(technologyFocus) {
-          if (org.technologyFocus.indexOf(technologyFocus) === -1) {
-            org.technologyFocus.push(technologyFocus);
-          }
-        });
-        project.areaOfDigitalSocialInnovation.forEach(function(areaOfDigitalSocialInnovation) {
-          if (org.areaOfDigitalSocialInnovation.indexOf(areaOfDigitalSocialInnovation) === -1) {
-            org.areaOfDigitalSocialInnovation.push(areaOfDigitalSocialInnovation);
-          }
-        });
-      }.bind(this));
-    }.bind(this));
-
-    deferred.resolve(projects);
-  }.bind(this));
-  return deferred.promise;
-};
-
-MainMap.prototype.runOrganisationsQuery = function() {
-  var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
-  var ds = new SPARQLDataSource(SPARQL_URL);
-
-  return ds.query()
-    .prefix('o:', '<http://www.w3.org/ns/org#>')
-    .prefix('rdfs:', '<http://www.w3.org/2000/01/rdf-schema#>')
-    .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
-    .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
-    .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
-    .select('?org ?label ?lon ?lat ?country ?city ?street ?tf ?activity ?activity_label ?org_type ?area_of_society')
-    .where('?org', 'a', 'o:Organization')
-    .where('?org', 'ds:organizationType', '?org_type')
-    .where('?org_type', 'rdfs:label', '?org_type_label')
-    .where('?org', 'rdfs:label', '?label')
-    .where('?org', 'o:hasPrimarySite', '?org_site')
-    .where('?org_site', 'geo:long', '?lon')
-    .where('?org_site', 'geo:lat', '?lat')
-    .where('?org_site', 'o:siteAddress', '?org_address')
-    .where('?org_address', 'vcard:country-name', '?country')
-    .where('?org_address', 'vcard:street-address', '?street')
-    .where('?org_address', 'vcard:locality', '?city')
-    .where("?am", "a", "ds:ActivityMembership")
-    .where("?am", "ds:organization", "?org")
-    .where("?am", "ds:activity", "?activity")
-    .where("?activity", "rdfs:label", "?activity_label")
-    .where("?activity", "ds:areaOfSociety", "?area_of_society", { optional: true })
-    .execute();
-};
-
-MainMap.prototype.runCollaboratorsQuery = function() {
-  var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
-  var ds = new SPARQLDataSource(SPARQL_URL);
-
-  return ds.query()
-    .prefix('o:', '<http://www.w3.org/ns/org#>')
-    .prefix('rdfs:', '<http://www.w3.org/2000/01/rdf-schema#>')
-    .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
-    .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
-    .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
-    .select('?org (group_concat(distinct ?activity ; separator = ",") AS ?activity_values)')
-    .where('?org', 'a', 'o:Organization')
-    .where("?am", "a", "ds:ActivityMembership")
-    .where("?am", "ds:organization", "?org")
-    .where("?am", "ds:activity", "?activity")
-    .groupBy("?org")
-    .execute();
-};
-
-MainMap.prototype.runProjectsInfoQuery = function() {
-  var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
-  var ds = new SPARQLDataSource(SPARQL_URL);
-
-  return ds.query()
-    .prefix('o:', '<http://www.w3.org/ns/org#>')
-    .prefix('rdfs:', '<http://www.w3.org/2000/01/rdf-schema#>')
-    .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
-    .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
-    .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
-    .select('?p (group_concat(distinct ?label ; separator = ",") AS ?label_values) (group_concat(distinct ?adsi ; separator = ",") AS ?adsi_values) (group_concat(distinct ?tf ; separator = ",") AS ?tf_values)')
-    .where('?p', 'a', 'ds:Activity')
-    .where("?p", "ds:technologyFocus", "?tf")
-    .where("?p", "rdfs:label", "?label")
-    .where("?p", "ds:areaOfDigitalSocialInnovation", "?adsi")
-    .groupBy("?p")
-    .execute(false);
-};
-
-MainMap.prototype.buildViz = function() {
-  var svg = this.DOM.svg;
-
-  this.DOM.g = svg.append('g');
-  this.DOM.networkGroup = this.DOM.g.append('g').attr("class", "network");
-  this.DOM.orgGroup = this.DOM.g.append('g').attr("class", "orgs");
-  this.DOM.hexGroup = this.DOM.g.append("g").attr("class", "hexes");
-  this.DOM.selectedHexGroup = this.DOM.g.append("g").attr("class", "hexes-selected");
-
-  this.organisationsById = this.organisations.reduce(function(memo, org) {
-    org.LatLng = new L.LatLng(org.lat, org.lon);
-    memo[org.org] = org;
-
-    return memo;
-  }, {});
-
-  this.showOrganisations(this.map.leaflet.getZoom());
-
-  VizConfig.events.addEventListener('filter', function() {
-    this.selectedOrg = null;
-    this.showOrganisations(this.map.leaflet.getZoom());
-    this.showClusterNetwork(this.map.leaflet.getZoom());
-    this.hideOrganisationHex();
-    VizConfig.popup.close();
-  }.bind(this));
-};
-
-MainMap.prototype.showWorldMap = function(center, scale) {
-  var continentLayer = new L.TileLayer("http://b.tiles.mapbox.com/v3/swirrl.ikeb7gn0/{z}/{x}/{y}.png", { maxZoom: 16, minZoom: 2 });
-  var streetLayer = new L.TileLayer("http://a.tiles.mapbox.com/v3/swirrl.il8el3gj/{z}/{x}/{y}.png", { maxZoom: 16, minZoom: 2 });
-
-  this.map = {
-    leaflet: L.map('map', {
-      center: new L.LatLng(center[0], center[1]),
-      zoom: scale,
-      inertia: false,
-      bounceAtZoomLimits: false,
-      zoomControl: false,
-      layers: [ continentLayer ]
-    }),
-    fullscreeen: false
-  };
-
-  this.map.leaflet._initPathRoot(); // adds svg layer to leaflet
-
-  this.map.leaflet.addControl(new L.control.customButton({
-    title: 'Fullscreen',
-
-    className: 'leaflet-fullscreen-button',
-
-    click: function() {
-      if (this.map.fullscreen) {
-        $('#map').css({
-          'height': this.h,
-          'position': 'relative'
-        });
-
-        // ugly workarounds for fixed positioning / z-index
-        $('.nav-bar .search').show();
-        $('#caseStudiesViz').show();
-      }
-      else {
-        $('#map').css({
-          'height': window.innerHeight,
-          'position': 'fixed',
-          'top': 0,
-          'left': 0
-        });
-
-        // ugly workarounds for fixed positioning / z-index
-        $('.nav-bar .search').hide();
-        $('#caseStudiesViz').hide();
-      }
-
-      this.map.leaflet.invalidateSize();
-      this.map.fullscreen = !this.map.fullscreen;
-    }.bind(this),
-
-    mouseover: function() {
-      VizConfig.tooltip.html("Fullscreen");
-      VizConfig.tooltip.show();
-    },
-
-    mouseout: function() {
-      VizConfig.tooltip.hide();
-    }
-  }));
-
-  this.map.leaflet.addControl(new L.control.zoom({ position: 'topright' }));
-
-  $(".leaflet-control-zoom-in").on("mouseover", function() {
-    VizConfig.tooltip.html("Zoom In");
-    VizConfig.tooltip.show();
-  });
-
-  $(".leaflet-control-zoom-in").on("mouseout", function() {
-    VizConfig.tooltip.hide();
-  });
-
-  $(".leaflet-control-zoom-out").on("mouseover", function() {
-    VizConfig.tooltip.html("Zoom Out");
-    VizConfig.tooltip.show();
-  });
-
-  $(".leaflet-control-zoom-out").on("mouseout", function() {
-    VizConfig.tooltip.hide();
-  });
-
-  this.map.leaflet.addControl(new L.control.customButton({
-    title: 'Center',
-
-    className: 'leaflet-center-button',
-
-    click: function() {
-      this.map.leaflet.setView(new L.LatLng(center[0], center[1]), scale);
-    }.bind(this),
-
-    mouseover: function() {
-      VizConfig.tooltip.html("Center");
-      VizConfig.tooltip.show();
-    },
-
-    mouseout: function() {
-      VizConfig.tooltip.hide();
-    }
-  }));
-
-  // map redraws including zoom
-  this.map.leaflet.on("zoomstart", function() {
-    VizConfig.popup.close();
-
-    this.hideClusterNetwork();
-    this.hideOrganisations();
-  }.bind(this));
-
-  this.map.leaflet.on("zoomend", function() {
-    this.showOrganisations(this.map.leaflet.getZoom());
-    this.showClusterNetwork(this.map.leaflet.getZoom());
-
-    if (this.map.leaflet.getZoom() >= 7) {
-      if (!this.map.leaflet.hasLayer(streetLayer)) {
-        this.map.leaflet.addLayer(streetLayer);
-        setTimeout(function() {
-          this.map.leaflet.removeLayer(continentLayer);
-        }.bind(this), 500);
-      }
-    }
-    else {
-      if (!this.map.leaflet.hasLayer(continentLayer)) {
-        this.map.leaflet.addLayer(continentLayer);
-        setTimeout(function() {
-          this.map.leaflet.removeLayer(streetLayer);
-        }.bind(this), 500);
-      }
-    }
-  }.bind(this));
-
-  this.map.leaflet.on("click", function() {
-    VizConfig.popup.close();
-  }.bind(this));
-
-  this.map.leaflet.on("movestart", function() {
-    VizConfig.popup.close();
-  });
-};
-
-MainMap.prototype.filterOrganisations = function() {
-  var deferred = Q.defer();
-  var filteredOrganisations = this.organisations;
-  var color = '#000000';
-
-  var filters = VizConfig.vizKey.getActiveFilters();
-  var numAreasOfDsi = filters.reduce(function(sum, filter) { return sum + ((filter.property === 'areaOfDigitalSocialInnovation') ? 1 : 0); }, 0);
-
-  var collaborators = this.collaborations;
-  if (this.selectedOrg && collaborators) {
-    var orgProjects = collaborators.byOrganisation[this.selectedOrg];
-    filteredOrganisations = filteredOrganisations.filter(function(org) {
-      var found = false;
-      var anotherOrgProjects = collaborators.byOrganisation[org.org];
-      if (!anotherOrgProjects) {
-        return false;
-      }
-
-      anotherOrgProjects.forEach(function(project) {
-        if (orgProjects.indexOf(project) !== -1) { found = true; }
-      });
-
-      return found;
-    }.bind(this));
-  }
-
-  filters.forEach(function(filter) {
-    filteredOrganisations = filteredOrganisations.filter(function(org) {
-      var value = org[filter.property] || '';
-      return value.indexOf(filter.id) !== -1;
-    });
-
-    if (filter.property === 'areaOfDigitalSocialInnovation' && numAreasOfDsi === 1) {
-      color = VizConfig.dsiAreasById[filter.id].color;
-    }
-  });
-
-  deferred.resolve({
-    organisations: filteredOrganisations,
-    color: color
-  });
-
-  return deferred.promise;
-};
-
-MainMap.prototype.clusterOrganisations = function(organisations, zoom) {
-  var groupingDist = 140;
-  var iterations = 0, maxIterations = 2;
-  var finishedClustering = false;
-
-  var currentZoom = zoom;
-  var clusterByCountry = 3 < currentZoom && currentZoom < 7;
-  var clusterByDistance = (currentZoom <= 3) || (7 <= currentZoom && currentZoom < 15);
-
-  var calcDist = function(a, b) {
-    var xd = (b.x - a.x);
-    var yd = (b.y - a.y);
-    return Math.sqrt(xd * xd + yd * yd);
-  };
-
-  var calcCenter = function(arr) {
-    var avg = arr.reduce(function(memo, o) {
-      memo.x += o.x;
-      memo.y += o.y;
-      return memo;
-    }, { x: 0, y: 0 });
-
-    avg.x /= arr.length;
-    avg.y /= arr.length;
-
-    return avg;
-  };
-
-  var clusters = organisations.map(function(org) {
-    var pos = this.map.leaflet.latLngToLayerPoint(org.LatLng);
-
-    org.x = pos.x;
-    org.y = pos.y;
-
-    return { center: pos, organisations: [ org ] };
-  }.bind(this));
-
-  if (clusterByCountry) {
-    clusters = clusters.reduce(function(memo, cluster) {
-      var org = cluster.organisations[0];
-      var index = indexOfProp(memo, "country", org.country);
-
-      if (index < 0) {
-        memo.push({ country: org.country, organisations: [ org ] });
-      }
-      else {
-        memo[index].organisations.push(org);
-      }
-
-      return memo;
-    }, []).map(function(cluster) {
-      cluster.center = calcCenter(cluster.organisations);
-      return cluster;
-    });
-  }
-  else if (clusterByDistance) {
-    var calculateClusters = function(clusters) {
-      clusters.forEach(function(cluster1, clusterIndex1) {
-        clusters.forEach(function(cluster2, clusterIndex2) {
-          if (clusterIndex1 !== clusterIndex2) {
-            cluster2.organisations = cluster2.organisations.filter(function(org) {
-              var shouldKeep = true;
-
-              if (calcDist(cluster1.center, org) < groupingDist) {
-                cluster1.organisations.push(org);
-                finishedClustering = false;
-                shouldKeep = false;
-              }
-
-              return shouldKeep;
-            });
-          }
-        });
-      });
-
-      return clusters;
-    };
-
-    var filterEmpty = function(clusters) {
-      return clusters.filter(function(cluster){
-        return cluster.organisations.length > 0;
-      });
-    };
-
-    var updateCenters = function(clusters) {
-      return clusters.map(function(cluster) {
+      }, []).map(function(cluster) {
         cluster.center = calcCenter(cluster.organisations);
         return cluster;
       });
-    };
-
-    while (!finishedClustering && iterations < maxIterations) {
-      finishedClustering = true;
-      iterations++;
-
-      clusters = calculateClusters(clusters);
-      clusters = filterEmpty(clusters);
-      clusters = updateCenters(clusters);
     }
-  }
+    else if (clusterByDistance) {
+      var calculateClusters = function(clusters) {
+        clusters.forEach(function(cluster1, clusterIndex1) {
+          clusters.forEach(function(cluster2, clusterIndex2) {
+            if (clusterIndex1 !== clusterIndex2) {
+              cluster2.organisations = cluster2.organisations.filter(function(org) {
+                var shouldKeep = true;
 
-  return clusters;
-};
+                if (calcDist(cluster1.center, org) < groupingDist) {
+                  cluster1.organisations.push(org);
+                  finishedClustering = false;
+                  shouldKeep = false;
+                }
 
-MainMap.prototype.updateOrgByIdPositions = function() {
-  var org, pos, orgCluster;
+                return shouldKeep;
+              });
+            }
+          });
+        });
 
-  var findOrgInClusters = function(org, clusters) {
-    var found;
+        return clusters;
+      };
 
-    return clusters.reduce(function(memo, cluster) {
-      found = false;
+      var filterEmpty = function(clusters) {
+        return clusters.filter(function(cluster){
+          return cluster.organisations.length > 0;
+        });
+      };
 
-      if (!memo) {
-        found = cluster.organisations.reduce(function(memo, clusterOrg) {
-          if (!memo) { memo = (clusterOrg.org === org); }
-          return memo;
-        }, false);
+      var updateCenters = function(clusters) {
+        return clusters.map(function(cluster) {
+          cluster.center = calcCenter(cluster.organisations);
+          return cluster;
+        });
+      };
+
+      while (!finishedClustering && iterations < maxIterations) {
+        finishedClustering = true;
+        iterations++;
+
+        clusters = calculateClusters(clusters);
+        clusters = filterEmpty(clusters);
+        clusters = updateCenters(clusters);
       }
+    }
 
-      if (found) { memo = cluster; }
-
-      return memo;
-    }, null);
+    return clusters;
   };
 
-  for (org in this.organisationsById) {
-    if (this.organisationsById.hasOwnProperty(org)) {
-      pos = this.map.leaflet.latLngToLayerPoint(this.organisationsById[org].LatLng);
-      this.organisationsById[org].x = pos.x;
-      this.organisationsById[org].y = pos.y;
+  MainMap.prototype.updateOrgByIdPositions = function() {
+    var org, pos, orgCluster;
 
-      orgCluster = findOrgInClusters(org, this.clusters);
-      if (orgCluster) { this.organisationsById[org].center = orgCluster.center; }
-    }
-  }
-};
+    var findOrgInClusters = function(org, clusters) {
+      var found;
 
-MainMap.prototype.showOrganisations = function(zoom) {
-  // in order to show organisations we need to update clusters, saving them globally for network drawing
-  this.filterOrganisations().then(function(filteredOrganisations) {
-    this.clusters = this.clusterOrganisations(filteredOrganisations.organisations, zoom);
-    this.updateOrgByIdPositions();
-    var color = filteredOrganisations.color;
+      return clusters.reduce(function(memo, cluster) {
+        found = false;
 
-    var hexDisplayZoom = 10;
-    var data;
-
-    if (zoom >= hexDisplayZoom) {
-      data = this.clusters.reduce(function(memo, cluster) {
-        if (cluster.organisations.length > 1) {
-          memo.clusters.push(cluster);
+        if (!memo) {
+          found = cluster.organisations.reduce(function(memo, clusterOrg) {
+            if (!memo) { memo = (clusterOrg.org === org); }
+            return memo;
+          }, false);
         }
-        else if (cluster.organisations[0]) {
-          memo.hexes.push(cluster);
-        }
+
+        if (found) { memo = cluster; }
 
         return memo;
-      }, { hexes: [], clusters: [] });
+      }, null);
+    };
+
+    for (org in this.organisationsById) {
+      if (this.organisationsById.hasOwnProperty(org)) {
+        pos = this.map.leaflet.latLngToLayerPoint(this.organisationsById[org].LatLng);
+        this.organisationsById[org].x = pos.x;
+        this.organisationsById[org].y = pos.y;
+
+        orgCluster = findOrgInClusters(org, this.clusters);
+        if (orgCluster) { this.organisationsById[org].center = orgCluster.center; }
+      }
     }
-    else {
-      data = { hexes: [], clusters: this.clusters };
+  };
+
+  MainMap.prototype.showOrganisations = function(zoom) {
+    // in order to show organisations we need to update clusters, saving them globally for network drawing
+    this.filterOrganisations().then(function(filteredOrganisations) {
+      this.clusters = this.clusterOrganisations(filteredOrganisations.organisations, zoom);
+      this.updateOrgByIdPositions();
+      var color = filteredOrganisations.color;
+
+      var hexDisplayZoom = 10;
+      var data;
+
+      if (zoom >= hexDisplayZoom) {
+        data = this.clusters.reduce(function(memo, cluster) {
+          if (cluster.organisations.length > 1) {
+            memo.clusters.push(cluster);
+          }
+          else if (cluster.organisations[0]) {
+            memo.hexes.push(cluster);
+          }
+
+          return memo;
+        }, { hexes: [], clusters: [] });
+      }
+      else {
+        data = { hexes: [], clusters: this.clusters };
+      }
+
+      // draw clusters and hexes
+      var clusters = this.drawClusters(this.DOM.orgGroup, data.clusters, color);
+      var hexes = this.drawHexes(this.DOM.hexGroup, data.hexes);
+
+      // act on mouse
+      this.handleMouse(clusters, { fromCluster: true });
+      this.handleMouse(hexes);
+
+      this.drawOrganisationHex();
+    }.bind(this));
+  };
+
+  MainMap.prototype.hideOrganisations = function() {
+    if (this.DOM.orgGroup) {
+      this.DOM.orgGroup.selectAll('g')
+        .transition()
+        .duration(200)
+        .attr('opacity', 0);
+
+      this.DOM.hexGroup.selectAll('g')
+        .transition()
+        .duration(200)
+        .attr('opacity', 0);
     }
+  };
 
-    // draw clusters and hexes
-    var clusters = this.drawClusters(this.DOM.orgGroup, data.clusters, color);
-    var hexes = this.drawHexes(this.DOM.hexGroup, data.hexes);
+  MainMap.prototype.drawClusters = function(selection, data) {
+    var clusters = selection
+      .selectAll('g.org')
+      .data(data);
 
-    // act on mouse
-    this.handleMouse(clusters, { fromCluster: true });
-    this.handleMouse(hexes);
+    var groupEnter = clusters
+      .enter()
+      .append('g')
+      .attr('class', 'org')
+      .each(function(d) {
+        d.iconScale = Math.max(12 - Math.sqrt(d.organisations.length), 7);
+      })
+      .attr('transform', function(d) {
+        return "translate(" + d.center.x + "," + d.center.y + ")";
+      })
+      .attr('opacity', 0);
 
-    this.drawOrganisationHex();
-  }.bind(this));
-};
-
-MainMap.prototype.hideOrganisations = function() {
-  this.DOM.orgGroup.selectAll('g')
-    .transition()
-    .duration(200)
-    .attr('opacity', 0);
-
-  this.DOM.hexGroup.selectAll('g')
-    .transition()
-    .duration(200)
-    .attr('opacity', 0);
-};
-
-MainMap.prototype.drawClusters = function(selection, data) {
-  var clusters = selection
-    .selectAll('g.org')
-    .data(data);
-
-  var groupEnter = clusters
-    .enter()
-    .append('g')
-    .attr('class', 'org')
-    .each(function(d) {
-      d.iconScale = Math.max(12 - Math.sqrt(d.organisations.length), 7);
-    })
-    .attr('transform', function(d) {
-      return "translate(" + d.center.x + "," + d.center.y + ")";
-    })
-    .attr('opacity', 0);
-
-  groupEnter
-    .append('svg:image')
-    .attr('xlink:href', 'assets/drop-icon.png')
-    .attr('width', function(d) {
-      return 257 / d.iconScale;
-    })
-    .attr('height', function(d) {
-      return 308 / d.iconScale;
-    })
-    .attr('x', function(d) {
-      return -(257 / d.iconScale) / 2;
-    })
-    .attr('y', function(d) {
-      return -(308 / d.iconScale);
-    });
-
-  groupEnter
-    .append('text')
-    .attr('text-anchor', 'middle')
-    .attr('dx', 0)
-    .attr('dy', function(d) {
-      return -(154 / d.iconScale);
-    })
-    .attr('fill', '#000')
-    .attr('font-size', '11px')
-    .text('');
-
-  var groupTransform = clusters
-    .attr('transform', function(d) {
-      return "translate(" + d.center.x + "," + d.center.y + ")";
-    })
-    .attr('opacity', 1);
-
-  groupTransform
-    .select("text")
-    .transition()
-    .text(function(d) {
-      return d.organisations.length;
-    });
-
-  var groupExit = clusters.exit();
-
-  groupExit
-    .select('circle')
-    .transition()
-    .duration(300)
-    .attr('r', 0);
-
-  groupExit
-    .select('text')
-    .transition()
-    .duration(300)
-    .attr("opacity", 0);
-
-  groupExit
-    .transition()
-    .duration(300)
-    .remove();
-
-  return clusters;
-};
-
-MainMap.prototype.drawHexes = function(selection, data) {
-  var hexR = 20;
-  var drawHex = this.drawHex;
-  var className = "hex-default";
-
-  var countDataForHex = function(data) {
-    return data.projects ? data.projects.reduce(function(memo, project) {
-      project.areaOfDigitalSocialInnovation.forEach(function(area) {
-        if (memo[area]) {
-          memo[area]++;
-        }
-        else {
-          memo[area] = 1;
-        }
+    groupEnter
+      .append('svg:image')
+      .attr('xlink:href', 'assets/drop-icon.png')
+      .attr('width', function(d) {
+        return 257 / d.iconScale;
+      })
+      .attr('height', function(d) {
+        return 308 / d.iconScale;
+      })
+      .attr('x', function(d) {
+        return -(257 / d.iconScale) / 2;
+      })
+      .attr('y', function(d) {
+        return -(308 / d.iconScale);
       });
-      return memo;
-    }, {}) : null;
-  };
 
-  // remove all previous hexes
-  selection.selectAll('g.' + className).remove();
-
-  var hexes = selection
-    .selectAll('g.' + className)
-    .data(data.map(function(hex) {
-      var org = hex.organisations[0];
-      var orgCenter = org.center || { x: org.x, y: org.y };
-      var pos = hex.center || orgCenter;
-
-      return {
-        organisations: hex.organisations,
-        r: hexR,
-        x: pos.x,
-        y: pos.y,
-        counts: countDataForHex(hex.organisations[0])
-      };
-    }));
-
-  hexes.enter()
-    .append('g')
-    .attr('class', className)
-    .each(function(d) {
-      drawHex(d3.select(this), d);
-    });
-
-  hexes.exit().remove();
-
-  return hexes;
-};
-
-MainMap.prototype.drawHex = function(selection, data) {
-  var hexBite = function(x, y, r, i) {
-    var a = i/6 * Math.PI * 2 + Math.PI/6;
-    var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
-    return [
-      [x, y],
-      [x + r * Math.cos(a), y + r * Math.sin(a)],
-      [x + r * Math.cos(na), y + r * Math.sin(na)]
-    ];
-  };
-
-  var hexBorder = function(x, y, r, i) {
-    var a = i/6 * Math.PI * 2 + Math.PI/6;
-    var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
-    return [
-      [x + r * Math.cos(a), y + r * Math.sin(a)],
-      [x + r * Math.cos(a), y + r * Math.sin(a)],
-      [x + r * Math.cos(na), y + r * Math.sin(na)]
-    ];
-  };
-
-  var hex = selection.append("g").attr("class", "hex");
-
-  fn.sequence(0, 6).forEach(function(i) {
-    var bite = hex.append("path");
-
-    bite
-      .attr("d", function() {
-        return "M" + hexBite(data.x, data.y, data.r, i).join("L") + "Z";
+    groupEnter
+      .append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dx', 0)
+      .attr('dy', function(d) {
+        return -(154 / d.iconScale);
       })
-      //.attr("stroke", "#666")
-      .attr("fill", "#FFF");
-  }.bind(this));
+      .attr('fill', '#000')
+      .attr('font-size', '11px')
+      .text('');
 
-  fn.sequence(0, 6).forEach(function(i) {
-    var bite = hex.append("path");
-
-    bite
-      .attr("d", function() {
-        return "M" + hexBorder(data.x, data.y, data.r, i).join("L") + "Z";
+    var groupTransform = clusters
+      .attr('transform', function(d) {
+        return "translate(" + d.center.x + "," + d.center.y + ")";
       })
-      .attr("stroke", "#666")
-      .attr("fill", "none");
-  }.bind(this));
+      .attr('opacity', 1);
 
-  // fill hex only if data is passed
-  if (data.counts) {
+    groupTransform
+      .select("text")
+      .transition()
+      .text(function(d) {
+        return d.organisations.length;
+      });
+
+    var groupExit = clusters.exit();
+
+    groupExit
+      .select('circle')
+      .transition()
+      .duration(300)
+      .attr('r', 0);
+
+    groupExit
+      .select('text')
+      .transition()
+      .duration(300)
+      .attr("opacity", 0);
+
+    groupExit
+      .transition()
+      .duration(300)
+      .remove();
+
+    return clusters;
+  };
+
+  MainMap.prototype.drawHexes = function(selection, data) {
+    var hexR = 20;
+    var drawHex = this.drawHex;
+    var className = "hex-default";
+
+    var countDataForHex = function(data) {
+      return data.projects ? data.projects.reduce(function(memo, project) {
+        project.areaOfDigitalSocialInnovation.forEach(function(area) {
+          if (memo[area]) {
+            memo[area]++;
+          }
+          else {
+            memo[area] = 1;
+          }
+        });
+        return memo;
+      }, {}) : null;
+    };
+
+    // remove all previous hexes
+    selection.selectAll('g.' + className).remove();
+
+    var hexes = selection
+      .selectAll('g.' + className)
+      .data(data.map(function(hex) {
+        var org = hex.organisations[0];
+        var orgCenter = org.center || { x: org.x, y: org.y };
+        var pos = hex.center || orgCenter;
+
+        return {
+          organisations: hex.organisations,
+          r: hexR,
+          x: pos.x,
+          y: pos.y,
+          counts: countDataForHex(hex.organisations[0])
+        };
+      }));
+
+    hexes.enter()
+      .append('g')
+      .attr('class', className)
+      .each(function(d) {
+        drawHex(d3.select(this), d);
+      });
+
+    hexes.exit().remove();
+
+    return hexes;
+  };
+
+  MainMap.prototype.drawHex = function(selection, data) {
+    var hexBite = function(x, y, r, i) {
+      var a = i/6 * Math.PI * 2 + Math.PI/6;
+      var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
+      return [
+        [x, y],
+        [x + r * Math.cos(a), y + r * Math.sin(a)],
+        [x + r * Math.cos(na), y + r * Math.sin(na)]
+      ];
+    };
+
+    var hexBorder = function(x, y, r, i) {
+      var a = i/6 * Math.PI * 2 + Math.PI/6;
+      var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
+      return [
+        [x + r * Math.cos(a), y + r * Math.sin(a)],
+        [x + r * Math.cos(a), y + r * Math.sin(a)],
+        [x + r * Math.cos(na), y + r * Math.sin(na)]
+      ];
+    };
+
+    var hex = selection.append("g").attr("class", "hex");
+
     fn.sequence(0, 6).forEach(function(i) {
-      var dsiArea = VizConfig.dsiAreas[i].id;
       var bite = hex.append("path");
 
       bite
         .attr("d", function() {
-          return "M" + hexBite(
-            data.x,
-            data.y,
-            5 + Math.min(data.r - 5, Math.pow(data.counts[dsiArea], 0.6)) || 1,
-            i
-          ).join("L") + "Z";
+          return "M" + hexBite(data.x, data.y, data.r, i).join("L") + "Z";
         })
-        .attr("fill", VizConfig.dsiAreas[i].color);
+        //.attr("stroke", "#666")
+        .attr("fill", "#FFF");
     }.bind(this));
-  }
-};
 
-MainMap.prototype.displayPopup = function(cluster) {
-  var maxOrgCount = 99;
-  var maxProjectCount = 3;
-  var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
-  var organisations = cluster.organisations;
-  var isSingleOrganisation = cluster.organisations.length === 1;
+    fn.sequence(0, 6).forEach(function(i) {
+      var bite = hex.append("path");
 
-  if (cutOrganisationsCount) { organisations = organisations.slice(0, maxOrgCount); }
+      bite
+        .attr("d", function() {
+          return "M" + hexBorder(data.x, data.y, data.r, i).join("L") + "Z";
+        })
+        .attr("stroke", "#666")
+        .attr("fill", "none");
+    }.bind(this));
 
-  var popupHTML = organisations.map(function(organization) {
-    var url = 'http://digitalsocial.eu/organisations/';
-    url += organization.org.substr(organization.org.lastIndexOf('/') + 1);
-    var popupContent = '<h4><a href="' + url + '">'+organization.label+'</a></h4>';
+    // fill hex only if data is passed
+    if (data.counts) {
+      fn.sequence(0, 6).forEach(function(i) {
+        var dsiArea = VizConfig.dsiAreas[i].id;
+        var bite = hex.append("path");
 
-    if (isSingleOrganisation) {
-      popupContent += '<span>';
-      popupContent += organization.street;
-      popupContent += ", " + organization.city;
-      popupContent += ", " + organization.country;
-      popupContent += '</span>';
+        bite
+          .attr("d", function() {
+            return "M" + hexBite(
+              data.x,
+              data.y,
+              5 + Math.min(data.r - 5, Math.pow(data.counts[dsiArea], 0.6)) || 1,
+              i
+            ).join("L") + "Z";
+          })
+          .attr("fill", VizConfig.dsiAreas[i].color);
+      }.bind(this));
     }
+  };
 
-    if (organization.projects && isSingleOrganisation) {
-      popupContent += 'Projects:';
-
-      var projects = organization.projects;
-      var cutProjectCount = projects.length > maxProjectCount;
-      if (cutProjectCount) { projects = projects.slice(0, maxProjectCount); }
-
-      projects.forEach(function(project) {
-        var projectUrl = 'http://digitalsocial.eu/projects/' + project.p.substr(project.p.lastIndexOf('/')+1);
-        popupContent += '<a href="' + projectUrl + '">'+project.label+'</a>';
-      });
-
-      if (cutProjectCount) {
-        popupContent += "<div>...</div>";
-      }
-    }
-
-    return popupContent;
-  }).join(isSingleOrganisation ? "<br/>" : "");
-
-  if (cutOrganisationsCount) {
-    popupHTML += "<br/><div style='text-align:center'>...</div>";
-  }
-
-  VizConfig.popup.html($(popupHTML));
-
-  var windowOffset = $("#map").offset();
-  var viewBox = d3.select("#map").select("svg").attr("viewBox").split(" ").map(function(v) { return +v; });
-
-  var dx = windowOffset.left + this.defaultViewBox[0] - viewBox[0];
-  var dy = windowOffset.top + this.defaultViewBox[1] - viewBox[1];
-
-  var x = cluster.center ? cluster.center.x : cluster.x;
-  var y = cluster.center ? cluster.center.y : cluster.y;
-
-  // ugly hack for nice popup positioning
-  y -= this.map.fullscreen ? 70 : 26;
-
-  VizConfig.popup.open(x, y, dx, dy);
-};
-
-MainMap.prototype.handleMouse = function(selection) {
-  var displayPopup = this.displayPopup.bind(this);
-  var isPreloading = function() { return this.preloader.is(":visible"); }.bind(this);
-
-  selection.on('click', function(cluster) {
-    d3.event.preventDefault();
-    d3.event.stopPropagation();
-
-    if (isPreloading()) { return; }
-
-    displayPopup(cluster);
-  });
-
-  selection.on('mouseover', function(cluster) {
-    if (isPreloading()) { return; }
-
-    VizConfig.tooltip.show();
-
-    var maxOrgCount = 6;
+  MainMap.prototype.displayPopup = function(cluster) {
+    var maxOrgCount = 99;
+    var maxProjectCount = 3;
     var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
     var organisations = cluster.organisations;
+    var isSingleOrganisation = cluster.organisations.length === 1;
 
-    if (cutOrganisationsCount) {
-      organisations = organisations.slice(0, maxOrgCount);
-    }
+    if (cutOrganisationsCount) { organisations = organisations.slice(0, maxOrgCount); }
 
-    var html = organisations.map(function(o) { return o.label; }).join("<br/>");
+    var popupHTML = organisations.map(function(organization) {
+      var url = 'http://digitalsocial.eu/organisations/';
+      url += organization.org.substr(organization.org.lastIndexOf('/') + 1);
+      var popupContent = '<h4><a href="' + url + '">'+organization.label+'</a></h4>';
 
-    if (cutOrganisationsCount) {
-      html += "<br/>...";
-    }
+      if (isSingleOrganisation) {
+        popupContent += '<span>';
+        popupContent += organization.street;
+        popupContent += ", " + organization.city;
+        popupContent += ", " + organization.country;
+        popupContent += '</span>';
+      }
 
-    VizConfig.tooltip.html(html);
-  });
+      if (organization.projects && isSingleOrganisation) {
+        popupContent += 'Projects:';
 
-  selection.on('mouseout', function() {
-    VizConfig.tooltip.hide();
-  });
-};
+        var projects = organization.projects;
+        var cutProjectCount = projects.length > maxProjectCount;
+        if (cutProjectCount) { projects = projects.slice(0, maxProjectCount); }
 
-MainMap.prototype.showClusterNetwork = function(zoom) {
-  this.getCollaborations().then(function(collaborations) {
-    var collaborators = this.clusters.map(function(cluster) {
-      return cluster.organisations.reduce(function(memo, org) {
-        if (org.projects) {
-          org.projects.forEach(function(project) {
-            if (collaborations.byProject.hasOwnProperty(project.p)) {
-              collaborations.byProject[project.p].forEach(function(collaborator) {
-                var isInCluster = this.clusters.reduce(function(memo, cluster) {
-                  if (!memo) { memo = (indexOfProp(cluster.organisations, "org", collaborator) >= 0); }
-                  return memo;
-                }, false);
+        projects.forEach(function(project) {
+          var projectUrl = 'http://digitalsocial.eu/projects/' + project.p.substr(project.p.lastIndexOf('/')+1);
+          popupContent += '<a href="' + projectUrl + '">'+project.label+'</a>';
+        });
 
-                var collaboratorOrg = this.organisationsById[collaborator];
-
-                if (collaboratorOrg && isInCluster) {
-                  memo.push({ org: org, collaborator: collaboratorOrg });
-                }
-              }.bind(this));
-            }
-          }.bind(this));
+        if (cutProjectCount) {
+          popupContent += "<div>...</div>";
         }
+      }
 
+      return popupContent;
+    }).join(isSingleOrganisation ? "<br/>" : "");
+
+    if (cutOrganisationsCount) {
+      popupHTML += "<br/><div style='text-align:center'>...</div>";
+    }
+
+    VizConfig.popup.html($(popupHTML));
+
+    var windowOffset = $("#map").offset();
+    var viewBox = d3.select("#map").select("svg").attr("viewBox").split(" ").map(function(v) { return +v; });
+
+    var dx = windowOffset.left + this.defaultViewBox[0] - viewBox[0];
+    var dy = windowOffset.top + this.defaultViewBox[1] - viewBox[1];
+
+    var x = cluster.center ? cluster.center.x : cluster.x;
+    var y = cluster.center ? cluster.center.y : cluster.y;
+
+    // ugly hack for nice popup positioning
+    y -= this.map.fullscreen ? 70 : 26;
+
+    VizConfig.popup.open(x, y, dx, dy);
+  };
+
+  MainMap.prototype.handleMouse = function(selection) {
+    var displayPopup = this.displayPopup.bind(this);
+    var isPreloading = function() { return this.preloader.is(":visible"); }.bind(this);
+
+    selection.on('click', function(cluster) {
+      d3.event.preventDefault();
+      d3.event.stopPropagation();
+
+      if (isPreloading()) { return; }
+
+      displayPopup(cluster);
+    });
+
+    selection.on('mouseover', function(cluster) {
+      if (isPreloading()) { return; }
+
+      VizConfig.tooltip.show();
+
+      var maxOrgCount = 6;
+      var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
+      var organisations = cluster.organisations;
+
+      if (cutOrganisationsCount) {
+        organisations = organisations.slice(0, maxOrgCount);
+      }
+
+      var html = organisations.map(function(o) { return o.label; }).join("<br/>");
+
+      if (cutOrganisationsCount) {
+        html += "<br/>...";
+      }
+
+      VizConfig.tooltip.html(html);
+    });
+
+    selection.on('mouseout', function() {
+      VizConfig.tooltip.hide();
+    });
+  };
+
+  MainMap.prototype.showClusterNetwork = function(zoom) {
+    this.getCollaborations().then(function(collaborations) {
+      var collaborators = this.clusters.map(function(cluster) {
+        return cluster.organisations.reduce(function(memo, org) {
+          if (org.projects) {
+            org.projects.forEach(function(project) {
+              if (collaborations.byProject.hasOwnProperty(project.p)) {
+                collaborations.byProject[project.p].forEach(function(collaborator) {
+                  var isInCluster = this.clusters.reduce(function(memo, cluster) {
+                    if (!memo) { memo = (indexOfProp(cluster.organisations, "org", collaborator) >= 0); }
+                    return memo;
+                  }, false);
+
+                  var collaboratorOrg = this.organisationsById[collaborator];
+
+                  if (collaboratorOrg && isInCluster) {
+                    memo.push({ org: org, collaborator: collaboratorOrg });
+                  }
+                }.bind(this));
+              }
+            }.bind(this));
+          }
+
+          return memo;
+        }.bind(this), []);
+      }.bind(this)).reduce(function(memo, array) {
+        if (array) { memo.push.apply(memo, array); }
         return memo;
-      }.bind(this), []);
-    }.bind(this)).reduce(function(memo, array) {
-      if (array) { memo.push.apply(memo, array); }
-      return memo;
-    }, []);
+      }, []);
 
-    function makePosHash(orgA, orgB) {
-      return orgA.center.x + ' ' + orgA.center.y + ' ' + orgB.center.x + ' ' + orgB.center.y;
-    }
-    function makeIdHash(orgA, orgB) {
-      return orgA.org + ' ' + orgB.org;
-    }
-
-    //group collaborators by source and target to have only unique connections
-    var collabMap = {};
-    var uniqueLinks = [];
-    collaborators = collaborators.filter(function(collab) {
-      return (collab.org.org !== collab.collaborator.org);
-    });
-
-    collaborators.forEach(function(collab) {
-      var posHash = makePosHash(collab.org, collab.collaborator);
-      var idHash = makeIdHash(collab.org, collab.collaborator);
-      var reversePosHash = makePosHash(collab.collaborator, collab.org);
-      var reverseIdHash = makeIdHash(collab.collaborator, collab.org);
-      if (collabMap[posHash] && collabMap[posHash].orgs.indexOf(idHash) === -1 && collabMap[posHash].orgs.indexOf(reverseIdHash) === -1) {
-        collabMap[posHash].strength++;
+      function makePosHash(orgA, orgB) {
+        return orgA.center.x + ' ' + orgA.center.y + ' ' + orgB.center.x + ' ' + orgB.center.y;
       }
-      if (collabMap[reversePosHash] && collabMap[reversePosHash].orgs.indexOf(idHash) === -1 && collabMap[reversePosHash].orgs.indexOf(reverseIdHash) === -1) {
-        collabMap[reversePosHash].strength++;
+      function makeIdHash(orgA, orgB) {
+        return orgA.org + ' ' + orgB.org;
       }
-      else {
-        uniqueLinks.push(collab);
-        collabMap[posHash] = collab;
-        collabMap[posHash].orgs = [];
-        collabMap[posHash].orgs.push(idHash);
-        collabMap[posHash].orgs.push(reverseIdHash);
-        collabMap[posHash].strength = 1;
-      }
-    });
 
-    var networkPaths = this.DOM.networkGroup
-      .selectAll('line.network')
-      .data(uniqueLinks);
-
-    networkPaths
-      .enter()
-      .append('line')
-      .attr('class', 'network')
-      .attr('x1', function(d) { return d.org.center.x; })
-      .attr('y1', function(d) { return d.org.center.y; })
-      .attr('x2', function(d) { return d.collaborator.center.x; })
-      .attr('y2', function(d) { return d.collaborator.center.y; })
-      .attr('stroke', '#00B993')
-      .attr('stroke-opacity', 0)
-      .attr('stroke-width', 1);
-
-    var zoomStrokeWidth  = Math.max(0, (zoom-5));
-
-    networkPaths
-      .attr('x1', function(d) { return d.org.center.x; })
-      .attr('y1', function(d) { return d.org.center.y; })
-      .attr('x2', function(d) { return d.collaborator.center.x; })
-      .attr('y2', function(d) { return d.collaborator.center.y; })
-      .attr('stroke-width', 1)
-      .transition()
-      .delay(400)
-      .duration(200)
-      .attr('stroke-opacity', function(d) { return Math.max(0.05, Math.min(d.strength/5, 1)); })
-      .attr('stroke-width', function(d) { 
-        var width = Math.max(0.2, Math.min((2*d.strength+zoomStrokeWidth)/10, 20));
-        return width;
+      //group collaborators by source and target to have only unique connections
+      var collabMap = {};
+      var uniqueLinks = [];
+      collaborators = collaborators.filter(function(collab) {
+        return (collab.org.org !== collab.collaborator.org);
       });
 
-    networkPaths
-      .exit()
-      .transition()
-      .duration(200)
-      .attr('stroke-opacity', 0)
-      .remove();
-  }.bind(this));
-};
+      collaborators.forEach(function(collab) {
+        var posHash = makePosHash(collab.org, collab.collaborator);
+        var idHash = makeIdHash(collab.org, collab.collaborator);
+        var reversePosHash = makePosHash(collab.collaborator, collab.org);
+        var reverseIdHash = makeIdHash(collab.collaborator, collab.org);
+        if (collabMap[posHash] && collabMap[posHash].orgs.indexOf(idHash) === -1 && collabMap[posHash].orgs.indexOf(reverseIdHash) === -1) {
+          collabMap[posHash].strength++;
+        }
+        if (collabMap[reversePosHash] && collabMap[reversePosHash].orgs.indexOf(idHash) === -1 && collabMap[reversePosHash].orgs.indexOf(reverseIdHash) === -1) {
+          collabMap[reversePosHash].strength++;
+        }
+        else {
+          uniqueLinks.push(collab);
+          collabMap[posHash] = collab;
+          collabMap[posHash].orgs = [];
+          collabMap[posHash].orgs.push(idHash);
+          collabMap[posHash].orgs.push(reverseIdHash);
+          collabMap[posHash].strength = 1;
+        }
+      });
 
-MainMap.prototype.hideClusterNetwork = function() {
-  if (this.DOM.networkGroup) {
-    this.DOM.networkGroup
-      .selectAll('line.network')
-      .transition()
-      .duration(200)
-      .attr('stroke-opacity', 0);
-  }
-};
+      var networkPaths = this.DOM.networkGroup
+        .selectAll('line.network')
+        .data(uniqueLinks);
 
-return MainMap;
+      networkPaths
+        .enter()
+        .append('line')
+        .attr('class', 'network')
+        .attr('x1', function(d) { return d.org.center.x; })
+        .attr('y1', function(d) { return d.org.center.y; })
+        .attr('x2', function(d) { return d.collaborator.center.x; })
+        .attr('y2', function(d) { return d.collaborator.center.y; })
+        .attr('stroke', '#00B993')
+        .attr('stroke-opacity', 0)
+        .attr('stroke-width', 1);
+
+      var zoomStrokeWidth  = Math.max(0, (zoom-5));
+
+      networkPaths
+        .attr('x1', function(d) { return d.org.center.x; })
+        .attr('y1', function(d) { return d.org.center.y; })
+        .attr('x2', function(d) { return d.collaborator.center.x; })
+        .attr('y2', function(d) { return d.collaborator.center.y; })
+        .attr('stroke-width', 1)
+        .transition()
+        .delay(400)
+        .duration(200)
+        .attr('stroke-opacity', function(d) { return Math.max(0.05, Math.min(d.strength/5, 1)); })
+        .attr('stroke-width', function(d) { 
+          var width = Math.max(0.2, Math.min((2*d.strength+zoomStrokeWidth)/10, 20));
+          return width;
+        });
+
+      networkPaths
+        .exit()
+        .transition()
+        .duration(200)
+        .attr('stroke-opacity', 0)
+        .remove();
+    }.bind(this));
+  };
+
+  MainMap.prototype.hideClusterNetwork = function() {
+    if (this.DOM.networkGroup) {
+      this.DOM.networkGroup
+        .selectAll('line.network')
+        .transition()
+        .duration(200)
+        .attr('stroke-opacity', 0);
+    }
+  };
+
+  return MainMap;
 }());
 
 /*global document, window, fn, d3, SPARQLDataSource, VizConfig */
 
-var indexOfProp = function(data, prop, val) {
-	return data.map(function(o) { return o[prop]; }).indexOf(val);
-};
-
-function Stats(divs, org) {
-	this.data = []; // will be filled on SPARQL query
-
-	// cache org url
-	this.org = org;
-
-	// cache selectors
-	this.DOM = {
-		"dsi": d3.select(divs.dsi),
-		"tech": d3.select(divs.tech),
-		"collaborators": d3.select(divs.collaborators)
+var Stats = (function() {
+	var indexOfProp = function(data, prop, val) {
+		return data.map(function(o) { return o[prop]; }).indexOf(val);
 	};
-}
 
-Stats.prototype.cleanResults = function(results) {
-	var numericKeys = [ "lat", "long" ];
-	var idForUrls = [ "activity", "org" ];
+	function Stats(divs, org) {
+		this.data = []; // will be filled on SPARQL query
 
-	return results.map(function(object) {
-		var newObject = {};
-		var key;
-		for (key in object) {
-			if (object.hasOwnProperty(key)) {
-				if (numericKeys.indexOf(key) >= 0) {
-					newObject[key] = +object[key].value;
-				}
-				else {
-					if (idForUrls.indexOf(key) >= 0) {
-						newObject[key + "_url"] = object[key].value.split("/").pop();
+		// cache org url
+		this.org = org;
+
+		// cache selectors
+		this.DOM = {
+			"dsi": d3.select(divs.dsi),
+			"tech": d3.select(divs.tech),
+			"collaborators": d3.select(divs.collaborators)
+		};
+	}
+
+	Stats.prototype.cleanResults = function(results) {
+		var numericKeys = [ "lat", "long" ];
+		var idForUrls = [ "activity", "org" ];
+
+		return results.map(function(object) {
+			var newObject = {};
+			var key;
+			for (key in object) {
+				if (object.hasOwnProperty(key)) {
+					if (numericKeys.indexOf(key) >= 0) {
+						newObject[key] = +object[key].value;
 					}
 					else {
-						newObject[key] = object[key].value;
+						if (idForUrls.indexOf(key) >= 0) {
+							newObject[key + "_url"] = object[key].value.split("/").pop();
+						}
+						else {
+							newObject[key] = object[key].value;
+						}
 					}
 				}
 			}
-		}
 
-		return newObject;
-	});
-};
+			return newObject;
+		});
+	};
 
-Stats.prototype.init = function() {
-	var url = "http://data.digitalsocial.eu/sparql.json?utf8=✓&query=";
-	var ds = new SPARQLDataSource(url);
+	Stats.prototype.init = function() {
+		var url = "http://data.digitalsocial.eu/sparql.json?utf8=✓&query=";
+		var ds = new SPARQLDataSource(url);
 
-	ds.query()
-		.prefix("o:", "<http://www.w3.org/ns/org#>")
-		.prefix("rdfs:", "<http://www.w3.org/2000/01/rdf-schema#>")
-		.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
-		.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
-		.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
-		.select("?org_label ?activity_label ?adsi_label ?tech_label ?lat ?long ?activity")
-		.where("?org", "a", "o:Organization")
-		.where("FILTER regex(str(?org), \"" + this.org + "\")", "", "")
-		.where("?am", "a", "ds:ActivityMembership")
-		.where("?am", "ds:organization", "?org")
-		.where("?am", "ds:activity", "?activity")
-		.where("?activity", "rdfs:label", "?activity_label")
-		.where("?activity", "ds:areaOfDigitalSocialInnovation", "?adsi")
-		.where("?activity", "ds:technologyFocus", "?tf")
-		.where("?tf", "rdfs:label", "?tech_label")
-		.where("?adsi", "rdfs:label", "?adsi_label")
-		.where("?org", "rdfs:label", "?org_label")
-		.where("?org", "o:hasPrimarySite", "?org_site")
-		.where("?org_site", "geo:long", "?long")
-		.where("?org_site", "geo:lat", "?lat")
-		.execute()
-		.then(function(results) {
-			this.data = this.cleanResults(results);
+		ds.query()
+			.prefix("o:", "<http://www.w3.org/ns/org#>")
+			.prefix("rdfs:", "<http://www.w3.org/2000/01/rdf-schema#>")
+			.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
+			.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
+			.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
+			.select("?org_label ?activity_label ?adsi_label ?tech_label ?lat ?long ?activity")
+			.where("?org", "a", "o:Organization")
+			.where("FILTER regex(str(?org), \"" + this.org + "\")", "", "")
+			.where("?am", "a", "ds:ActivityMembership")
+			.where("?am", "ds:organization", "?org")
+			.where("?am", "ds:activity", "?activity")
+			.where("?activity", "rdfs:label", "?activity_label")
+			.where("?activity", "ds:areaOfDigitalSocialInnovation", "?adsi")
+			.where("?activity", "ds:technologyFocus", "?tf")
+			.where("?tf", "rdfs:label", "?tech_label")
+			.where("?adsi", "rdfs:label", "?adsi_label")
+			.where("?org", "rdfs:label", "?org_label")
+			.where("?org", "o:hasPrimarySite", "?org_site")
+			.where("?org_site", "geo:long", "?long")
+			.where("?org_site", "geo:lat", "?lat")
+			.execute()
+			.then(function(results) {
+				this.data = this.cleanResults(results);
 
-			var parentOrg = this.data[0].org_label;
+				var parentOrg = this.data[0].org_label;
 
-			this.data = this.data.reduce(function(memo, object) {
-				var index = indexOfProp(memo, "activity_label", object.activity_label);
+				this.data = this.data.reduce(function(memo, object) {
+					var index = indexOfProp(memo, "activity_label", object.activity_label);
+
+					if (index < 0) {
+						memo.push({
+							"activity_label": object.activity_label,
+							"activity_url": object.activity_url,
+							"adsi_labels": [ object.adsi_label ],
+							"tech_focuses": [ object.tech_label ],
+							"lat": object.lat,
+							"long": object.long
+						});
+					}
+					else {
+						var memoObject = memo[index];
+
+						if (memoObject.adsi_labels.indexOf(object.adsi_label) < 0) {
+							memoObject.adsi_labels.push(object.adsi_label);
+						}
+
+						if (memoObject.tech_focuses.indexOf(object.tech_label) < 0) {
+							memoObject.tech_focuses.push(object.tech_label);
+						}
+
+						memo[index] = memoObject;
+					}
+
+					return memo;
+				}, []);
+
+				var projects = this.data.map(function(object) {
+					return object.activity_label;
+				});
+
+				this.queryCollaborators(projects, parentOrg, function() {
+					this.draw();
+				}.bind(this));
+			}.bind(this));
+	};
+
+	// finds collaborators for given project names and parent organization, callbacks when finished
+	Stats.prototype.queryCollaborators = function(projects, parentOrg, callback) {
+		var url = "http://data.digitalsocial.eu/sparql.json?utf8=✓&query=";
+		var ds = new SPARQLDataSource(url);
+
+		// generate projects string for filter
+		var projectsStr = projects.map(function(value) { return "\"" + value + "\""; }).join(", ");
+
+		ds.query()
+			.prefix("o:", "<http://www.w3.org/ns/org#>")
+			.prefix("rdfs:", "<http://www.w3.org/2000/01/rdf-schema#>")
+			.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
+			.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
+			.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
+			.select("DISTINCT ?org_label ?activity ?activity_label ?lat ?long ?org")
+			.where("?org", "a", "o:Organization")
+			.where("?org", "rdfs:label", "?org_label")
+			.where("?am", "a", "ds:ActivityMembership")
+			.where("?am", "ds:organization", "?org")
+			.where("?am", "ds:activity", "?activity")
+			.where("?activity", "rdfs:label", "?activity_label")
+			.where("?org", "o:hasPrimarySite", "?org_site")
+			.where("?org_site", "geo:long", "?long")
+			.where("?org_site", "geo:lat", "?lat")
+			.where("FILTER (?activity_label IN (" + projectsStr + "))", "", "")
+			.where("FILTER (?org_label != \"" + parentOrg + "\")", "", "")
+			.execute()
+			.then(function(results) {
+				var collabData = this.cleanResults(results);
+
+				collabData.forEach(function(collab) {
+					var index = indexOfProp(this.data, "activity_label", collab.activity_label);
+
+					if (index >= 0) {
+						var dataObject = this.data[index];
+
+						if (dataObject.collaborators !== undefined) {
+							dataObject.collaborators.push(collab);
+						}
+						else {
+							dataObject.collaborators = [ collab ];
+						}
+
+						this.data[index] = dataObject;
+					}
+				}.bind(this));
+
+				callback();
+			}.bind(this));
+	};
+
+	Stats.prototype.draw = function() {
+		this.drawDSIAreas();
+		this.drawTechnologyAreas();
+		this.drawCollaborators();
+	};
+
+	// counts fields in data that are arrays, used for dsi and technology area charts
+	Stats.prototype.countField = function(field) {
+		return this.data.reduce(function(memo, object) {
+			object[field].forEach(function(label) {
+				var index = indexOfProp(memo, "name", label);
 
 				if (index < 0) {
 					memo.push({
-						"activity_label": object.activity_label,
-						"activity_url": object.activity_url,
-						"adsi_labels": [ object.adsi_label ],
-						"tech_focuses": [ object.tech_label ],
-						"lat": object.lat,
-						"long": object.long
+						"name": label,
+						"collaborators": object.collaborators,
+						"count": 1,
+						"values": [ { "name": object.activity_label, "url": object.activity_url } ],
 					});
 				}
 				else {
-					var memoObject = memo[index];
-
-					if (memoObject.adsi_labels.indexOf(object.adsi_label) < 0) {
-						memoObject.adsi_labels.push(object.adsi_label);
-					}
-
-					if (memoObject.tech_focuses.indexOf(object.tech_label) < 0) {
-						memoObject.tech_focuses.push(object.tech_label);
-					}
-
-					memo[index] = memoObject;
+					memo[index].count++;
+					memo[index].values.push({ "name": object.activity_label, "url": object.activity_url });
 				}
-
-				return memo;
-			}, []);
-
-			var projects = this.data.map(function(object) {
-				return object.activity_label;
-			});
-
-			this.queryCollaborators(projects, parentOrg, function() {
-				this.draw();
-			}.bind(this));
-		}.bind(this));
-};
-
-// finds collaborators for given project names and parent organization, callbacks when finished
-Stats.prototype.queryCollaborators = function(projects, parentOrg, callback) {
-	var url = "http://data.digitalsocial.eu/sparql.json?utf8=✓&query=";
-	var ds = new SPARQLDataSource(url);
-
-	// generate projects string for filter
-	var projectsStr = projects.map(function(value) { return "\"" + value + "\""; }).join(", ");
-
-	ds.query()
-		.prefix("o:", "<http://www.w3.org/ns/org#>")
-		.prefix("rdfs:", "<http://www.w3.org/2000/01/rdf-schema#>")
-		.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
-		.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
-		.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
-		.select("DISTINCT ?org_label ?activity ?activity_label ?lat ?long ?org")
-		.where("?org", "a", "o:Organization")
-		.where("?org", "rdfs:label", "?org_label")
-		.where("?am", "a", "ds:ActivityMembership")
-		.where("?am", "ds:organization", "?org")
-		.where("?am", "ds:activity", "?activity")
-		.where("?activity", "rdfs:label", "?activity_label")
-		.where("?org", "o:hasPrimarySite", "?org_site")
-		.where("?org_site", "geo:long", "?long")
-		.where("?org_site", "geo:lat", "?lat")
-		.where("FILTER (?activity_label IN (" + projectsStr + "))", "", "")
-		.where("FILTER (?org_label != \"" + parentOrg + "\")", "", "")
-		.execute()
-		.then(function(results) {
-			var collabData = this.cleanResults(results);
-
-			collabData.forEach(function(collab) {
-				var index = indexOfProp(this.data, "activity_label", collab.activity_label);
-
-				if (index >= 0) {
-					var dataObject = this.data[index];
-
-					if (dataObject.collaborators !== undefined) {
-						dataObject.collaborators.push(collab);
-					}
-					else {
-						dataObject.collaborators = [ collab ];
-					}
-
-					this.data[index] = dataObject;
-				}
-			}.bind(this));
-
-			callback();
-		}.bind(this));
-};
-
-Stats.prototype.draw = function() {
-	this.drawDSIAreas();
-	this.drawTechnologyAreas();
-	this.drawCollaborators();
-};
-
-// counts fields in data that are arrays, used for dsi and technology area charts
-Stats.prototype.countField = function(field) {
-	return this.data.reduce(function(memo, object) {
-		object[field].forEach(function(label) {
-			var index = indexOfProp(memo, "name", label);
-
-			if (index < 0) {
-				memo.push({
-					"name": label,
-					"collaborators": object.collaborators,
-					"count": 1,
-					"values": [ { "name": object.activity_label, "url": object.activity_url } ],
-				});
-			}
-			else {
-				memo[index].count++;
-				memo[index].values.push({ "name": object.activity_label, "url": object.activity_url });
-			}
-		});
-
-		return memo;
-	}, []);
-};
-
-Stats.prototype.drawDSIAreas = function() {
-	var groupedData = this.countField("adsi_labels").filter(function(object) { return (object.count > 0); });
-
-	var width = 228;
-	var height = 40;
-	var rectWidth = 30;
-	var rectHeight = 15;
-	var rectMargin = 4;
-
-	var highlightOnActivityUrl = this.highlightOnActivityUrl;
-
-	var svg = this.DOM.dsi
-		.append("svg")
-		.attr("width", width)
-		.attr("height", height * (groupedData.length + 1))
-		.attr("class", "dsi-areas");
-
-	svg.selectAll(".title")
-		.data(groupedData)
-		.enter()
-		.append("text")
-		.attr("class", "title")
-		.text(function(d) {
-			return d.name;
-		})
-		.attr("y", function(d, i) {
-			return (i + 1) * height;
-		})
-		.attr("fill", function(d) {
-			return VizConfig.dsiAreasByLabel[d.name].color;
-		});
-
-	svg.selectAll(".dsi-rects")
-		.data(groupedData)
-		.enter()
-		.append("g")
-		.attr("class", "dsi-rects")
-		.each(function(d, j) {
-			var name = d.name;
-			var selection = d3.select(this);
-
-			selection.selectAll(".dsi-rect")
-				.data(d.values)
-				.enter()
-				.append("rect")
-				.attr("class", "dsi-rect")
-				.attr("x", function(d, i) {
-					return i * (rectWidth + rectMargin);
-				})
-				.attr("y", function(d) {
-					return (j + 1) * height + rectMargin;
-				})
-				.attr("width", rectWidth)
-				.attr("height", rectHeight)
-				.attr("fill", VizConfig.dsiAreasByLabel[name].color)
-				.on("mouseover", function(d) {
-					VizConfig.tooltip.show();
-					VizConfig.tooltip.html(d.name, "#FFF", VizConfig.dsiAreasByLabel[name].color);
-
-					highlightOnActivityUrl("over", d.url);
-				})
-				.on("mouseout", function() {
-					VizConfig.tooltip.hide();
-
-					highlightOnActivityUrl("out");
-				})
-				.on("click", function(d) {
-					var url = "http://digitalsocial.eu/projects/" + d.url;
-					document.location.href = url;
-				});
-		});
-};
-
-Stats.prototype.drawTechnologyAreas = function() {
-	var groupedData = this.countField("tech_focuses").filter(function(object) { return (object.count > 0); });
-	var maxCount = groupedData.reduce(function(memo, object) {
-		return memo > object.count ? memo : object.count;
-	}, -Infinity);
-
-	var width = 228;
-	var height = 40;
-	var rectHeight = 5;
-	var rectMargin = 4;
-
-	var highlightOnActivityUrl = this.highlightOnActivityUrl;
-
-	var scale = d3.scale.linear()
-		.domain([0, maxCount])
-		.range([0, width]);
-
-	var svg = this.DOM.tech
-		.append("svg")
-		.attr("width", width)
-		.attr("height", height * (groupedData.length + 1))
-		.attr("class", "tech-areas");
-
-	svg.selectAll(".title")
-		.data(groupedData)
-		.enter()
-		.append("text")
-		.attr("class", "title")
-		.text(function(d) {
-			var percentage = (d.count / maxCount) * 100;
-			return d.name + ": " + percentage.toFixed(0) + "%";
-		})
-		.attr("y", function(d, i) {
-			return (i + 1) * height;
-		});
-
-	svg.selectAll(".tech-bar")
-		.data(groupedData)
-		.enter()
-		.append("rect")
-		.attr("class", "tech-bar")
-		.attr("x", 0)
-		.attr("y", function(d, i) {
-			return (i + 1) * height + rectMargin;
-		})
-		.attr("width", function(d) {
-			return scale(d.count);
-		})
-		.attr("height", rectHeight)
-		.on("mouseover", function(d) {
-			highlightOnActivityUrl("over", d.values.map(function(object) { return object.url; }));
-		})
-		.on("mouseout", function() {
-			highlightOnActivityUrl("out");
-		});
-};
-
-Stats.prototype.drawCollaborators = function() {
-	var width = 352;
-	var height = width;
-	var hexR = 25;
-	var smallHexR = 15;
-
-	// prepare counts for main organisation hex
-	var orgData = {
-		"pos": [],
-		"r": hexR,
-		"counts": this.data.reduce(function(memo, object) {
-			object.adsi_labels.forEach(function(label) {
-				if (memo[label] !== undefined) { memo[label]++; }
-				else { memo[label] = 1; }
 			});
 
 			return memo;
-		}, {})
+		}, []);
 	};
 
-	// filter collaborators
-	var collaborators = this.data.reduce(function(memo, data) {
-		if (data.collaborators) {
-			data.collaborators.forEach(function(collaborator) {
-				if (indexOfProp(memo, "org_label", collaborator.org_label) < 0) {
-					memo.push(collaborator);
-				}
-			});
-		}
+	Stats.prototype.drawDSIAreas = function() {
+		var groupedData = this.countField("adsi_labels").filter(function(object) { return (object.count > 0); });
 
-		return memo;
-	}, []);
+		var width = 228;
+		var height = 40;
+		var rectWidth = 30;
+		var rectHeight = 15;
+		var rectMargin = 4;
 
-	// initial projection
-	var projection = d3.geo.mercator().scale(1).translate([ 0, 0 ]);
+		var highlightOnActivityUrl = this.highlightOnActivityUrl;
 
-	// create path
-	var path = d3.geo.path().projection(projection);
+		var svg = this.DOM.dsi
+			.append("svg")
+			.attr("width", width)
+			.attr("height", height * (groupedData.length + 1))
+			.attr("class", "dsi-areas");
 
-	// proper object for calculating bounds
-	var multiPoints = {
-		"type": "MultiPoint",
-		"coordinates": collaborators.map(function(object) {
-			return [ object.long, object.lat ];
-		})
-	};
-
-	// add parent lat long to multipoints
-	multiPoints.coordinates.push([ this.data[0].long, this.data[0].lat ]);
-
-	// calculate bounds, scale and translation
-	var bounds = path.bounds(multiPoints);
-	var scale = 0.65 / Math.max(
-		(bounds[1][0] - bounds[0][0]) / width,
-		(bounds[1][1] - bounds[0][1]) / height
-	);
-
-	// fix for situation where organisation doesn"t have collaborators
-	if (scale === Infinity) { scale = 1.0; }
-
-	var translate = [
-		(width - scale * (bounds[1][0] + bounds[0][0])) / 2,
-		(height - scale * (bounds[1][1] + bounds[0][1])) / 2
-	];
-
-	// update projection
-	projection.scale(scale).translate(translate);
-
-	// get position for parent company
-	orgData.pos = projection([ this.data[0].long, this.data[0].lat ]);
-
-	// project positions
-	collaborators = collaborators.map(function(collaborator) {
-		var pos = projection([ collaborator.long, collaborator.lat ]);
-
-		var vec = [ pos[0] - orgData.pos[0], pos[1] - orgData.pos[1] ];
-		var length = Math.sqrt(vec[0] * vec[0] + vec[1] * vec[1]);
-		vec[0] /= length;
-		vec[1] /= length;
-
-		pos[0] += vec[0] * (hexR + smallHexR) * 1.05;
-		pos[1] += vec[1] * (hexR + smallHexR) * 1.05;
-
-		collaborator.pos = pos;
-		return collaborator;
-	});
-
-	// cache drawing function
-	var drawHex = this.drawHex.bind(this);
-
-	// initial d3 selection passed to lines and hexes
-	var selection = this.DOM.collaborators
-		.append("svg")
-		.attr("width", width)
-		.attr("height", height);
-
-	selection
-		.selectAll(".connection")
-		.data(collaborators)
-		.enter()
-		.append("line")
-		.attr("class", "connection")
-		.attr("x1", function(d) { return d.pos[0]; })
-		.attr("y1", function(d) { return d.pos[1]; })
-		.attr("x2", orgData.pos[0])
-		.attr("y2", orgData.pos[1])
-		.attr("stroke", "#666")
-		.attr("fill", "none");
-
-	selection
-		.selectAll(".collaborator")
-		.data(collaborators)
-		.enter()
-		.append("g")
-		.attr("class", "collaborator")
-		.each(function(d) {
-			d.r = smallHexR;
-			drawHex(d3.select(this), d);
-		});
-
-	selection
-		.selectAll(".organisation")
-		.data([ orgData ])
-		.enter()
-		.append("g")
-		.attr("class", "organisation")
-		.each(function(d) {
-			drawHex(d3.select(this), d);
-		});
-};
-
-Stats.prototype.drawHex = function(selection, data) {
-	var hexBite = function(x, y, r, i) {
-		var a = i/6 * Math.PI * 2 + Math.PI/6;
-		var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
-		return [
-			[x, y],
-			[x + r * Math.cos(a), y + r * Math.sin(a)],
-			[x + r * Math.cos(na), y + r * Math.sin(na)]
-		];
-	};
-
-	var hex = selection.append("g").attr("class", "hex");
-
-	fn.sequence(0, 6).forEach(function(i) {
-		var bite = hex.append("path");
-
-		bite
-			.attr("d", function() {
-				return "M" + hexBite(data.pos[0], data.pos[1], data.r, i).join("L") + "Z";
+		svg.selectAll(".title")
+			.data(groupedData)
+			.enter()
+			.append("text")
+			.attr("class", "title")
+			.text(function(d) {
+				return d.name;
 			})
-			.attr("stroke", "#666")
-			.attr("fill", "#FFF");
-	}.bind(this));
+			.attr("y", function(d, i) {
+				return (i + 1) * height;
+			})
+			.attr("fill", function(d) {
+				return VizConfig.dsiAreasByLabel[d.name].color;
+			});
 
-	// fill hex only if data is passed
-	if (data.counts) {
+		svg.selectAll(".dsi-rects")
+			.data(groupedData)
+			.enter()
+			.append("g")
+			.attr("class", "dsi-rects")
+			.each(function(d, j) {
+				var name = d.name;
+				var selection = d3.select(this);
+
+				selection.selectAll(".dsi-rect")
+					.data(d.values)
+					.enter()
+					.append("rect")
+					.attr("class", "dsi-rect")
+					.attr("x", function(d, i) {
+						return i * (rectWidth + rectMargin);
+					})
+					.attr("y", function(d) {
+						return (j + 1) * height + rectMargin;
+					})
+					.attr("width", rectWidth)
+					.attr("height", rectHeight)
+					.attr("fill", VizConfig.dsiAreasByLabel[name].color)
+					.on("mouseover", function(d) {
+						VizConfig.tooltip.show();
+						VizConfig.tooltip.html(d.name, "#FFF", VizConfig.dsiAreasByLabel[name].color);
+
+						highlightOnActivityUrl("over", d.url);
+					})
+					.on("mouseout", function() {
+						VizConfig.tooltip.hide();
+
+						highlightOnActivityUrl("out");
+					})
+					.on("click", function(d) {
+						var url = "http://digitalsocial.eu/projects/" + d.url;
+						document.location.href = url;
+					});
+			});
+	};
+
+	Stats.prototype.drawTechnologyAreas = function() {
+		var groupedData = this.countField("tech_focuses").filter(function(object) { return (object.count > 0); });
+		var maxCount = groupedData.reduce(function(memo, object) {
+			return memo > object.count ? memo : object.count;
+		}, -Infinity);
+
+		var width = 228;
+		var height = 40;
+		var rectHeight = 5;
+		var rectMargin = 4;
+
+		var highlightOnActivityUrl = this.highlightOnActivityUrl;
+
+		var scale = d3.scale.linear()
+			.domain([0, maxCount])
+			.range([0, width]);
+
+		var svg = this.DOM.tech
+			.append("svg")
+			.attr("width", width)
+			.attr("height", height * (groupedData.length + 1))
+			.attr("class", "tech-areas");
+
+		svg.selectAll(".title")
+			.data(groupedData)
+			.enter()
+			.append("text")
+			.attr("class", "title")
+			.text(function(d) {
+				var percentage = (d.count / maxCount) * 100;
+				return d.name + ": " + percentage.toFixed(0) + "%";
+			})
+			.attr("y", function(d, i) {
+				return (i + 1) * height;
+			});
+
+		svg.selectAll(".tech-bar")
+			.data(groupedData)
+			.enter()
+			.append("rect")
+			.attr("class", "tech-bar")
+			.attr("x", 0)
+			.attr("y", function(d, i) {
+				return (i + 1) * height + rectMargin;
+			})
+			.attr("width", function(d) {
+				return scale(d.count);
+			})
+			.attr("height", rectHeight)
+			.on("mouseover", function(d) {
+				highlightOnActivityUrl("over", d.values.map(function(object) { return object.url; }));
+			})
+			.on("mouseout", function() {
+				highlightOnActivityUrl("out");
+			});
+	};
+
+	Stats.prototype.drawCollaborators = function() {
+		var width = 352;
+		var height = width;
+		var hexR = 25;
+		var smallHexR = 15;
+
+		// prepare counts for main organisation hex
+		var orgData = {
+			"pos": [],
+			"r": hexR,
+			"counts": this.data.reduce(function(memo, object) {
+				object.adsi_labels.forEach(function(label) {
+					if (memo[label] !== undefined) { memo[label]++; }
+					else { memo[label] = 1; }
+				});
+
+				return memo;
+			}, {})
+		};
+
+		// filter collaborators
+		var collaborators = this.data.reduce(function(memo, data) {
+			if (data.collaborators) {
+				data.collaborators.forEach(function(collaborator) {
+					if (indexOfProp(memo, "org_label", collaborator.org_label) < 0) {
+						memo.push(collaborator);
+					}
+				});
+			}
+
+			return memo;
+		}, []);
+
+		// initial projection
+		var projection = d3.geo.mercator().scale(1).translate([ 0, 0 ]);
+
+		// create path
+		var path = d3.geo.path().projection(projection);
+
+		// proper object for calculating bounds
+		var multiPoints = {
+			"type": "MultiPoint",
+			"coordinates": collaborators.map(function(object) {
+				return [ object.long, object.lat ];
+			})
+		};
+
+		// add parent lat long to multipoints
+		multiPoints.coordinates.push([ this.data[0].long, this.data[0].lat ]);
+
+		// calculate bounds, scale and translation
+		var bounds = path.bounds(multiPoints);
+		var scale = 0.65 / Math.max(
+			(bounds[1][0] - bounds[0][0]) / width,
+			(bounds[1][1] - bounds[0][1]) / height
+		);
+
+		// fix for situation where organisation doesn"t have collaborators
+		if (scale === Infinity) { scale = 1.0; }
+
+		var translate = [
+			(width - scale * (bounds[1][0] + bounds[0][0])) / 2,
+			(height - scale * (bounds[1][1] + bounds[0][1])) / 2
+		];
+
+		// update projection
+		projection.scale(scale).translate(translate);
+
+		// get position for parent company
+		orgData.pos = projection([ this.data[0].long, this.data[0].lat ]);
+
+		// project positions
+		collaborators = collaborators.map(function(collaborator) {
+			var pos = projection([ collaborator.long, collaborator.lat ]);
+
+			var vec = [ pos[0] - orgData.pos[0], pos[1] - orgData.pos[1] ];
+			var length = Math.sqrt(vec[0] * vec[0] + vec[1] * vec[1]);
+			vec[0] /= length;
+			vec[1] /= length;
+
+			pos[0] += vec[0] * (hexR + smallHexR) * 1.05;
+			pos[1] += vec[1] * (hexR + smallHexR) * 1.05;
+
+			collaborator.pos = pos;
+			return collaborator;
+		});
+
+		// cache drawing function
+		var drawHex = this.drawHex.bind(this);
+
+		// initial d3 selection passed to lines and hexes
+		var selection = this.DOM.collaborators
+			.append("svg")
+			.attr("width", width)
+			.attr("height", height);
+
+		selection
+			.selectAll(".connection")
+			.data(collaborators)
+			.enter()
+			.append("line")
+			.attr("class", "connection")
+			.attr("x1", function(d) { return d.pos[0]; })
+			.attr("y1", function(d) { return d.pos[1]; })
+			.attr("x2", orgData.pos[0])
+			.attr("y2", orgData.pos[1])
+			.attr("stroke", "#666")
+			.attr("fill", "none");
+
+		selection
+			.selectAll(".collaborator")
+			.data(collaborators)
+			.enter()
+			.append("g")
+			.attr("class", "collaborator")
+			.each(function(d) {
+				d.r = smallHexR;
+				drawHex(d3.select(this), d);
+			});
+
+		selection
+			.selectAll(".organisation")
+			.data([ orgData ])
+			.enter()
+			.append("g")
+			.attr("class", "organisation")
+			.each(function(d) {
+				drawHex(d3.select(this), d);
+			});
+	};
+
+	Stats.prototype.drawHex = function(selection, data) {
+		var hexBite = function(x, y, r, i) {
+			var a = i/6 * Math.PI * 2 + Math.PI/6;
+			var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
+			return [
+				[x, y],
+				[x + r * Math.cos(a), y + r * Math.sin(a)],
+				[x + r * Math.cos(na), y + r * Math.sin(na)]
+			];
+		};
+
+		var hex = selection.append("g").attr("class", "hex");
+
 		fn.sequence(0, 6).forEach(function(i) {
-			var dsiArea = VizConfig.dsiAreas[i].label;
 			var bite = hex.append("path");
 
 			bite
 				.attr("d", function() {
-					return "M" + hexBite(
-						data.pos[0],
-						data.pos[1],
-						5 + Math.min(data.r - 5, Math.pow(data.counts[dsiArea], 0.6)) || 1,
-						i
-					).join("L") + "Z";
+					return "M" + hexBite(data.pos[0], data.pos[1], data.r, i).join("L") + "Z";
 				})
-				.attr("fill", VizConfig.dsiAreas[i].color);
+				.attr("stroke", "#666")
+				.attr("fill", "#FFF");
 		}.bind(this));
-	}
 
-	var highlightOnActivityUrl = this.highlightOnActivityUrl;
+		// fill hex only if data is passed
+		if (data.counts) {
+			fn.sequence(0, 6).forEach(function(i) {
+				var dsiArea = VizConfig.dsiAreas[i].label;
+				var bite = hex.append("path");
 
-	hex.on("mouseover", function(d) {
-		VizConfig.tooltip.show();
-		VizConfig.tooltip.html(d.org_label, "#FFF", "#666");
+				bite
+					.attr("d", function() {
+						return "M" + hexBite(
+							data.pos[0],
+							data.pos[1],
+							5 + Math.min(data.r - 5, Math.pow(data.counts[dsiArea], 0.6)) || 1,
+							i
+						).join("L") + "Z";
+					})
+					.attr("fill", VizConfig.dsiAreas[i].color);
+			}.bind(this));
+		}
 
-		highlightOnActivityUrl("over", d.activity_url);
-	});
+		var highlightOnActivityUrl = this.highlightOnActivityUrl;
 
-	hex.on("mouseout", function() {
-		VizConfig.tooltip.hide();
+		hex.on("mouseover", function(d) {
+			VizConfig.tooltip.show();
+			VizConfig.tooltip.html(d.org_label, "#FFF", "#666");
 
-		highlightOnActivityUrl("out");
-	});
+			highlightOnActivityUrl("over", d.activity_url);
+		});
 
-	hex.on("click", function(d) {
-		var url = "http://digitalsocial.eu/organisations/" + d.org_url;
-		document.location.href = url;
-	});
-};
+		hex.on("mouseout", function() {
+			VizConfig.tooltip.hide();
 
-// highlight using state (over/out), and single, or list of activity urls
-Stats.prototype.highlightOnActivityUrl = function(state, urls) {
-	state = (state === "over") ? "over" : "out";
-	urls = (urls instanceof Array) ? urls : [ urls ];
+			highlightOnActivityUrl("out");
+		});
 
-	if (state === "over") {
-		// handle opacity for visualizations with simple accesors
-		[ { "query": ".dsi-rect", "accesor": "url" },
-			{ "query": ".collaborator", "accesor": "activity_url" },
-			{ "query": ".connection", "accesor": "activity_url" } ].forEach(function(object) {
-				d3.selectAll(object.query)
+		hex.on("click", function(d) {
+			var url = "http://digitalsocial.eu/organisations/" + d.org_url;
+			document.location.href = url;
+		});
+	};
+
+	// highlight using state (over/out), and single, or list of activity urls
+	Stats.prototype.highlightOnActivityUrl = function(state, urls) {
+		state = (state === "over") ? "over" : "out";
+		urls = (urls instanceof Array) ? urls : [ urls ];
+
+		if (state === "over") {
+			// handle opacity for visualizations with simple accesors
+			[ { "query": ".dsi-rect", "accesor": "url" },
+				{ "query": ".collaborator", "accesor": "activity_url" },
+				{ "query": ".connection", "accesor": "activity_url" } ].forEach(function(object) {
+					d3.selectAll(object.query)
+						.transition()
+						.duration(200)
+						.style("opacity", function(d) {
+							return (urls.indexOf(d[object.accesor]) >= 0) ? 1.0 : 0.2;
+						});
+				});
+
+				// more complicated technology bar opacity transition
+				d3.selectAll(".tech-bar")
 					.transition()
 					.duration(200)
 					.style("opacity", function(d) {
-						return (urls.indexOf(d[object.accesor]) >= 0) ? 1.0 : 0.2;
+						var urlMatches = urls.reduce(function(memo, url) {
+							if (!memo) { memo = (indexOfProp(d.values, "url", url) >= 0); }
+							return memo;
+						}, false);
+
+						return urlMatches ? 1.0 : 0.2;
 					});
+		}
+		else {
+			// transition everything back to 1.0
+			[ ".dsi-rect", ".tech-bar", ".connection", ".collaborator" ].forEach(function(query) {
+				d3.selectAll(query).transition().duration(200).style("opacity", 1.0);
 			});
+		}
+	};
 
-			// more complicated technology bar opacity transition
-			d3.selectAll(".tech-bar")
-				.transition()
-				.duration(200)
-				.style("opacity", function(d) {
-					var urlMatches = urls.reduce(function(memo, url) {
-						if (!memo) { memo = (indexOfProp(d.values, "url", url) >= 0); }
-						return memo;
-					}, false);
-
-					return urlMatches ? 1.0 : 0.2;
-				});
-	}
-	else {
-		// transition everything back to 1.0
-		[ ".dsi-rect", ".tech-bar", ".connection", ".collaborator" ].forEach(function(query) {
-			d3.selectAll(query).transition().duration(200).style("opacity", 1.0);
-		});
-	}
-};
+	return Stats;
+}());
 
 var VizConfig = {};
 
