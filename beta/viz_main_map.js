@@ -133,7 +133,7 @@ MainMap.prototype.getOrganisations = function() {
 
         var index = indexOfProp(memo, "org", org.org);
 
-        if (index > 0 && org[prop]) {
+        if (index >= 0 && org[prop]) {
           if (memo[index][newPropName].indexOf(org[prop]) < 0) {
             memo[index][newPropName].push(org[prop]);
           }

@@ -462,8 +462,10 @@ function Carousel(DOMElements, settings) {
 
 	// fetch data
 	$.getJSON(apiUrl, function(data) {
-		this.carousel.parsedData = this.parseData(data); // get parsed data
-		this.filter(null); // filter(null) to display all, automatically redraws carousel
+		this.getOrgData(this.parseData(data), function(data) {
+			this.carousel.parsedData = data; // get parsed data
+			this.filter(null); // filter(null) to display all, automatically redraws carousel
+		}.bind(this));
 	}.bind(this));
 
 	// setup button events
@@ -535,21 +537,115 @@ function Carousel(DOMElements, settings) {
 	this.buildCarousel({ "preloading": true });
 
 	// act on filter change
-	VizConfig.events.addEventListener("filter", function(e) {
+	VizConfig.events.addEventListener("filter", function() {
+		var showByDefault = false;
+		var filters = VizConfig.vizKey.getActiveFilters();
+
 		this.filter(function(data) {
-			var shouldDisplay = false;
+			var shouldShow = filters.reduce(function(memo, filter) {
+				if (memo) { memo = data[filter.property] ? data[filter.property].indexOf(filter.id) >= 0 : showByDefault; }
+				return memo;
+			}, true);
 
-			if (e.property === "technologyFocus") {
-				shouldDisplay = (data.techFocus.indexOf(e.id) >= 0);
-			}
-			else if (e.property === "areaOfDigitalSocialInnovation") {
-				shouldDisplay = data.areaOfDSI === e.id;
-			}
-
-			return shouldDisplay;
+			return shouldShow;
 		});
 	}.bind(this));
 }
+
+Carousel.prototype.getOrgData = function(data, callback) {
+	var url = "http://data.digitalsocial.eu/sparql.json?utf8=✓&query=";
+	var ds = new SPARQLDataSource(url);
+
+	var orgs = data
+		.filter(function(caseStudy) { return caseStudy.org; })
+		.map(function(caseStudy) { return "\"" + caseStudy.org + "\""; })
+		.join(", ");
+
+	ds.query()
+		.prefix("o:", "<http://www.w3.org/ns/org#>")
+		.prefix("rdfs:", "<http://www.w3.org/2000/01/rdf-schema#>")
+		.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
+		.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
+		.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
+		.select("?org ?org_label ?activity_label ?org_type ?adsi ?tech_focus ?area_of_society ?lat ?long")
+		.where("?org", "a", "o:Organization")
+    .where('?org', 'ds:organizationType', '?org_type')
+		.where("?am", "a", "ds:ActivityMembership")
+		.where("?am", "ds:organization", "?org")
+		.where("?am", "ds:activity", "?activity")
+		.where("?activity", "rdfs:label", "?activity_label")
+		.where("?activity", "ds:areaOfDigitalSocialInnovation", "?adsi", { optional: true })
+		.where("?activity", "ds:technologyFocus", "?tech_focus", { optional: true })
+    .where("?activity", "ds:areaOfSociety", "?area_of_society", { optional: true })
+		.where("?org", "rdfs:label", "?org_label")
+		.where("?org", "o:hasPrimarySite", "?org_site")
+		.where("?org_site", "geo:long", "?long")
+		.where("?org_site", "geo:lat", "?lat")
+		.where("FILTER (str(?org) IN (" + orgs + "))", "", "")
+		.execute()
+		.then(function(results) {
+			var reduceOrgByProp = function(data, prop, newPropName) {
+				return data.reduce(function(memo, org) {
+					if (org[prop]) {
+						org[prop] = org[prop].substr(org[prop].lastIndexOf('/') + 1);
+					}
+
+					var index = indexOfProp(memo, "org", org.org);
+
+					if (index >= 0 && org[prop]) {
+						if (memo[index][newPropName].indexOf(org[prop]) < 0) {
+							memo[index][newPropName].push(org[prop]);
+						}
+					}
+					else {
+						if (org[prop]) {
+							org[newPropName] = [ org[prop] ];
+							delete org[prop];
+						}
+
+						memo.push(org);
+					}
+
+					return memo;
+				}, []);
+			};
+
+			results = results.map(function(result) {
+				var o = {};
+				var prop;
+				for (prop in result) {
+					if (result.hasOwnProperty(prop)) {
+						o[prop] = result[prop].value;
+					}
+				}
+				return o;
+			});
+
+			results = reduceOrgByProp(results, "org_type", "organisationType");
+			results = reduceOrgByProp(results, "adsi", "areaOfDigitalSocialInnovation");
+			results = reduceOrgByProp(results, "area_of_society", "areaOfSociety");
+			results = reduceOrgByProp(results, "tech_focus", "technologyFocus");
+
+			data = data.map(function(caseStudy) {
+				var index = indexOfProp(results, "org", caseStudy.org);
+				if (index >= 0) {
+					[
+						"organisationType",
+						"areaOfDigitalSocialInnovation",
+						"areaOfSociety",
+						"technologyFocus",
+						"lat",
+						"long"
+					].forEach(function(key) {
+						caseStudy[key] = results[index][key];
+					});
+				}
+				return caseStudy;
+			});
+
+			callback(data);
+		});
+};
 
 // filters data using callback, and redraws carousel
 Carousel.prototype.filter = function(callback) {
@@ -652,31 +748,44 @@ Carousel.prototype.parseData = function(data) {
 				}
 			}
 
-			// prepare tech focus array
-			var techFocus = data.custom_fields["tech-focus"];
+			var arrayFromCustomField = function(customField) {
+				if (customField) {
+					customField = customField[0];
 
-			if (techFocus) {
-				techFocus = techFocus[0];
-
-				if (techFocus && techFocus.indexOf(",") >= 0) {
-					techFocus = techFocus.split(",").map(function(value) { return value.replace(/^\s+|\s+$/g, ""); });
+					if (customField && customField.indexOf(",") >= 0) {
+						customField = customField.split(",").map(function(value) { return value.replace(/^\s+|\s+$/g, ""); });
+					}
+					else {
+						customField = [ customField ];
+					}
 				}
 				else {
-					techFocus = [ techFocus ];
+					customField = [];
 				}
-			}
-			else {
-				techFocus = [];
-			}
+
+				return customField;
+			};
+
+			// prepare tech focus array
+			var techFocus = arrayFromCustomField(data.custom_fields["tech-focus"]);
+			var areaOfDSI = arrayFromCustomField(data.custom_fields["area-of-digital-social-innovation"]);
+			var organisationType = arrayFromCustomField(data.custom_fields["organisation-type"]);
+			var areaOfSociety = arrayFromCustomField(data.custom_fields["area-of-society"]);
+
+			var orgUrl = data.custom_fields["main-org"] ? data.custom_fields["main-org"][0] : undefined;
+			if (orgUrl) { orgUrl = "http://data.digitalsocial.eu/id/organization/" + orgUrl; }
 
 			// return parsed object
 			return {
-				"areaOfDSI": data.custom_fields["area-of-digital-social-innovation"][0],
+				// "areaOfDigitalSocialInnovation": areaOfDSI,
+				// "technologyFocus": techFocus,
+				// "organisationType": organisationType,
+				// "areaOfSociety": areaOfSociety,
+				"org": orgUrl,
 				"content": data.content,
 				"coverImage": coverImage,
 				"logoImage": logoImage,
 				"name": data.title,
-				"techFocus": techFocus,
 				"url": data.url
 			};
 		})
@@ -700,7 +809,7 @@ Carousel.prototype.parseData = function(data) {
 Carousel.prototype.caseStudyShow = function(data) {
 	// get color from config
 	var color = VizConfig.dsiAreas.filter(function(dsi) {
-		return dsi.id === data.areaOfDSI;
+		return dsi.id === data.areaOfDigitalSocialInnovation[0];
 	})[0].color;
 
 	// build content for popup
@@ -2376,9 +2485,9 @@ function VizKey(open) {
       link.click(function() {
         var filter = { property: sidebarSection.property, id: object.id };
         var active = updateFilters(filter);
+        filter.active = active;
 
         d3.select(this).classed('active', active);
-
         VizConfig.events.fire('filter', filter);
       });
 
@@ -2566,7 +2675,7 @@ MainMap.prototype.getOrganisations = function() {
 
         var index = indexOfProp(memo, "org", org.org);
 
-        if (index > 0 && org[prop]) {
+        if (index >= 0 && org[prop]) {
           if (memo[index][newPropName].indexOf(org[prop]) < 0) {
             memo[index][newPropName].push(org[prop]);
           }

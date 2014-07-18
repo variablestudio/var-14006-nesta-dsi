@@ -61,9 +61,9 @@ function VizKey(open) {
       link.click(function() {
         var filter = { property: sidebarSection.property, id: object.id };
         var active = updateFilters(filter);
+        filter.active = active;
 
         d3.select(this).classed('active', active);
-
         VizConfig.events.fire('filter', filter);
       });
 
