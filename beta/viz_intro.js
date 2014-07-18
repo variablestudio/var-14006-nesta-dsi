@@ -50,7 +50,8 @@ function Intro(introVizContainer, clickCb) {
   content2.append(exploreBtn);
   exploreBtn.click(clickCb);
 
-  column3.append($('<p><img src="assets/WorldMap.png" width="322"/></p>'));
+
+  column3.append($('<p><a href="http://digitalsocial.eu/organisations/build/new_user"><img src="assets/WorldMap.png" width="322"/></a></p>'));
 
   var vizContainer = d3.select("#introHex");
   var chart = vizContainer
