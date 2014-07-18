@@ -1,7 +1,7 @@
 function VizKey(open) {
-  var vizKeyContainer = $('<div id="vizKeyContainer"></div>');
-  var sideBar = $('<div id="vizKeySideBar"></div>');
-  var thumb = $('<div id="vizKeyThumb"><span>Open Key</span></div>');
+  var vizKeyContainer = this.vizKeyContainer = $('<div id="vizKeyContainer"></div>');
+  var sideBar = this.sideBar = $('<div id="vizKeySideBar"></div>');
+  var thumb = this.thumb = $('<div id="vizKeyThumb"><span>Open Key</span></div>');
   vizKeyContainer.append(sideBar);
   vizKeyContainer.append(thumb);
   $('body').append(vizKeyContainer);
@@ -61,18 +61,24 @@ function VizKey(open) {
     sideBar.append(technologyLink);
   });
 
-  var open = false;
-
   thumb.click(function() {
     if (vizKeyContainer.hasClass('open')) {
-      vizKeyContainer.removeClass('open');
-      thumb.children('span').text('Open Key');
+      this.open();
     }
     else {
-      vizKeyContainer.addClass('open');
-      thumb.children('span').text('Hide Key');
+      this.close();
     }
-  });
+  }.bind(this));
+}
+
+VizKey.prototype.open = function() {
+  this.vizKeyContainer.addClass('open');
+  this.thumb.children('span').text('Hide Key');
+}
+
+VizKey.prototype.close = function() {
+  this.vizKeyContainer.removeClass('open');
+  this.thumb.children('span').text('Open Key');
 }
 
 VizKey.prototype.updateFilters = function(filter) {

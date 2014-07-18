@@ -43,7 +43,10 @@ function Intro(introVizContainer, clickCb) {
   column2.append(content2);
 
   content2.append($('<h1>' + titleText + '</h1>'));
-  content2.append($('<div class="exploreBtn">' + exploreBtnText + '</div>'));
+
+  var exploreBtn = $('<div class="exploreBtn">' + exploreBtnText + '</div>')
+  content2.append(exploreBtn);
+  exploreBtn.click(clickCb);
 
   column3.append($('<p><img src="assets/WorldMap.png" width="322"/></p>'));
 

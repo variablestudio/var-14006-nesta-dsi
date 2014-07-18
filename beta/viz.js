@@ -1,9 +1,6 @@
-console.log('viz');
-
 (function() {
   var showIntro = (document.location.hash !== '#nointro');
 
-  console.log('bla')
   function init() {
     var url = window.location.href;
     var urlIsLocalhost = (url.match(/localhost/) !== null);
@@ -32,7 +29,7 @@ console.log('viz');
 
       initVisualizations(vizContainer);
       if (showIntro) {
-        initIntroViz(vizContainer, initVisualizations);
+        initIntroViz(vizContainer);
       }
     }
   }
@@ -55,7 +52,11 @@ console.log('viz');
   function initIntroViz(vizContainer, cb) {
     var introViz = $('<div id="introViz"></div>');
     vizContainer.append(introViz);
-    var intro = new Intro(introViz, cb);
+    function onExplore() {
+      VizConfig.vizKey.open();
+      introViz.fadeOut('slow');
+    }
+    var intro = new Intro(introViz, onExplore);
   }
 
   function initTooltip() {
