@@ -71,7 +71,7 @@ VizConfig.areaOfSociety = [
   { title: "Science", id: "Science" }
 ];
 
-VizConfig.organizationType = [
+VizConfig.organisationType = [
   { title: "Social Enterprise Charity Or Foundation", id: "social-enterprise-charity-or-foundation" },
   { title: "Business", id: "business" },
   { title: "Grass Roots Organization Or Community Network", id: "grass-roots-organization-or-community-network" },

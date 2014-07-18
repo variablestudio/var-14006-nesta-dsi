@@ -2352,7 +2352,7 @@ function VizKey(open) {
     { "table": VizConfig.dsiAreas, "property": 'areaOfDigitalSocialInnovation', "title": dsiTitle, "parent": rowLeft },
     { "table": VizConfig.technologyFocuses, "property": 'technologyFocus', "title": techTitle, "parent": rowLeft },
     { "table": VizConfig.areaOfSociety, "property": 'areaOfSociety', "title": areaTitle, "parent": rowRight },
-    { "table": VizConfig.organizationType, "property": 'organizationType', "title": orgTitle, "parent": rowRight }
+    { "table": VizConfig.organisationType, "property": 'organisationType', "title": orgTitle, "parent": rowRight }
   ].forEach(function(sidebarSection) {
     var section = $('<div class="section ' + sidebarSection.property + '"></div>');
 
@@ -2557,6 +2557,36 @@ MainMap.prototype.getOrganisations = function() {
   var deferred = Q.defer();
   this.runOrganisationsQuery().then(function(results) {
     var organisations = results.map(resultValuesToObj);
+
+    var reduceOrgByProp = function(data, prop, newPropName) {
+      return data.reduce(function(memo, org) {
+        if (org[prop]) {
+          org[prop] = org[prop].substr(org[prop].lastIndexOf('/') + 1);
+        }
+
+        var index = indexOfProp(memo, "org", org.org);
+
+        if (index > 0 && org[prop]) {
+          if (memo[index][newPropName].indexOf(org[prop]) < 0) {
+            memo[index][newPropName].push(org[prop]);
+          }
+        }
+        else {
+          if (org[prop]) {
+            org[newPropName] = [ org[prop] ];
+            delete org[prop];
+          }
+
+          memo.push(org);
+        }
+
+        return memo;
+      }, []);
+    };
+
+    organisations = reduceOrgByProp(organisations, "org_type", "organisationType");
+    organisations = reduceOrgByProp(organisations, "area_of_society", "areaOfSociety");
+
     deferred.resolve(organisations);
   });
   return deferred.promise;
@@ -2652,9 +2682,10 @@ MainMap.prototype.runOrganisationsQuery = function() {
     .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
     .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
     .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
-    .select('?org ?label ?lon ?lat ?country ?city ?street ?org_type ?tf ?activity ?activity_label')
+    .select('?org ?label ?lon ?lat ?country ?city ?street ?tf ?activity ?activity_label ?org_type ?area_of_society')
     .where('?org', 'a', 'o:Organization')
-    //.where('?org', 'ds:organizationType', '?org_type')
+    .where('?org', 'ds:organizationType', '?org_type')
+    .where('?org_type', 'rdfs:label', '?org_type_label')
     .where('?org', 'rdfs:label', '?label')
     .where('?org', 'o:hasPrimarySite', '?org_site')
     .where('?org_site', 'geo:long', '?lon')
@@ -2663,12 +2694,11 @@ MainMap.prototype.runOrganisationsQuery = function() {
     .where('?org_address', 'vcard:country-name', '?country')
     .where('?org_address', 'vcard:street-address', '?street')
     .where('?org_address', 'vcard:locality', '?city')
-    //.where("?am", "a", "ds:ActivityMembership")
-    //.where("?am", "ds:organization", "?org")
-    //.where("?am", "ds:activity", "?activity")
-    //.where("?activity", "rdfs:label", "?activity_label")
-    //.where("?activity", "ds:technologyMethod", "?tm")
-    //  .where("?activity", "ds:technologyFocus", "?tf")
+    .where("?am", "a", "ds:ActivityMembership")
+    .where("?am", "ds:organization", "?org")
+    .where("?am", "ds:activity", "?activity")
+    .where("?activity", "rdfs:label", "?activity_label")
+    .where("?activity", "ds:areaOfSociety", "?area_of_society", { optional: true })
     .execute();
 };
 
@@ -2843,7 +2873,7 @@ MainMap.prototype.showWorldMap = function(center, scale) {
     VizConfig.popup.close();
 
     this.hideClusterNetwork();
-		this.hideOrganisations();
+    this.hideOrganisations();
   }.bind(this));
 
   this.map.leaflet.on("zoomend", function() {
@@ -2892,8 +2922,8 @@ MainMap.prototype.filterOrganisations = function() {
       var found = false;
       var anotherOrgProjects = collaborators.byOrganisation[org.org];
       if (!anotherOrgProjects) {
-				return false;
-			}
+        return false;
+      }
 
       anotherOrgProjects.forEach(function(project) {
         if (orgProjects.indexOf(project) !== -1) { found = true; }
@@ -3112,15 +3142,15 @@ MainMap.prototype.showOrganisations = function(zoom) {
 };
 
 MainMap.prototype.hideOrganisations = function() {
-	this.DOM.orgGroup.selectAll('g')
-		.transition()
-		.duration(200)
-		.attr('opacity', 0);
+  this.DOM.orgGroup.selectAll('g')
+    .transition()
+    .duration(200)
+    .attr('opacity', 0);
 
-	this.DOM.hexGroup.selectAll('g')
-		.transition()
-		.duration(200)
-		.attr('opacity', 0);
+  this.DOM.hexGroup.selectAll('g')
+    .transition()
+    .duration(200)
+    .attr('opacity', 0);
 };
 
 MainMap.prototype.drawClusters = function(selection, data) {
@@ -3138,7 +3168,7 @@ MainMap.prototype.drawClusters = function(selection, data) {
     .attr('transform', function(d) {
       return "translate(" + d.center.x + "," + d.center.y + ")";
     })
-		.attr('opacity', 0);
+    .attr('opacity', 0);
 
   groupEnter
     .append('svg:image')
@@ -3171,7 +3201,7 @@ MainMap.prototype.drawClusters = function(selection, data) {
     .attr('transform', function(d) {
       return "translate(" + d.center.x + "," + d.center.y + ")";
     })
-		.attr('opacity', 1);
+    .attr('opacity', 1);
 
   groupTransform
     .select("text")
@@ -3461,8 +3491,8 @@ MainMap.prototype.showClusterNetwork = function(zoom) {
     var collabMap = {};
     var uniqueLinks = [];
     collaborators = collaborators.filter(function(collab) {
-			return (collab.org.org !== collab.collaborator.org);
-		});
+      return (collab.org.org !== collab.collaborator.org);
+    });
 
     collaborators.forEach(function(collab) {
       var posHash = makePosHash(collab.org, collab.collaborator);
@@ -4174,7 +4204,7 @@ VizConfig.areaOfSociety = [
   { title: "Science", id: "Science" }
 ];
 
-VizConfig.organizationType = [
+VizConfig.organisationType = [
   { title: "Social Enterprise Charity Or Foundation", id: "social-enterprise-charity-or-foundation" },
   { title: "Business", id: "business" },
   { title: "Grass Roots Organization Or Community Network", id: "grass-roots-organization-or-community-network" },

@@ -37,7 +37,7 @@ function VizKey(open) {
     { "table": VizConfig.dsiAreas, "property": 'areaOfDigitalSocialInnovation', "title": dsiTitle, "parent": rowLeft },
     { "table": VizConfig.technologyFocuses, "property": 'technologyFocus', "title": techTitle, "parent": rowLeft },
     { "table": VizConfig.areaOfSociety, "property": 'areaOfSociety', "title": areaTitle, "parent": rowRight },
-    { "table": VizConfig.organizationType, "property": 'organizationType', "title": orgTitle, "parent": rowRight }
+    { "table": VizConfig.organisationType, "property": 'organisationType', "title": orgTitle, "parent": rowRight }
   ].forEach(function(sidebarSection) {
     var section = $('<div class="section ' + sidebarSection.property + '"></div>');
 
