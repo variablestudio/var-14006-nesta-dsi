@@ -1,4 +1,4 @@
-/*global d3, SPARQLDataSource */
+/*global $, d3, SPARQLDataSource, VizConfig */
 
 var indexOfProp = function(data, prop, val) {
 	return data.map(function(o) { return o[prop]; }).indexOf(val);
@@ -87,31 +87,36 @@ Choropleth.prototype.getCaseStudies = function(callback) {
 	var apiUrl = "http://content.digitalsocial.eu/api/get_page/?slug=case-studies&children=true";
 	d3.json(apiUrl, function(caseStudiesData) {
 		caseStudiesData = caseStudiesData.page.children.map(function(data) {
-				// prepare tech focus array
-				var techFocus = data.custom_fields["tech-focus"];
+			var arrayFromCustomField = function(customField) {
+				if (customField) {
+					customField = customField[0];
 
-				if (techFocus) {
-					techFocus = techFocus[0];
-
-					if (techFocus && techFocus.indexOf(",") >= 0) {
-						techFocus = techFocus.split(",").map(function(value) { return value.replace(/^\s+|\s+$/g, ""); });
+					if (customField && customField.indexOf(",") >= 0) {
+						customField = customField.split(",").map(function(value) { return value.replace(/^\s+|\s+$/g, ""); });
 					}
 					else {
-						techFocus = [ techFocus ];
+						customField = [ customField ];
 					}
 				}
 				else {
-					techFocus = [];
+					customField = [];
 				}
 
-				// return parsed object
-				return {
-					"name": data.title,
-					"url": data.url,
-					"areaOfDSI": data.custom_fields["area-of-digital-social-innovation"][0],
-					"techFocus": techFocus
-				};
-			});
+				return customField;
+			};
+
+			// prepare tech focus array
+			var techFocus = arrayFromCustomField(data.custom_fields["tech-focus"]);
+			var areaOfDSI = arrayFromCustomField(data.custom_fields["area-of-digital-social-innovation"]);
+
+			// return parsed object
+			return {
+				"name": data.title,
+				"url": data.url,
+				"areaOfDSI": areaOfDSI,
+				"techFocus": techFocus
+			};
+		});
 
 		// merge case studies with this.data
 		this.data = this.data.map(function(data) {
@@ -119,7 +124,7 @@ Choropleth.prototype.getCaseStudies = function(callback) {
 			var techKey = data.tech.toLowerCase().replace(/\ /g, "-");
 
 			data.caseStudies = caseStudiesData.filter(function(caseStudy) {
-				var dsiMatches = caseStudy.areaOfDSI === adsiKey;
+				var dsiMatches = caseStudy.areaOfDSI.indexOf(adsiKey) >= 0;
 				var techMatches = caseStudy.techFocus.indexOf(techKey) >= 0;
 
 				return dsiMatches && techMatches;
