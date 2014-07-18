@@ -63,10 +63,10 @@ function VizKey(open) {
 
   thumb.click(function() {
     if (vizKeyContainer.hasClass('open')) {
-      this.open();
+      this.close();
     }
     else {
-      this.close();
+      this.open();
     }
   }.bind(this));
 }
