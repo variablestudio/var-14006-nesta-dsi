@@ -1,6 +1,6 @@
 function Intro(introVizContainer, clickCb) {
   var w = window.innerWidth;
-  var h = window.innerHeight - 140;
+  var h = VizConfig.initialMapHeight;
   //h = Math.min(h, 600);
   //h = Math.max(300, h);
 

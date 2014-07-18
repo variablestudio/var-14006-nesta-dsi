@@ -30,10 +30,8 @@
   min-height: 50px;
   width: 100%;
   overflow: hidden;
-}
-
-#introViz {
   background: black;
+  z-index: 2000;
 }
 
 #mainViz + h1 {

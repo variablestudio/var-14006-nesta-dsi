@@ -48,9 +48,7 @@ MainMap.prototype.init = function() {
 
 MainMap.prototype.initSVG = function() {
   this.w = window.innerWidth;
-  this.h = window.innerHeight - 360;
-  this.h = Math.min(this.h, 500);
-  this.h = Math.max(300, this.h);
+  this.h = VizConfig.initialMapHeight;
 
   this.DOM.map = d3.select(this.mainVizContainer)
     .append('div')

@@ -1,6 +1,7 @@
 (function() {
   var showIntro = (document.location.hash !== '#nointro');
 
+  console.log('bla')
   function init() {
     var url = window.location.href;
     var urlIsLocalhost = (url.match(/localhost/) !== null);
@@ -68,7 +69,6 @@
     vizContainer.append(mainViz);
 
     new MainMap("#mainViz");
-    //new MainHexes("#mainViz")
   }
 
   function initCaseStudies(vizContainer) {
