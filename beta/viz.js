@@ -1,3 +1,5 @@
+console.log('viz');
+
 (function() {
   var showIntro = (document.location.hash !== '#nointro');
 
