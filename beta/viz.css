@@ -504,17 +504,16 @@
 /*---------------------------------- key ----------------------------------------*/
 
 #vizKeyContainer {
-  background: #000;
-  width: 180px;
+  width: 450px;
   position: absolute;
   top: 146px;
-  left: -180px;
+  left: -440px;
   padding-bottom: 10px;
   transition: left 0.5s; -webkit-transition: left 0.5s; -moz-transition: left 0.5s; -ms-transition: left 0.5s;
 }
 
 #vizKeyContainer:hover {
-  left: -170px;
+  left: -430px;
 }
 
 #vizKeyContainer.open {
@@ -528,8 +527,9 @@
 #vizKeyContainer h3 {
   color: white;
   font-weight: normal;
-  margin: 2em 0 1em 0;
+  padding: 1em 0 1em 0;
   font-size: 14px;
+	margin-bottom: 0;
 }
 
 #vizKeyContainer h3 img {
@@ -545,16 +545,31 @@
   float: none;
 }
 
-#vizKeySideBar > h3,
-#vizKeySideBar > a {
+#vizKeySideBar .row {
+	width: 220px;
+	float: left;
+}
+
+#vizKeySideBar .section {
+	margin: 1px;
+	padding-bottom: 10px;
+	background: black;
+}
+
+#vizKeySideBar .section > h3,
+#vizKeySideBar .section > a {
   padding-left: 10px;
   padding-right: 10px;
 }
 
-#vizKeySideBar > a {
+#vizKeySideBar .section > a {
   padding-left: 30px;
   padding-top: 4px;
   padding-bottom: 4px;
+}
+
+#vizKeySideBar .row.right .section > a {
+  padding-left: 14px;
 }
 
 #vizKeyContainer a:hover, #vizKeyContainer a.active {
@@ -605,7 +620,21 @@
 #vizKeyContainer a.filterLink.open-hardware.active,
 #vizKeyContainer a.filterLink.open-networks.active,
 #vizKeyContainer a.filterLink.open-knowledge.active,
-#vizKeyContainer a.filterLink.open-data.active {
+#vizKeyContainer a.filterLink.open-data.active,
+#vizKeyContainer a.filterLink.education-and-skills.active,
+#vizKeyContainer a.filterLink.participation-and-democracy.active,
+#vizKeyContainer a.filterLink.culture-and-arts.active,
+#vizKeyContainer a.filterLink.health-and-wellbeing.active,
+#vizKeyContainer a.filterLink.work-and-employment.active,
+#vizKeyContainer a.filterLink.neighbourhood-regeneration.active,
+#vizKeyContainer a.filterLink.energy-and-environment.active,
+#vizKeyContainer a.filterLink.finance-and-economy.active,
+#vizKeyContainer a.filterLink.cience.active,
+#vizKeyContainer a.filterLink.social-enterprise-charity-or-foundation.active,
+#vizKeyContainer a.filterLink.business.active,
+#vizKeyContainer a.filterLink.grass-roots-organization-or-community-network.active,
+#vizKeyContainer a.filterLink.academia-and-research.active,
+#vizKeyContainer a.filterLink.government-and-public-sector.active {
   background-color: #CCC;
 }
 
@@ -620,7 +649,7 @@
   transform: rotate(-90deg); -webkit-transform: rotate(-90deg); -moz-transform: rotate(-90deg); -ms-transform: rotate(-90deg);
   position: absolute;
   top: 85px;
-  left: 96px;
+  left: 357px;
   width: 197px;
   cursor: pointer;
 }
