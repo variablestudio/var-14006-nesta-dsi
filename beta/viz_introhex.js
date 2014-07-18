@@ -35,11 +35,23 @@ d3.chart("IntroHex", {
             var dy = r * Math.sin(a);
             return "M" + hexBite(chart.width()/2 + dx, chart.height()/2 + dy, chart.radius(), di).join("L") + "Z";
           })
+
+          this.on("mouseover", function(d) {
+            d3.select(this).style("opacity", 0.8);
+            VizConfig.tooltip.show();
+            VizConfig.tooltip.html(d.info);
+          })
+          .on("mouseout", function() {
+            d3.select(this).style("opacity", 1);
+            VizConfig.tooltip.hide();
+          });
         },
 
         exit: function() {
           this.remove();
         }
+
+
       }
     });
 
@@ -116,6 +128,16 @@ d3.chart("IntroHex", {
             .delay(function(d, di) { return 1500 + di * 100; }) //1000
             .duration(500)
             .style("opacity", 1)
+
+          this.on("mouseover", function(d) {
+            d3.select(this).style("opacity", 0.8);
+            VizConfig.tooltip.show();
+            VizConfig.tooltip.html(d.info);
+          })
+          .on("mouseout", function() {
+            d3.select(this).style("opacity", 1);
+            VizConfig.tooltip.hide();
+          });
 
           var labelLines = this.selectAll(".labelLine")
             .data(function(d, di) {

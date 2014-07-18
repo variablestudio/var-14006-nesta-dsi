@@ -29,7 +29,7 @@ VizConfig.dsiAreasById = {
   'open-access': VizConfig.dsiAreas[5]
 };
 
-VizConfig.dsiAreasById['funding-acceleration-and-incubation'].info = '';
+VizConfig.dsiAreasById['funding-acceleration-and-incubation'].info = 'Funding, Accelaration and Incubation';
 VizConfig.dsiAreasById['collaborative-economy'].info = 'Collaborative economy: New collaborative socio-economic models that present novel characteristics, and enable people to share skills, knowledge, food, clothes, housing and so on. It includes crypto digital currencies, new forms of crowdfunding and financing, new platforms for exchanges and sharing resources based on reputation and trust.';
 VizConfig.dsiAreasById['open-democracy'].info = 'Open democracy is transforming the traditional models of representative democracy. Digital technology can enable collective participation at a scale that was impossible before enabling citizens to be engaged in decision-making processes, collective deliberation, and mass mobilisation. ';
 VizConfig.dsiAreasById['awareness-networks'].info = 'Platforms for collaboration are able to aggregate data coming from people and the environment and are used to solve environmental issues and promote sustainable behavioral changes, or to mobilize collective action and respond to community emergencies. ';
