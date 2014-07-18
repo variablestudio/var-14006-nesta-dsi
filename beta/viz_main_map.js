@@ -25,6 +25,20 @@ var MainMap = (function() {
   }
 
   MainMap.prototype.init = function() {
+    VizConfig.events.addEventListener('filter', function() {
+      this.selectedOrg = null;
+      this.showOrganisations(this.map.leaflet.getZoom());
+      this.showClusterNetwork(this.map.leaflet.getZoom());
+      this.hideOrganisationHex();
+      VizConfig.popup.close();
+    }.bind(this));
+
+    VizConfig.events.addEventListener('casestudies', function(data) {
+      this.caseStudiesData = data;
+      this.updateCaseStudiesData();
+      this.showOrganisations(this.map.leaflet.getZoom());
+    }.bind(this));
+
     this.initSVG();
 
     this.preloader = $('<img id="vizPreloader" src="'+VizConfig.assetsPath+'/preloader.gif"/>');
@@ -32,12 +46,19 @@ var MainMap = (function() {
 
     this.getOrganisations().then(function(organisations) {
       this.organisations = organisations;
-      this.buildViz(organisations);
+      this.organisationsById = organisations.reduce(function(memo, org) {
+        org.LatLng = new L.LatLng(org.lat, org.lon);
+        memo[org.org] = org;
+
+        return memo;
+      }, {});
+
       this.hijackSearch();
 
       //pre cache
       this.getCollaborations().then(function(collaborations) {
         this.getProjectsInfo(collaborations).then(function() {
+          this.buildViz(organisations);
           this.showClusterNetwork(this.map.leaflet.getZoom());
           this.preloader.fadeOut('slow');
         }.bind(this));
@@ -306,6 +327,15 @@ var MainMap = (function() {
       .execute(false);
   };
 
+  MainMap.prototype.updateCaseStudiesData = function() {
+    this.organisations = this.organisations.map(function(org) {
+      var index = indexOfProp(this.caseStudiesData, "org", org.org);
+      org.logoImage = index >= 0 ? this.caseStudiesData[index].logoImage : undefined;
+
+      return org;
+    }.bind(this));
+  };
+
   MainMap.prototype.buildViz = function() {
     var svg = this.DOM.svg;
 
@@ -315,22 +345,7 @@ var MainMap = (function() {
     this.DOM.hexGroup = this.DOM.g.append("g").attr("class", "hexes");
     this.DOM.selectedHexGroup = this.DOM.g.append("g").attr("class", "hexes-selected");
 
-    this.organisationsById = this.organisations.reduce(function(memo, org) {
-      org.LatLng = new L.LatLng(org.lat, org.lon);
-      memo[org.org] = org;
-
-      return memo;
-    }, {});
-
     this.showOrganisations(this.map.leaflet.getZoom());
-
-    VizConfig.events.addEventListener('filter', function() {
-      this.selectedOrg = null;
-      this.showOrganisations(this.map.leaflet.getZoom());
-      this.showClusterNetwork(this.map.leaflet.getZoom());
-      this.hideOrganisationHex();
-      VizConfig.popup.close();
-    }.bind(this));
   };
 
   MainMap.prototype.showWorldMap = function(center, scale) {
@@ -656,6 +671,8 @@ var MainMap = (function() {
   };
 
   MainMap.prototype.showOrganisations = function(zoom) {
+    if (!this.DOM.orgGroup || !!this.DOM.hexGroup) { return; }
+
     // in order to show organisations we need to update clusters, saving them globally for network drawing
     this.filterOrganisations().then(function(filteredOrganisations) {
       this.clusters = this.clusterOrganisations(filteredOrganisations.organisations, zoom);
@@ -708,6 +725,18 @@ var MainMap = (function() {
   };
 
   MainMap.prototype.drawClusters = function(selection, data) {
+    data = data.map(function(d) {
+      d.logoImages = d.organisations.reduce(function(memo, org) {
+        if (org.logoImage) { memo.push(org.logoImage); }
+        return memo;
+      }, []);
+
+      d.hasLogoImage = d.logoImages.length > 0;
+      d.iconScale = Math.max(12 - Math.sqrt(d.organisations.length), 7);
+
+      return d;
+    });
+
     var clusters = selection
       .selectAll('g.org')
       .data(data);
@@ -716,29 +745,13 @@ var MainMap = (function() {
       .enter()
       .append('g')
       .attr('class', 'org')
-      .each(function(d) {
-        d.iconScale = Math.max(12 - Math.sqrt(d.organisations.length), 7);
-      })
       .attr('transform', function(d) {
         return "translate(" + d.center.x + "," + d.center.y + ")";
       })
       .attr('opacity', 0);
 
     groupEnter
-      .append('svg:image')
-      .attr('xlink:href', 'assets/drop-icon.png')
-      .attr('width', function(d) {
-        return 257 / d.iconScale;
-      })
-      .attr('height', function(d) {
-        return 308 / d.iconScale;
-      })
-      .attr('x', function(d) {
-        return -(257 / d.iconScale) / 2;
-      })
-      .attr('y', function(d) {
-        return -(308 / d.iconScale);
-      });
+      .append('svg:image');
 
     groupEnter
       .append('text')
@@ -758,10 +771,44 @@ var MainMap = (function() {
       .attr('opacity', 1);
 
     groupTransform
+      .select('image')
+      .transition()
+      .attr('xlink:href', function(d) {
+        var img = 'assets/drop-icon.png';
+
+        if (d.hasLogoImage) {
+          // img = d.logoImages[Math.floor(Math.random() * d.logoImages.length)];
+          img = d.logoImages[0];
+        }
+
+        return img;
+      })
+      .attr('width', function(d) {
+        var width = 257 / d.iconScale;
+        if (d.hasLogoImage) { width = 50; }
+        return width;
+      })
+      .attr('height', function(d) {
+        var height = 308 / d.iconScale;
+        if (d.hasLogoImage) { height = 44; }
+        return height;
+      })
+      .attr('x', function(d) {
+        var x = -(257 / d.iconScale) / 2;
+        if (d.hasLogoImage) { x = -50 / 2; }
+        return x;
+      })
+      .attr('y', function(d) {
+        var y = -(308 / d.iconScale);
+        if (d.hasLogoImage) { y = -44 / 2; }
+        return y;
+      });
+
+    groupTransform
       .select("text")
       .transition()
       .text(function(d) {
-        return d.organisations.length;
+        return d.hasLogoImage ? "" : d.organisations.length;
       });
 
     var groupExit = clusters.exit();

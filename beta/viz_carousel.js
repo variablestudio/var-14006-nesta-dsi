@@ -48,6 +48,8 @@ var Carousel = (function() {
 			this.getOrgData(this.parseData(data), function(data) {
 				this.carousel.parsedData = data; // get parsed data
 				this.filter(null); // filter(null) to display all, automatically redraws carousel
+
+				VizConfig.events.fire('casestudies', this.carousel.data);
 			}.bind(this));
 		}.bind(this));
 
@@ -132,6 +134,8 @@ var Carousel = (function() {
 
 				return shouldShow;
 			});
+
+			VizConfig.events.fire('casestudies', this.carousel.data);
 
 			this.updateCaseStudiesTitle();
 		}.bind(this));
