@@ -953,36 +953,37 @@ var MainMap = (function() {
 
   MainMap.prototype.drawBigHex = function(selection, data) {
     var className = "hex-big";
+    var hexSize = 300;
+
+    var org = data[0].organisations[0];
+    var orgCenter = org.center || { x: org.x, y: org.y };
+    var pos = data[0].center || orgCenter;
 
     var countDataForHex = function(data) {
+      var defaultData = VizConfig.dsiAreas.map(function(area) {
+        return {
+          areaOfDSI: area.id,
+          color: area.color,
+          count: 0,
+          projects: []
+        };
+      });
+
       return data.projects ? data.projects.reduce(function(memo, project) {
         project.areaOfDigitalSocialInnovation.forEach(function(area) {
           var index = indexOfProp(memo, "areaOfDSI", area);
 
           if (index >= 0) {
             memo[index].count++;
-            memo[index].projects.push(memo[index].count);
-          }
-          else {
-            memo.push({
-              areaOfDSI: area,
-              count: 1,
-              color: VizConfig.dsiAreasById[area].color,
-              projects: [ 1 ]
-            });
+            memo[index].projects.push(project.label);
           }
         });
 
         return memo;
-      }, []) : null;
+      }, defaultData) : defaultData;
     };
 
-    var org = data[0].organisations[0];
-    var orgCenter = org.center || { x: org.x, y: org.y };
-    var pos = data[0].center || orgCenter;
-
-    var hexSize = 300;
-
+    // preprate data
     data = countDataForHex(data[0].organisations[0]);
 
     // remove all previous hexes
@@ -1012,46 +1013,36 @@ var MainMap = (function() {
     var organisations = cluster.organisations;
     var isSingleOrganisation = cluster.organisations.length === 1;
 
+    if (isSingleOrganisation) {
+      this.drawBigHex(this.DOM.selectedHexGroup, [ cluster ]);
+      return;
+    }
+
     if (cutOrganisationsCount) { organisations = organisations.slice(0, maxOrgCount); }
 
     var popupHTML = organisations.map(function(organization) {
-      var url = 'http://digitalsocial.eu/organisations/';
-      url += organization.org.substr(organization.org.lastIndexOf('/') + 1);
-      var popupContent = '<h4><a href="' + url + '">'+organization.label+'</a></h4>';
-
-      if (isSingleOrganisation) {
-        popupContent += '<span>';
-        popupContent += organization.street;
-        popupContent += ", " + organization.city;
-        popupContent += ", " + organization.country;
-        popupContent += '</span>';
-      }
-
-      if (organization.projects && isSingleOrganisation) {
-        popupContent += 'Projects:';
-
-        var projects = organization.projects;
-        var cutProjectCount = projects.length > maxProjectCount;
-        if (cutProjectCount) { projects = projects.slice(0, maxProjectCount); }
-
-        projects.forEach(function(project) {
-          var projectUrl = 'http://digitalsocial.eu/projects/' + project.p.substr(project.p.lastIndexOf('/')+1);
-          popupContent += '<a href="' + projectUrl + '">'+project.label+'</a>';
-        });
-
-        if (cutProjectCount) {
-          popupContent += "<div>...</div>";
-        }
-      }
+      var popupOrg = "<span data-url=\"" + organization.org + "\">" + organization.label + "</span>";
+      var popupContent = "<h4>" + popupOrg + "</h4>";
 
       return popupContent;
-    }).join(isSingleOrganisation ? "<br/>" : "");
+    }).join("<br/>");
 
     if (cutOrganisationsCount) {
       popupHTML += "<br/><div style='text-align:center'>...</div>";
     }
 
     VizConfig.popup.html($(popupHTML));
+
+    $("#vizPopup h4 > span").on("click", function(e) {
+      var target = $(e.target);
+      var org = target.data("url");
+      org = this.organisationsById[org];
+
+      if (org) {
+        this.drawBigHex(this.DOM.selectedHexGroup, [ { organisations: [ org ] } ]);
+        VizConfig.popup.close();
+      }
+    }.bind(this));
 
     var windowOffset = $("#map").offset();
     var viewBox = d3.select("#map").select("svg").attr("viewBox").split(" ").map(function(v) { return +v; });
