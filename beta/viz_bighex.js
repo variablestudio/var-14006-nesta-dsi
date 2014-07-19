@@ -140,8 +140,8 @@ d3.chart("BigHex", {
         enter: function() {
           var chart = this.chart();
           this
-            .attr("x", function() { return chart.width()/2; })
-            .attr("y", function() { return chart.height()/2; })
+            .attr("x", function() { return chart.x(); })
+            .attr("y", function() { return chart.y(); })
             .attr("transform", function(d, di) {
               var a = di/6 * 2 * Math.PI + Math.PI/3;
               var r = chart.radius() - 40;
@@ -198,4 +198,22 @@ d3.chart("BigHex", {
     this._height = newHeight;
     return this;
   },
+
+  x: function(newX) {
+    if (!newX) {
+      return this._x || this._height / 2;
+    }
+
+    this._x = newX;
+    return this;
+  },
+
+  y: function(newY) {
+    if (!newY) {
+      return this._y || this._width / 2;
+    }
+
+    this._y = newY;
+    return this;
+  }
 });

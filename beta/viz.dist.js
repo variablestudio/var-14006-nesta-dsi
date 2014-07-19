@@ -2719,6 +2719,9 @@ var MainMap = (function() {
 
   MainMap.prototype.hijackSearch = function() {
     $('#q').parent().submit(function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+
       var searchTerm = $('#q').val();
       $('#q').val('');
 
@@ -2735,7 +2738,6 @@ var MainMap = (function() {
       }
 
       $('#q').hide();
-      e.preventDefault();
       return false;
     }.bind(this));
   };
@@ -2757,8 +2759,9 @@ var MainMap = (function() {
         organisations: [ org ]
       };
 
-      var selectedHex = this.drawHexes(this.DOM.selectedHexGroup, [ orgCluster ], { fromCluster: true });
-      this.handleMouse(selectedHex);
+      // var selectedHex = this.drawHexes(this.DOM.selectedHexGroup, [ orgCluster ], { fromCluster: true });
+      // this.handleMouse(selectedHex);
+      this.drawBigHex(this.DOM.selectedHexGroup, [ orgCluster ]);
     }
 
     return orgCluster;
@@ -3574,6 +3577,60 @@ var MainMap = (function() {
           .attr("fill", VizConfig.dsiAreas[i].color);
       }.bind(this));
     }
+  };
+
+  MainMap.prototype.drawBigHex = function(selection, data) {
+    var className = "hex-big";
+
+    var countDataForHex = function(data) {
+      return data.projects ? data.projects.reduce(function(memo, project) {
+        project.areaOfDigitalSocialInnovation.forEach(function(area) {
+          var index = indexOfProp(memo, "areaOfDSI", area);
+
+          if (index >= 0) {
+            memo[index].count++;
+            memo[index].projects.push(memo[index].count);
+          }
+          else {
+            memo.push({
+              areaOfDSI: area,
+              count: 1,
+              color: VizConfig.dsiAreasById[area].color,
+              projects: [ 1 ]
+            });
+          }
+        });
+
+        return memo;
+      }, []) : null;
+    };
+
+    var org = data[0].organisations[0];
+    var orgCenter = org.center || { x: org.x, y: org.y };
+    var pos = data[0].center || orgCenter;
+
+    var hexSize = 300;
+
+    data = countDataForHex(data[0].organisations[0]);
+
+    // remove all previous hexes
+    selection.selectAll('g.' + className).remove();
+
+    var bigHex = selection
+      .append("g")
+      .attr("class", className)
+      .attr("transform", function(d) {
+        var x = pos.x - hexSize / 2;
+        var y = pos.y - hexSize / 2;
+        return "translate(" + x  + "," + y + ")";
+      })
+      .chart("BigHex")
+      .width(hexSize)
+      .height(hexSize);
+
+    bigHex.draw(data);
+
+    return bigHex;
   };
 
   MainMap.prototype.displayPopup = function(cluster) {
