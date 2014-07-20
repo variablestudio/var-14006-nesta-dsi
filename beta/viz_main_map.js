@@ -17,10 +17,17 @@ var MainMap = (function() {
   }
 
   function MainMap(mainVizContainer) {
-    this.DOM = {};
     this.mainVizContainer = mainVizContainer;
     this.selectedOrg = null;
     this.collaborators = null;
+
+    this.DOM = {};
+
+    this.layers = {
+      continent: "http://b.tiles.mapbox.com/v3/swirrl.ikeb7gn0/{z}/{x}/{y}.png",
+      street: "http://a.tiles.mapbox.com/v3/swirrl.il8el3gj/{z}/{x}/{y}.png"
+    };
+
     this.init();
   }
 
@@ -58,7 +65,7 @@ var MainMap = (function() {
       //pre cache
       this.getCollaborations().then(function(collaborations) {
         this.getProjectsInfo(collaborations).then(function() {
-          this.buildViz(organisations);
+          this.showOrganisations(this.map.leaflet.getZoom());
           this.showClusterNetwork(this.map.leaflet.getZoom());
           this.preloader.fadeOut('slow');
         }.bind(this));
@@ -77,16 +84,171 @@ var MainMap = (function() {
     // for some strange reason can't set this width d3.style()
     $('#map').css({ 'width': this.w, 'height': this.h });
 
+    // big hex overlay
+    $(this.mainVizContainer)
+      .append(
+        $("<div id=\"map-overlay\"><h3 class=\"title\"></h3><svg></svg></div>")
+          .css({ 'height': this.h, 'margin-top': -this.h })
+          .hide()
+          .on("click", function(e) { $(e.currentTarget).fadeOut(); })
+      );
+
+    this.DOM.overlay = d3.select("#map-overlay svg").attr("width", 300).attr("height", 300);
+
+    // add map from leaflet
     var scale  = 4;
     var center = [50, 7];
     this.showWorldMap(center, scale);
 
-    this.DOM.svg = d3.select("#map")
-      .select("svg")
-      .append("g")
-      .attr("class", "viz");
+    // add svg elements
+    this.DOM.svg = d3.select("#map").select("svg");
+    this.DOM.g   = this.DOM.svg.append("g").attr("class", "viz");
+    this.DOM.networkGroup     = this.DOM.g.append("g").attr("class", "network");
+    this.DOM.orgGroup         = this.DOM.g.append("g").attr("class", "orgs");
+    this.DOM.hexGroup         = this.DOM.g.append("g").attr("class", "hexes");
+    this.DOM.selectedHexGroup = this.DOM.g.append("g").attr("class", "hexes-selected");
 
-    this.defaultViewBox = d3.select("#map").select("svg").attr("viewBox").split(" ").map(function(v) { return +v; });
+    // save leaflet viewbox
+    this.defaultViewBox = this.DOM.svg.attr("viewBox").split(" ").map(function(v) { return +v; });
+  };
+
+  MainMap.prototype.showWorldMap = function(center, scale) {
+    var continentLayer = new L.TileLayer(this.layers.continent, { maxZoom: 16, minZoom: 2 });
+    var streetLayer = new L.TileLayer(this.layers.street, { maxZoom: 16, minZoom: 2 });
+
+    this.map = {
+      leaflet: L.map('map', {
+        center: new L.LatLng(center[0], center[1]),
+        zoom: scale,
+        inertia: false,
+        bounceAtZoomLimits: false,
+        zoomControl: false,
+        layers: [ continentLayer ]
+      }),
+      fullscreeen: false
+    };
+
+    this.map.leaflet._initPathRoot(); // adds svg layer to leaflet
+
+    this.map.leaflet.addControl(new L.control.customButton({
+      title: 'Fullscreen',
+
+      className: 'leaflet-fullscreen-button',
+
+      click: function() {
+        if (this.map.fullscreen) {
+          $('#map').css({
+            'height': this.h,
+            'position': 'relative'
+          });
+
+          // ugly workarounds for fixed positioning / z-index
+          $('.nav-bar .search').show();
+          $('#caseStudiesViz').show();
+        }
+        else {
+          $('#map').css({
+            'height': window.innerHeight,
+            'position': 'fixed',
+            'top': 0,
+            'left': 0
+          });
+
+          // ugly workarounds for fixed positioning / z-index
+          $('.nav-bar .search').hide();
+          $('#caseStudiesViz').hide();
+        }
+
+        this.map.leaflet.invalidateSize();
+        this.map.fullscreen = !this.map.fullscreen;
+      }.bind(this),
+
+      mouseover: function() {
+        VizConfig.tooltip.html("Fullscreen");
+        VizConfig.tooltip.show();
+      },
+
+      mouseout: function() {
+        VizConfig.tooltip.hide();
+      }
+    }));
+
+    this.map.leaflet.addControl(new L.control.zoom({ position: 'topright' }));
+
+    $(".leaflet-control-zoom-in").on("mouseover", function() {
+      VizConfig.tooltip.html("Zoom In");
+      VizConfig.tooltip.show();
+    });
+
+    $(".leaflet-control-zoom-in").on("mouseout", function() {
+      VizConfig.tooltip.hide();
+    });
+
+    $(".leaflet-control-zoom-out").on("mouseover", function() {
+      VizConfig.tooltip.html("Zoom Out");
+      VizConfig.tooltip.show();
+    });
+
+    $(".leaflet-control-zoom-out").on("mouseout", function() {
+      VizConfig.tooltip.hide();
+    });
+
+    this.map.leaflet.addControl(new L.control.customButton({
+      title: 'Center',
+
+      className: 'leaflet-center-button',
+
+      click: function() {
+        this.map.leaflet.setView(new L.LatLng(center[0], center[1]), scale);
+      }.bind(this),
+
+      mouseover: function() {
+        VizConfig.tooltip.html("Center");
+        VizConfig.tooltip.show();
+      },
+
+      mouseout: function() {
+        VizConfig.tooltip.hide();
+      }
+    }));
+
+    // map redraws including zoom
+    this.map.leaflet.on("zoomstart", function() {
+      VizConfig.popup.close();
+
+      this.hideClusterNetwork();
+      this.hideOrganisations();
+    }.bind(this));
+
+    this.map.leaflet.on("zoomend", function() {
+      this.showOrganisations(this.map.leaflet.getZoom());
+      this.showClusterNetwork(this.map.leaflet.getZoom());
+
+      if (this.map.leaflet.getZoom() >= 7) {
+        if (!this.map.leaflet.hasLayer(streetLayer)) {
+          this.map.leaflet.addLayer(streetLayer);
+          setTimeout(function() {
+            this.map.leaflet.removeLayer(continentLayer);
+          }.bind(this), 500);
+        }
+      }
+      else {
+        if (!this.map.leaflet.hasLayer(continentLayer)) {
+          this.map.leaflet.addLayer(continentLayer);
+          setTimeout(function() {
+            this.map.leaflet.removeLayer(streetLayer);
+          }.bind(this), 500);
+        }
+      }
+    }.bind(this));
+
+    this.map.leaflet.on("click", function() {
+      VizConfig.popup.close();
+    }.bind(this));
+
+    this.map.leaflet.on("movestart", function() {
+      VizConfig.popup.close();
+    });
   };
 
   MainMap.prototype.hijackSearch = function() {
@@ -131,9 +293,9 @@ var MainMap = (function() {
         organisations: [ org ]
       };
 
-      // var selectedHex = this.drawHexes(this.DOM.selectedHexGroup, [ orgCluster ], { fromCluster: true });
-      // this.handleMouse(selectedHex);
-      this.drawBigHex(this.DOM.selectedHexGroup, [ orgCluster ]);
+      var selectedHex = this.drawHexes(this.DOM.selectedHexGroup, [ orgCluster ], { fromCluster: true });
+      this.handleMouse(selectedHex);
+      this.drawBigHex(orgCluster);
     }
 
     return orgCluster;
@@ -337,157 +499,6 @@ var MainMap = (function() {
 
       return org;
     }.bind(this));
-  };
-
-  MainMap.prototype.buildViz = function() {
-    var svg = this.DOM.svg;
-
-    this.DOM.g = svg.append('g');
-    this.DOM.networkGroup = this.DOM.g.append('g').attr("class", "network");
-    this.DOM.orgGroup = this.DOM.g.append('g').attr("class", "orgs");
-    this.DOM.hexGroup = this.DOM.g.append("g").attr("class", "hexes");
-    this.DOM.selectedHexGroup = this.DOM.g.append("g").attr("class", "hexes-selected");
-
-    this.showOrganisations(this.map.leaflet.getZoom());
-  };
-
-  MainMap.prototype.showWorldMap = function(center, scale) {
-    var continentLayer = new L.TileLayer("http://b.tiles.mapbox.com/v3/swirrl.ikeb7gn0/{z}/{x}/{y}.png", { maxZoom: 16, minZoom: 2 });
-    var streetLayer = new L.TileLayer("http://a.tiles.mapbox.com/v3/swirrl.il8el3gj/{z}/{x}/{y}.png", { maxZoom: 16, minZoom: 2 });
-
-    this.map = {
-      leaflet: L.map('map', {
-        center: new L.LatLng(center[0], center[1]),
-        zoom: scale,
-        inertia: false,
-        bounceAtZoomLimits: false,
-        zoomControl: false,
-        layers: [ continentLayer ]
-      }),
-      fullscreeen: false
-    };
-
-    this.map.leaflet._initPathRoot(); // adds svg layer to leaflet
-
-    this.map.leaflet.addControl(new L.control.customButton({
-      title: 'Fullscreen',
-
-      className: 'leaflet-fullscreen-button',
-
-      click: function() {
-        if (this.map.fullscreen) {
-          $('#map').css({
-            'height': this.h,
-            'position': 'relative'
-          });
-
-          // ugly workarounds for fixed positioning / z-index
-          $('.nav-bar .search').show();
-          $('#caseStudiesViz').show();
-        }
-        else {
-          $('#map').css({
-            'height': window.innerHeight,
-            'position': 'fixed',
-            'top': 0,
-            'left': 0
-          });
-
-          // ugly workarounds for fixed positioning / z-index
-          $('.nav-bar .search').hide();
-          $('#caseStudiesViz').hide();
-        }
-
-        this.map.leaflet.invalidateSize();
-        this.map.fullscreen = !this.map.fullscreen;
-      }.bind(this),
-
-      mouseover: function() {
-        VizConfig.tooltip.html("Fullscreen");
-        VizConfig.tooltip.show();
-      },
-
-      mouseout: function() {
-        VizConfig.tooltip.hide();
-      }
-    }));
-
-    this.map.leaflet.addControl(new L.control.zoom({ position: 'topright' }));
-
-    $(".leaflet-control-zoom-in").on("mouseover", function() {
-      VizConfig.tooltip.html("Zoom In");
-      VizConfig.tooltip.show();
-    });
-
-    $(".leaflet-control-zoom-in").on("mouseout", function() {
-      VizConfig.tooltip.hide();
-    });
-
-    $(".leaflet-control-zoom-out").on("mouseover", function() {
-      VizConfig.tooltip.html("Zoom Out");
-      VizConfig.tooltip.show();
-    });
-
-    $(".leaflet-control-zoom-out").on("mouseout", function() {
-      VizConfig.tooltip.hide();
-    });
-
-    this.map.leaflet.addControl(new L.control.customButton({
-      title: 'Center',
-
-      className: 'leaflet-center-button',
-
-      click: function() {
-        this.map.leaflet.setView(new L.LatLng(center[0], center[1]), scale);
-      }.bind(this),
-
-      mouseover: function() {
-        VizConfig.tooltip.html("Center");
-        VizConfig.tooltip.show();
-      },
-
-      mouseout: function() {
-        VizConfig.tooltip.hide();
-      }
-    }));
-
-    // map redraws including zoom
-    this.map.leaflet.on("zoomstart", function() {
-      VizConfig.popup.close();
-
-      this.hideClusterNetwork();
-      this.hideOrganisations();
-    }.bind(this));
-
-    this.map.leaflet.on("zoomend", function() {
-      this.showOrganisations(this.map.leaflet.getZoom());
-      this.showClusterNetwork(this.map.leaflet.getZoom());
-
-      if (this.map.leaflet.getZoom() >= 7) {
-        if (!this.map.leaflet.hasLayer(streetLayer)) {
-          this.map.leaflet.addLayer(streetLayer);
-          setTimeout(function() {
-            this.map.leaflet.removeLayer(continentLayer);
-          }.bind(this), 500);
-        }
-      }
-      else {
-        if (!this.map.leaflet.hasLayer(continentLayer)) {
-          this.map.leaflet.addLayer(continentLayer);
-          setTimeout(function() {
-            this.map.leaflet.removeLayer(streetLayer);
-          }.bind(this), 500);
-        }
-      }
-    }.bind(this));
-
-    this.map.leaflet.on("click", function() {
-      VizConfig.popup.close();
-    }.bind(this));
-
-    this.map.leaflet.on("movestart", function() {
-      VizConfig.popup.close();
-    });
   };
 
   MainMap.prototype.filterOrganisations = function() {
@@ -760,9 +771,6 @@ var MainMap = (function() {
       .append('text')
       .attr('text-anchor', 'middle')
       .attr('dx', 0)
-      .attr('dy', function(d) {
-        return -(154 / d.iconScale);
-      })
       .attr('fill', '#000')
       .attr('font-size', '11px')
       .text('');
@@ -810,6 +818,9 @@ var MainMap = (function() {
     groupTransform
       .select("text")
       .transition()
+      .attr('dy', function(d) {
+        return -(154 / d.iconScale);
+      })
       .text(function(d) {
         return d.hasLogoImage ? "" : d.organisations.length;
       });
@@ -951,22 +962,15 @@ var MainMap = (function() {
     }
   };
 
-  MainMap.prototype.drawBigHex = function(selection, data) {
+  MainMap.prototype.drawBigHex = function(data) {
+    var selection = this.DOM.overlay;
     var className = "hex-big";
     var hexSize = 300;
+    var orgLabel = data.organisations[0].label;
 
-    var org = data[0].organisations[0];
-    var orgCenter = org.center || { x: org.x, y: org.y };
-    var pos = data[0].center || orgCenter;
-
-    var countDataForHex = function(data) {
+    var prepareDataForHex = function(data) {
       var defaultData = VizConfig.dsiAreas.map(function(area) {
-        return {
-          areaOfDSI: area.id,
-          color: area.color,
-          count: 0,
-          projects: []
-        };
+        return { areaOfDSI: area.id, color: area.color, count: 0, projects: [] };
       });
 
       return data.projects ? data.projects.reduce(function(memo, project) {
@@ -984,7 +988,7 @@ var MainMap = (function() {
     };
 
     // preprate data
-    data = countDataForHex(data[0].organisations[0]);
+    data = prepareDataForHex(data.organisations[0]);
 
     // remove all previous hexes
     selection.selectAll('g.' + className).remove();
@@ -992,29 +996,31 @@ var MainMap = (function() {
     var bigHex = selection
       .append("g")
       .attr("class", className)
-      .attr("transform", function(d) {
-        var x = pos.x - hexSize / 2;
-        var y = pos.y - hexSize / 2;
-        return "translate(" + x  + "," + y + ")";
-      })
       .chart("BigHex")
       .width(hexSize)
       .height(hexSize);
 
     bigHex.draw(data);
 
+    // update overlay
+    $("#map-overlay").fadeIn();
+    $("#map-overlay .title").text(orgLabel);
+
     return bigHex;
+  };
+
+  MainMap.prototype.hideOverlay = function() {
+    $("#map-overlay").fadeOut();
   };
 
   MainMap.prototype.displayPopup = function(cluster) {
     var maxOrgCount = 99;
-    var maxProjectCount = 3;
     var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
     var organisations = cluster.organisations;
     var isSingleOrganisation = cluster.organisations.length === 1;
 
     if (isSingleOrganisation) {
-      this.drawBigHex(this.DOM.selectedHexGroup, [ cluster ]);
+      this.drawBigHex(cluster);
       return;
     }
 
@@ -1039,7 +1045,7 @@ var MainMap = (function() {
       org = this.organisationsById[org];
 
       if (org) {
-        this.drawBigHex(this.DOM.selectedHexGroup, [ { organisations: [ org ] } ]);
+        this.drawBigHex({ organisations: [ org ] });
         VizConfig.popup.close();
       }
     }.bind(this));
@@ -1148,10 +1154,14 @@ var MainMap = (function() {
         var idHash = makeIdHash(collab.org, collab.collaborator);
         var reversePosHash = makePosHash(collab.collaborator, collab.org);
         var reverseIdHash = makeIdHash(collab.collaborator, collab.org);
-        if (collabMap[posHash] && collabMap[posHash].orgs.indexOf(idHash) === -1 && collabMap[posHash].orgs.indexOf(reverseIdHash) === -1) {
+        if (collabMap[posHash] &&
+						collabMap[posHash].orgs.indexOf(idHash) === -1 &&
+						collabMap[posHash].orgs.indexOf(reverseIdHash) === -1) {
           collabMap[posHash].strength++;
         }
-        if (collabMap[reversePosHash] && collabMap[reversePosHash].orgs.indexOf(idHash) === -1 && collabMap[reversePosHash].orgs.indexOf(reverseIdHash) === -1) {
+        if (collabMap[reversePosHash] &&
+						collabMap[reversePosHash].orgs.indexOf(idHash) === -1 &&
+						collabMap[reversePosHash].orgs.indexOf(reverseIdHash) === -1) {
           collabMap[reversePosHash].strength++;
         }
         else {
@@ -1180,7 +1190,7 @@ var MainMap = (function() {
         .attr('stroke-opacity', 0)
         .attr('stroke-width', 1);
 
-      var zoomStrokeWidth  = Math.max(0, (zoom-5));
+      var zoomStrokeWidth = Math.max(0, (zoom-5));
 
       networkPaths
         .attr('x1', function(d) { return d.org.center.x; })
@@ -1192,7 +1202,7 @@ var MainMap = (function() {
         .delay(400)
         .duration(200)
         .attr('stroke-opacity', function(d) { return Math.max(0.05, Math.min(d.strength/5, 1)); })
-        .attr('stroke-width', function(d) { 
+        .attr('stroke-width', function(d) {
           var width = Math.max(0.2, Math.min((2*d.strength+zoomStrokeWidth)/10, 20));
           return width;
         });

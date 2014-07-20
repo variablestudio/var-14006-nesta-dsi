@@ -40,10 +40,10 @@
 
   function initVisualizations(vizContainer) {
     initMainViz(vizContainer);
-    initCaseStudies(vizContainer);
-    initEUCountries(vizContainer);
-    initChoropleth(vizContainer);
-    initExplorer(vizContainer);
+    // initCaseStudies(vizContainer);
+    // initEUCountries(vizContainer);
+    // initChoropleth(vizContainer);
+    // initExplorer(vizContainer);
     initVizKey();
     initPopup();
     initTooltip();
