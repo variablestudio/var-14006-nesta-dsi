@@ -195,16 +195,17 @@
 }
 
 #map-overlay {
-	float: right;
-	margin-right: 100px;
-	background: rgba(255, 255, 255, 0.8);
-	position: relative;
-	padding: 30px 20px 0 20px;
-	width: 300px;
+  float: right;
+  margin-right: 100px;
+  background: rgba(255, 255, 255, 0.8);
+  position: relative;
+  padding: 30px 20px 0 20px;
+  width: 300px;
+  cursor: pointer;
 }
 
 #map-overlay h3 {
-	font-size: 90%;
+  font-size: 90%;
 }
 
 /*---------------------------------- carousel -------------------------------------*/
@@ -729,6 +730,14 @@
 #vizPopup span {
   display: block;
   margin: 0 0 1em 0;
+}
+
+#vizPopup h4.org {
+	cursor: pointer;
+}
+
+#vizPopup h4 span {
+  margin: 0 0 0.1em 0;
 }
 
 #vizPopupPointer {

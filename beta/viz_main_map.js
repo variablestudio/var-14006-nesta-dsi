@@ -32,6 +32,10 @@ var MainMap = (function() {
   }
 
   MainMap.prototype.init = function() {
+    // build DOM
+    this.initDOM();
+
+    // act on events
     VizConfig.events.addEventListener('filter', function() {
       this.selectedOrg = null;
       this.showOrganisations(this.map.leaflet.getZoom());
@@ -46,12 +50,8 @@ var MainMap = (function() {
       this.showOrganisations(this.map.leaflet.getZoom());
     }.bind(this));
 
-    this.initSVG();
-
-    this.preloader = $('<img id="vizPreloader" src="'+VizConfig.assetsPath+'/preloader.gif"/>');
-    $(this.mainVizContainer).append(this.preloader);
-
     this.getOrganisations().then(function(organisations) {
+      // save organisations
       this.organisations = organisations;
       this.organisationsById = organisations.reduce(function(memo, org) {
         org.LatLng = new L.LatLng(org.lat, org.lon);
@@ -60,23 +60,24 @@ var MainMap = (function() {
         return memo;
       }, {});
 
-      this.hijackSearch();
-
-      //pre cache
+      // cache collaborations and projects
       this.getCollaborations().then(function(collaborations) {
         this.getProjectsInfo(collaborations).then(function() {
           this.showOrganisations(this.map.leaflet.getZoom());
           this.showClusterNetwork(this.map.leaflet.getZoom());
+          this.hijackSearch();
+
+          // hide preloader once everything is loaded
           this.preloader.fadeOut('slow');
         }.bind(this));
       }.bind(this));
     }.bind(this));
   };
 
-  MainMap.prototype.initSVG = function() {
+  MainMap.prototype.initDOM = function() {
     this.w = window.innerWidth;
     this.h = VizConfig.initialMapHeight;
-
+    // add map
     this.DOM.map = d3.select(this.mainVizContainer)
       .append('div')
       .attr('id', 'map');
@@ -90,10 +91,21 @@ var MainMap = (function() {
         $("<div id=\"map-overlay\"><h3 class=\"title\"></h3><svg></svg></div>")
           .css({ 'height': this.h, 'margin-top': -this.h })
           .hide()
-          .on("click", function(e) { $(e.currentTarget).fadeOut(); })
+          .on("click", function(e) {
+            $(e.currentTarget).fadeOut();
+            this.selectedOrg = null;
+            this.showOrganisations(this.map.leaflet.getZoom());
+            this.showClusterNetwork(this.map.leaflet.getZoom());
+            this.hideOrganisationHex();
+          }.bind(this))
       );
 
     this.DOM.overlay = d3.select("#map-overlay svg").attr("width", 300).attr("height", 300);
+
+    // display preloader
+    var preloaderHTML = '<img id="vizPreloader" src="' + VizConfig.assetsPath + '/preloader.gif"/>';
+    this.preloader = $(preloaderHTML);
+    $(this.mainVizContainer).append(this.preloader);
 
     // add map from leaflet
     var scale  = 4;
@@ -109,7 +121,7 @@ var MainMap = (function() {
     this.DOM.selectedHexGroup = this.DOM.g.append("g").attr("class", "hexes-selected");
 
     // save leaflet viewbox
-    this.defaultViewBox = this.DOM.svg.attr("viewBox").split(" ").map(function(v) { return +v; });
+    this.defaultViewBox = this.DOM.svg.attr("viewBox").split(" ").map(Number);
   };
 
   MainMap.prototype.showWorldMap = function(center, scale) {
@@ -252,12 +264,13 @@ var MainMap = (function() {
   };
 
   MainMap.prototype.hijackSearch = function() {
-    $('#q').parent().submit(function(e) {
+    var $q = $("#q");
+
+    $q.parent().submit(function(e) {
       e.preventDefault();
       e.stopPropagation();
 
-      var searchTerm = $('#q').val();
-      $('#q').val('');
+      var searchTerm = $q.val();
 
       var foundOrgs = this.organisations.filter(function(org) {
         return org.label.toLowerCase().indexOf(searchTerm) !== -1;
@@ -271,12 +284,11 @@ var MainMap = (function() {
         if (cluster) { this.displayPopup(cluster); }
       }
 
-      $('#q').hide();
-      return false;
+      $q.val('').hide();
     }.bind(this));
   };
 
-  MainMap.prototype.drawOrganisationHex = function(org) {
+  MainMap.prototype.drawOrganisationHex = function(org, settings) {
     if (org) {
       this.selectedOrg = org;
     }
@@ -998,7 +1010,7 @@ var MainMap = (function() {
       .attr("class", className)
       .chart("BigHex")
       .width(hexSize)
-      .height(hexSize);
+      .height(hexSize)
 
     bigHex.draw(data);
 
@@ -1009,60 +1021,51 @@ var MainMap = (function() {
     return bigHex;
   };
 
-  MainMap.prototype.hideOverlay = function() {
-    $("#map-overlay").fadeOut();
-  };
-
   MainMap.prototype.displayPopup = function(cluster) {
-    var maxOrgCount = 99;
-    var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
-    var organisations = cluster.organisations;
-    var isSingleOrganisation = cluster.organisations.length === 1;
-
-    if (isSingleOrganisation) {
-      this.drawBigHex(cluster);
-      return;
-    }
-
-    if (cutOrganisationsCount) { organisations = organisations.slice(0, maxOrgCount); }
-
-    var popupHTML = organisations.map(function(organization) {
-      var popupOrg = "<span data-url=\"" + organization.org + "\">" + organization.label + "</span>";
-      var popupContent = "<h4>" + popupOrg + "</h4>";
-
-      return popupContent;
-    }).join("<br/>");
-
-    if (cutOrganisationsCount) {
-      popupHTML += "<br/><div style='text-align:center'>...</div>";
-    }
-
-    VizConfig.popup.html($(popupHTML));
-
-    $("#vizPopup h4 > span").on("click", function(e) {
-      var target = $(e.target);
-      var org = target.data("url");
-      org = this.organisationsById[org];
-
+    var showNetworkAndHex = function(org) {
       if (org) {
-        this.drawBigHex({ organisations: [ org ] });
+        this.drawOrganisationHex(org.org);
+        this.showOrganisations(this.map.leaflet.getZoom());
+        this.showClusterNetwork(this.map.leaflet.getZoom());
+
         VizConfig.popup.close();
       }
-    }.bind(this));
+    }.bind(this);
 
-    var windowOffset = $("#map").offset();
-    var viewBox = d3.select("#map").select("svg").attr("viewBox").split(" ").map(function(v) { return +v; });
+    var isSingleOrganisation = cluster.organisations.length === 1;
+    if (isSingleOrganisation) {
+      showNetworkAndHex(cluster.organisations[0]);
+    }
+    else {
+      var popupHTML = cluster.organisations.map(function(organization) {
+        var popupOrg = "<span data-url=\"" + organization.org + "\">" + organization.label + "</span>";
+        var popupContent = "<h4 class=\"org\">" + popupOrg + "</h4>";
 
-    var dx = windowOffset.left + this.defaultViewBox[0] - viewBox[0];
-    var dy = windowOffset.top + this.defaultViewBox[1] - viewBox[1];
+        return popupContent;
+      }).join("");
 
-    var x = cluster.center ? cluster.center.x : cluster.x;
-    var y = cluster.center ? cluster.center.y : cluster.y;
+      var windowOffset = $("#map").offset();
+      var viewBox = this.DOM.svg.attr("viewBox").split(" ").map(Number);
 
-    // ugly hack for nice popup positioning
-    y -= this.map.fullscreen ? 70 : 26;
+      var dx = windowOffset.left + this.defaultViewBox[0] - viewBox[0];
+      var dy = windowOffset.top + this.defaultViewBox[1] - viewBox[1];
 
-    VizConfig.popup.open(x, y, dx, dy);
+      var x = cluster.center ? cluster.center.x : cluster.x;
+      var y = cluster.center ? cluster.center.y : cluster.y;
+
+      // ugly hack for nice popup positioning
+      y -= this.map.fullscreen ? 70 : 26;
+
+      VizConfig.popup.html($(popupHTML));
+      VizConfig.popup.open(x, y, dx, dy);
+
+      // handle organisation clicks in popup
+      $("#vizPopup h4 > span").on("click", function(e) {
+        var target = $(e.target);
+        var org = target.data("url");
+        showNetworkAndHex(this.organisationsById[org]);
+      }.bind(this));
+    }
   };
 
   MainMap.prototype.handleMouse = function(selection) {
@@ -1155,13 +1158,13 @@ var MainMap = (function() {
         var reversePosHash = makePosHash(collab.collaborator, collab.org);
         var reverseIdHash = makeIdHash(collab.collaborator, collab.org);
         if (collabMap[posHash] &&
-						collabMap[posHash].orgs.indexOf(idHash) === -1 &&
-						collabMap[posHash].orgs.indexOf(reverseIdHash) === -1) {
+            collabMap[posHash].orgs.indexOf(idHash) === -1 &&
+            collabMap[posHash].orgs.indexOf(reverseIdHash) === -1) {
           collabMap[posHash].strength++;
         }
         if (collabMap[reversePosHash] &&
-						collabMap[reversePosHash].orgs.indexOf(idHash) === -1 &&
-						collabMap[reversePosHash].orgs.indexOf(reverseIdHash) === -1) {
+            collabMap[reversePosHash].orgs.indexOf(idHash) === -1 &&
+            collabMap[reversePosHash].orgs.indexOf(reverseIdHash) === -1) {
           collabMap[reversePosHash].strength++;
         }
         else {
