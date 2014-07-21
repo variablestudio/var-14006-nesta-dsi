@@ -12,11 +12,6 @@ function VizKey(open) {
   vizKeyContainer.append(thumb);
   $('body').append(vizKeyContainer);
 
-  if (open) {
-    vizKeyContainer.addClass('open');
-    thumb.children('span').text('Hide Key');
-  }
-
   var organizationsTitle = 'Organisations';
   var projectsTitle = 'Projects';
   var dsiTitle = 'DSI Areas';
@@ -95,6 +90,8 @@ function VizKey(open) {
     if (vizKeyContainer.hasClass('open')) { this.close(); }
     else { this.open(); }
   }.bind(this));
+
+  if (open) { this.open(); }
 }
 
 VizKey.prototype.open = function() {

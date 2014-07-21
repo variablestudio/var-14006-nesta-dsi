@@ -150,8 +150,14 @@ var MainMap = (function() {
       click: function() {
         if (this.map.fullscreen) {
           $('#map').css({
+            'position': 'relative',
+            'height': this.h
+          });
+
+          $('#map-overlay').css({
+            'position': 'relative',
             'height': this.h,
-            'position': 'relative'
+            'margin-top': -this.h
           });
 
           // ugly workarounds for fixed positioning / z-index
@@ -164,6 +170,14 @@ var MainMap = (function() {
             'position': 'fixed',
             'top': 0,
             'left': 0
+          });
+
+          $('#map-overlay').css({
+            'height': window.innerHeight,
+            'position': 'fixed',
+            'top': 0,
+            'margin-top': 0,
+            'right': '100px'
           });
 
           // ugly workarounds for fixed positioning / z-index
@@ -288,7 +302,7 @@ var MainMap = (function() {
     }.bind(this));
   };
 
-  MainMap.prototype.drawOrganisationHex = function(org, settings) {
+  MainMap.prototype.drawOrganisationHex = function(org) {
     if (org) {
       this.selectedOrg = org;
     }
@@ -1010,7 +1024,7 @@ var MainMap = (function() {
       .attr("class", className)
       .chart("BigHex")
       .width(hexSize)
-      .height(hexSize)
+      .height(hexSize);
 
     bigHex.draw(data);
 
