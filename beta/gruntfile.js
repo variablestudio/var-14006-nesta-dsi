@@ -12,6 +12,8 @@ module.exports = function(grunt) {
           "../js/SPARQL.js",
           "../js/fn.js",
           '../js/EventDispatcher.js',
+          'viz_bighex.js',
+          'viz_iconchart.js',
           'viz_leaflet_addons.js',
           'viz_carousel.js',
           'viz_countries.js',
