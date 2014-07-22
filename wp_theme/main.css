@@ -21,7 +21,8 @@ h4 {
 }
 
 .widget {
-	margin: 15px 0;
+	margin-bottom: 60px;
+	margin-top: 30px;
 }
 
 .right {
@@ -40,18 +41,18 @@ h4 {
 }
 
 .tagcloud a {
-	background: #467eb7;
+	background-color: #808080;
 	color: #fff;
 	display: inline-block;
 	margin: 2px;
 	padding: 5px 10px;
 	text-decoration: none;
-	font-size:16px!important;
+	font-size: 16px!important;
 }
 
 .tagcloud a:hover {
 	background: #fff;
-	color: #467eb7;
+	color: #808080;
 }
 
 /* search*/
@@ -63,26 +64,18 @@ h4 {
 }
 
 #s {
-	width: 68%;
-	margin: 0 2% 0 0;
-	border: 1px solid #467eb7;
-	background:#448cd5;
+	width: 90%;
+	margin: 0;
+	border: 1px solid #999;
+	/* background:#448cd5; */
 	padding: 10px;
-	font-size: 15px;
+	font-size: 12px;
 	font-family: "Scene Pro", "Helvetica", sans-serif;
-	color:#77abe0;
+	color:#999;
 }
 
 #go {
-	width: 20%;
-	margin: 0;
-	border: 1px solid #467eb7;
-	padding: 10px;
-	background: #467eb7;
-	color: #fff;
-	font-size: 15px;
-	font-family: "Scene Pro", "Helvetica", sans-serif;
-	cursor: pointer;
+	display: none;
 }
 
 #go:hover {
@@ -180,8 +173,12 @@ h4 {
 }
 
 #respond {
-	margin:0;
+	margin-top:30px;
 	padding:0;
+}
+
+#respond .page-titles {
+	display: none;
 }
 
 ul.pinglist {
@@ -311,25 +308,23 @@ label {
 
 #comment {
 	width: 100%;
-	minwidth: 380px;
+	min-width: 380px;
 	min-height: 150px;
 	margin: 0;
 	padding: 3px;
 	font-size: 16px;
 	font-family: "Scene Pro", "Helvetica", sans-serif;
 	color: #fff;
-	border:1px solid #467eb7;
-	background:#448cd5;
+	border:1px solid #999999;
 }
 
 #comment:focus {
-	border:1px solid #467eb7;
-	padding: 3px;
+	border:1px solid #333333;
 }
 
 .submit-comment {
 	display:block;
-	background: #467eb7;
+	background-color: #808080;
 	color: #fff;
 	font-size: 18px;
 	font-family: "Scene Pro", "Helvetica", sans-serif;
@@ -342,7 +337,7 @@ label {
 
 .submit-comment:hover {
 	background: #fff;
-	color: #467eb7;
+	color: #808080;
 	font-size: 18px;
 	font-family: "Scene Pro", "Helvetica", sans-serif;
 	padding: 10px;
@@ -376,11 +371,8 @@ label {
 }
 
 .page-titles {
-	font-size: 20px;WORDPRESSmargin:-1px 0 15px 0!important;
-	padding:10px 5px;
-	border-top: 1px solid #467eb7;
-	border-bottom: 1px solid #467eb7;
-	color: #fff!important;
+	font-size: 20px;
+	color: #999!important;
 }
 
 
@@ -394,33 +386,36 @@ label {
 }
 
 .wp-pagenavi a, .wp-pagenavi a:link {
-	padding: 2px 4px 2px 4px; 
+	padding: 2px 4px 2px 4px;
 	margin: 2px;
 	text-decoration: none;
 	border: 0;
 	color: #fff;
 	background: #3670aa;
-font-weight: bold;WORDPRESS}
+	font-weight: bold;
+}
 
 .wp-pagenavi a:visited {
-	padding: 2px 4px 2px 4px; 
+	padding: 2px 4px 2px 4px;
 	margin: 2px;
 	text-decoration: none;
 	border: 0;
 	color: #fff;
 	background: #467eb7;
-font-weight: bold;WORDPRESS}
+	font-weight: bold;
+}
 
-.wp-pagenavi a:hover {WORDPRESSborder: 0;
+.wp-pagenavi a:hover {
+	WORDPRESSborder: 0;
 	color: #fff;
 	background: #215d98;
-	padding: 2px 4px 2px 4px; 
+	padding: 2px 4px 2px 4px;
 	margin: 2px;
 	font-weight: bold;
 }
 
 .wp-pagenavi a:active {
-	padding: 2px 4px 2px 4px; 
+	padding: 2px 4px 2px 4px;
 	margin: 2px;
 	text-decoration: none;
 	border: 0;
@@ -430,7 +425,7 @@ font-weight: bold;WORDPRESS}
 }
 
 .wp-pagenavi span.pages {
-	padding: 2px 4px 2px 4px; 
+	padding: 2px 4px 2px 4px;
 	margin: 2px;
 	color: #fff;
 	border: 0;
@@ -439,7 +434,7 @@ font-weight: bold;WORDPRESS}
 }
 
 .wp-pagenavi span.current {
-	padding: 2px 4px 2px 4px; 
+	padding: 2px 4px 2px 4px;
 	margin: 2px;
 	font-weight: bold;
 	border: 0;
@@ -448,8 +443,9 @@ font-weight: bold;WORDPRESS}
 }
 
 .wp-pagenavi span.extend {
-	padding: 2px 4px 2px 4px; 
-	margin: 2px;WORDPRESSborder: 0;
+	padding: 2px 4px 2px 4px;
+	margin: 2px;
+	WORDPRESSborder: 0;
 	color: #fff;
 	background: #467eb7;
 	font-weight: bold;
@@ -634,7 +630,82 @@ font-weight: bold;WORDPRESS}
 	box-shadow:         3px 3px 5px 0px rgba(50, 50, 50, 0.6);
 }
 
+#page.blog #content {
+	width: 65%;
+	margin: 0;
+}
 
+#page.blog .right {
+	width: 30%;
+	float: right;
+	margin: 0;
+	margin-top: 60px;
+}
+
+#page.blog h2 a {
+	text-decoration: none;
+}
+
+#page.blog h2 a:hover {
+	color: #999;
+}
+
+#page.blog .read-more {
+	display: inline-block;
+	font-size: 15px;
+	font-weight: bold;
+	padding: 10px;
+	background-color: #FFFF05;
+	text-decoration: none;
+	margin-top: 20px;
+}
+
+#page.blog .read-more:hover {
+	color: #999;
+}
+
+.widget .page-title {
+	font-size: 22px;
+	font-weight: 500;
+	margin-bottom: 0;
+	border-top: 2px solid #333;
+	padding-top: 10px;
+	padding-bottom: 20px;
+}
+
+.widget ul {
+	list-style: none;
+}
+
+.widget ul li {
+	margin-bottom: 10px;
+}
+
+.widget ul li a {
+	text-decoration: none;
+}
+
+.widget ul li a:hover {
+	color: #999;
+}
+
+.nav-bar .search a {
+	display: block;
+	text-decoration: none;
+	color: #333;
+	text-align: right;
+	margin-bottom: 8px;
+}
+
+.nav-bar .search #q {
+	border: 2px solid #eee;
+	outline: 0;
+	width: 678px;
+	margin: 0;
+	font-size: 14px;
+	font-family: "Scene Std Medium",sans-serif;
+	padding: 12px;
+}
 
 
 @media only screen and (min-width:768px) and (max-width:959px) {

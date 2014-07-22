@@ -3,7 +3,7 @@
 
 <div id="page" class="<?php echo $slug ?>">
 	<?php if ($slug != "research") { ?>
-		<h3> <?php single_cat_title( '', true ); ?> </h3>
+		<h1> <?php single_cat_title( '', true ); ?> </h1>
 	<?php } ?>
 
 	<div class="description">
@@ -13,7 +13,7 @@
 	<?php if ($slug == "funding-and-support") { ?>
 		<div class="items">
 			<?php if (have_posts()) { ?>
-				<h3>Opportunities</h3>
+				<h1>Opportunities</h1>
 
 				<?php
 					while (have_posts()) {
@@ -67,7 +67,7 @@
 
 				foreach ($categories as $category => $name) {
 					echo "<div class=\"items\">";
-					echo "<h3>" . $name . "</h3>";
+					echo "<h1>" . $name . "</h1>";
 
 					while (have_posts()) {
 						the_post();

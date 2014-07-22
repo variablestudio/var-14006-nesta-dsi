@@ -1337,31 +1337,33 @@
 }
 	p
 {
-	margin-bottom:1.5em;
-	line-height:1.5
+	margin-bottom:0.5em;
+	line-height:1.5;
+	font-size:14px;
 }
 	ol,ul
 {
 	list-style-position:inside;
 	padding-left:0;
-	margin-bottom:1.5em
+	margin-bottom:0.5em;
 }
 	ol li,ul li
 {
-	line-height:1.5
+	line-height:1.5;
+	font-size:14px;
 }
 	h1
 {
-	font-size:48px;
+	font-size:24px;
 	margin-bottom:32px;
 	margin-top:32px;
-	font-weight:300
+	font-weight:500;
 }
 	h2
 {
-	font-size:36px;
-	margin-bottom:36px;
-	font-weight:300
+	font-size:22px;
+	margin-bottom:20px;
+	font-weight:500
 }
 	h3
 {
@@ -1374,16 +1376,6 @@
 	font-size:30px;
 	margin-bottom:48px
 }
-	/* ::selection */
-/* { */
-	/* background:#448cd5; */
-	/* color:#fff */
-/* } */
-	/* ::-moz-selection */
-/* { */
-	/* background:#448cd5; */
-	/* color:#fff */
-/* } */
 .container
 {
 	position:relative;
@@ -1539,21 +1531,24 @@
 
 }
 
-#user-info
-{
-	margin-top: -37px; /* HACK: ugly hack for top bar */
+#header-content {
 	width: 100%;
 	padding: 12px 0;
 	background: #333;
+}
+#user-info
+{
+	width: 940px;
+	margin: 0 auto;
+	text-align: right;
 	color: #fff;
 	font-family: "Scene Std Medium", sans-serif;
 	font-size: 13px;
 	color: rgba(255,255,255,0.35);
 }
 
-#user-info a {
-	display: block;
-	width: 944px;
+#user-info a
+{
 	text-align: right;
 	margin: 0 auto;
 
@@ -1561,7 +1556,8 @@
 	color: rgba(255,255,255,0.65);
 }
 
-#user-info a:hover {
+#user-info a:hover
+{
 	color: #FFF;
 }
 
@@ -1572,15 +1568,6 @@
 	position:relative
 }
 
-}
-	#user-info a.current-user
-{
-	/* display:block; */
-	/* padding:12px 24px; */
-	/* color:#444; */
-	/* text-align:center; */
-	/* text-decoration:none; */
-	/* background:#b9f53b */
 }
 	@media only screen and (max-width:767px)
 {
@@ -1651,6 +1638,7 @@
 }
 	#partners
 {
+	background: #333;
 	height:360px;
 	position:relative
 }
@@ -1740,6 +1728,14 @@
 	left:676px;
 	top:184px
 }
+
+#partnersList {
+	width: 940px;
+	margin: 0 auto;
+	display: block;
+	position: relative;
+}
+
 	@media only screen and (max-width:959px)
 {
 	#partners a.nesta
@@ -1807,6 +1803,7 @@
 }
 	footer
 {
+	background: #333;
 	padding:36px 0;
 	color:rgba(255,255,255,0.8)
 }
@@ -1975,7 +1972,7 @@
 	display:inline;
 	margin-left:10px;
 	margin-right:10px;
-	width:580px
+	/* width:580px */
 }
 	@media only screen and (max-width:767px)
 {
@@ -2054,6 +2051,10 @@
 	#about .page-intro p.subheader strong,#terms .page-intro p.subheader strong,#privacy .page-intro p.subheader strong,#page .page-intro p.subheader strong
 {
 	font-weight:normal
+}
+
+#page.blog .page-intro .subheader {
+	color: #999;
 }
 	#events #content
 {
@@ -4021,9 +4022,6 @@
 	margin-bottom:72px;
 	margin-left:10px
 }
-body {
-	border-top: 37px solid #333; /* HACK: ugly hack for top bar */
-}
 
 	body.admin #header .menu
 {
@@ -4376,19 +4374,19 @@ body {
 }
 	form .input input[type=text]:focus::-webkit-input-placeholder,form .input input[type=email]:focus::-webkit-input-placeholder,form .input input[type=password]:focus::-webkit-input-placeholder,form .input input[type="url"]:focus::-webkit-input-placeholder,form .input textarea:focus::-webkit-input-placeholder
 {
-	color:rgba(255,255,255,0.5)
+	color:rgba(128,128,128,0.5)
 }
 	form .input input[type=text]:focus:-moz-placeholder,form .input input[type=email]:focus:-moz-placeholder,form .input input[type=password]:focus:-moz-placeholder,form .input input[type="url"]:focus:-moz-placeholder,form .input textarea:focus:-moz-placeholder
 {
-	color:rgba(255,255,255,0.5)
+	color:rgba(128,128,128,0.5)
 }
 	form .input input[type=text]:focus::-moz-placeholder,form .input input[type=email]:focus::-moz-placeholder,form .input input[type=password]:focus::-moz-placeholder,form .input input[type="url"]:focus::-moz-placeholder,form .input textarea:focus::-moz-placeholder
 {
-	color:rgba(255,255,255,0.5)
+	color:rgba(128,128,128,0.5)
 }
 	form .input input[type=text]:focus:-ms-input-placeholder,form .input input[type=email]:focus:-ms-input-placeholder,form .input input[type=password]:focus:-ms-input-placeholder,form .input input[type="url"]:focus:-ms-input-placeholder,form .input textarea:focus:-ms-input-placeholder
 {
-	color:rgba(255,255,255,0.5)
+	color:rgba(128,128,128,0.5)
 }
 	form .input textarea.autosize
 {
@@ -4498,19 +4496,19 @@ body {
 }
 	::-webkit-input-placeholder
 {
-	color:rgba(255,255,255,0.5)
+	color:rgba(128,128,128,0.5)
 }
 	:-moz-placeholder
 {
-	color:rgba(255,255,255,0.5)
+	color:rgba(128,128,128,0.5)
 }
 	::-moz-placeholder
 {
-	color:rgba(255,255,255,0.5)
+	color:rgba(128,128,128,0.5)
 }
 	:-ms-input-placeholder
 {
-	color:rgba(255,255,255,0.5)
+	color:rgba(128,128,128,0.5)
 }
 	ul.tagit
 {
@@ -6438,3 +6436,7 @@ body {
 	margin-left:4px
 }
 
+.grey-bg {
+	padding: 20px;
+	background-color: #F2F2F2;
+}
