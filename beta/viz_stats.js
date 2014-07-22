@@ -121,7 +121,7 @@ MainStats.prototype.getCities = function() {
 		}.bind(this));
 };
 
-MainStats.prototype.draw = function() {
+MainStats.prototype.init = function() {
 	this.stats.forEach(function(stat) {
 		this.getPredicate(stat.predicate).then(function(data) {
 			this.drawSection(stat, data);
@@ -186,7 +186,7 @@ MainStats.prototype.drawSection = function(section, data) {
 				.height(height)
 				.image(image)
 				.imageSize(section.imageSize)
-				.layout(section.layout || "default")
+				.layout(section.layout || "default");
 
 			chart.draw(fn.sequence(0, data.count));
 
@@ -194,9 +194,12 @@ MainStats.prototype.drawSection = function(section, data) {
 				.attr("class", "count")
 				.text(data.count);
 
-			column.append("div")
+			var name = column.append("div")
 				.attr("class", "name")
 				.style("width", section.width)
 				.text(data.value);
+
+			// strangely setting this with d3 doesn't work...
+			$(name[0]).css({ "width": section.width });
 		}.bind(this));
 };

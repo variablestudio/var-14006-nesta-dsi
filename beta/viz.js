@@ -44,6 +44,7 @@
     initEUCountries(vizContainer);
     initChoropleth(vizContainer);
     initExplorer(vizContainer);
+    initMainStats(vizContainer, { timeout: 4000 });
     initVizKey();
     initPopup();
     initTooltip();
@@ -137,6 +138,21 @@
     var explorer = new Explorer("#explorerViz");
     explorer.init();
   }
+
+	function initMainStats(vizContainer, settings) {
+		settings.timeout = settings.timeout || 0;
+
+    var mainStatsTitle = $('<h1>Stats</h1>');
+    vizContainer.append(mainStatsTitle);
+
+    var mainStatsViz = $('<div id="mainStatsViz"></div>');
+    vizContainer.append(mainStatsViz);
+
+		setTimeout(function() {
+			var mainStats = new MainStats("#mainStatsViz", { minValue: 10 });
+			mainStats.init();
+		}, settings.timeout);
+	}
 
   function initVizKey() {
     var openOnInit = !showIntro;
