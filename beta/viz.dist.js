@@ -479,15 +479,20 @@ d3.chart("BigHex", {
             .style("fill", function(d) { return "rgba(255,255,255,0)"; })
             .on("mouseover", function(d) {
               d3.select(this).style("fill", function(d) { return "rgba(255,255,255,0.5)"; })
-              //
               var parentIndex = Array.prototype.indexOf.call(this.parentNode.parentNode.childNodes, this.parentNode);
               var parentData = d3.select(this.parentNode).datum();
               VizConfig.tooltip.show();
-              VizConfig.tooltip.html(VizConfig.dsiAreasById[parentData.areaOfDSI].label + ' Project ' + d, "#FFF", VizConfig.dsiAreasById[parentData.areaOfDSI].color);
+              VizConfig.tooltip.html(VizConfig.dsiAreasById[parentData.areaOfDSI].label + ' Project ' + d.name, "#FFF", VizConfig.dsiAreasById[parentData.areaOfDSI].color);
             })
             .on("mouseout", function() {
               d3.select(this).style("fill", function(d) { return "rgba(255,255,255,0)"; })
               VizConfig.tooltip.hide();
+            })
+            .on("click", function(d) {
+              d3.event.preventDefault();
+              d3.event.stopPropagation();
+
+              if (d.url) { window.open(d.url, "_blank"); }
             });
 
           projects.exit()
@@ -3035,7 +3040,7 @@ function VizKey(open) {
 
   var vizKeyContainer = this.vizKeyContainer = $('<div id="vizKeyContainer"></div>');
   var sideBar = this.sideBar = $('<div id="vizKeySideBar"></div>');
-  var thumb = this.thumb = $('<div id="vizKeyThumb"><span>Open Key</span></div>');
+  var thumb = this.thumb = $('<div id="vizKeyThumb"><span>Open Filters</span></div>');
 
   vizKeyContainer.append(sideBar);
   vizKeyContainer.append(thumb);
@@ -3125,13 +3130,13 @@ function VizKey(open) {
 
 VizKey.prototype.open = function() {
   this.vizKeyContainer.addClass('open');
-  this.thumb.children('span').text('Hide Key');
+  this.thumb.children('span').text('Hide Filters');
   this.vizKeyContainer.animate({ left: 0 });
 };
 
 VizKey.prototype.close = function() {
   this.vizKeyContainer.removeClass('open');
-  this.thumb.children('span').text('Open Key');
+  this.thumb.children('span').text('Open Filters');
 
   this.thumb.animate({ left: "137px" });
   this.vizKeyContainer.animate({ left: "-220px" });
@@ -3206,6 +3211,8 @@ var MainMap = (function() {
       this.showOrganisations(this.map.leaflet.getZoom());
       this.showClusterNetwork(this.map.leaflet.getZoom());
       this.hideOrganisationHex();
+      this.hideBigHex();
+
       VizConfig.popup.close();
     }.bind(this));
 
@@ -3250,22 +3257,22 @@ var MainMap = (function() {
     // for some strange reason can't set this width d3.style()
     $('#map').css({ 'width': this.w, 'height': this.h });
 
-    // big hex overlay
-    $(this.mainVizContainer)
-      .append(
-        $("<div id=\"map-overlay\"><h3 class=\"title\"></h3><svg></svg></div>")
-          .css({ 'height': this.h, 'margin-top': -this.h })
-          .hide()
-          .on("click", function(e) {
-            $(e.currentTarget).fadeOut();
-            this.selectedOrg = null;
-            this.showOrganisations(this.map.leaflet.getZoom());
-            this.showClusterNetwork(this.map.leaflet.getZoom());
-            this.hideOrganisationHex();
-          }.bind(this))
-      );
+    this.DOM.overlay = {
+      div: $("<div id=\"map-overlay\"><h3 class=\"title\"></h3><svg></svg></div>")
+        .css({ 'height': this.h, 'margin-top': -this.h })
+        .hide()
+        .on("click", function() {
+          this.selectedOrg = null;
+          this.showOrganisations(this.map.leaflet.getZoom());
+          this.showClusterNetwork(this.map.leaflet.getZoom());
+          this.hideOrganisationHex();
+          this.hideBigHex();
+        }.bind(this))
+    };
 
-    this.DOM.overlay = d3.select("#map-overlay svg").attr("width", 300).attr("height", 300);
+    // add big hex overlay
+    $(this.mainVizContainer).append(this.DOM.overlay.div);
+    this.DOM.overlay.svg = d3.select("#map-overlay svg").attr("width", 300).attr("height", 300);
 
     // display preloader
     var preloaderHTML = '<img id="vizPreloader" src="' + VizConfig.assetsPath + '/preloader.gif"/>';
@@ -3307,63 +3314,6 @@ var MainMap = (function() {
 
     this.map.leaflet._initPathRoot(); // adds svg layer to leaflet
 
-    this.map.leaflet.addControl(new L.control.customButton({
-      title: 'Fullscreen',
-
-      className: 'leaflet-fullscreen-button',
-
-      click: function() {
-        if (this.map.fullscreen) {
-          $('#map').css({
-            'position': 'relative',
-            'height': this.h
-          });
-
-          $('#map-overlay').css({
-            'position': 'relative',
-            'height': this.h,
-            'margin-top': -this.h
-          });
-
-          // ugly workarounds for fixed positioning / z-index
-          $('.nav-bar .search').show();
-          $('#caseStudiesViz').show();
-        }
-        else {
-          $('#map').css({
-            'height': window.innerHeight,
-            'position': 'fixed',
-            'top': 0,
-            'left': 0
-          });
-
-          $('#map-overlay').css({
-            'height': window.innerHeight,
-            'position': 'fixed',
-            'top': 0,
-            'margin-top': 0,
-            'right': '100px'
-          });
-
-          // ugly workarounds for fixed positioning / z-index
-          $('.nav-bar .search').hide();
-          $('#caseStudiesViz').hide();
-        }
-
-        this.map.leaflet.invalidateSize();
-        this.map.fullscreen = !this.map.fullscreen;
-      }.bind(this),
-
-      mouseover: function() {
-        VizConfig.tooltip.html("Fullscreen");
-        VizConfig.tooltip.show();
-      },
-
-      mouseout: function() {
-        VizConfig.tooltip.hide();
-      }
-    }));
-
     this.map.leaflet.addControl(new L.control.zoom({ position: 'topright' }));
 
     $(".leaflet-control-zoom-in").on("mouseover", function() {
@@ -3386,7 +3336,6 @@ var MainMap = (function() {
 
     this.map.leaflet.addControl(new L.control.customButton({
       title: 'Center',
-
       className: 'leaflet-center-button',
 
       click: function() {
@@ -3402,6 +3351,25 @@ var MainMap = (function() {
         VizConfig.tooltip.hide();
       }
     }));
+
+    $(this.mainVizContainer).append(
+      $("<div class=\"map-fullscreen\">Fullscreen</div>").on("click", function() {
+        if (this.map.fullscreen) {
+          $('#map').css({ 'position': 'relative', 'height': this.h });
+          $('#map-overlay').css({ 'position': 'relative', 'height': this.h, 'margin-top': -this.h });
+        }
+        else {
+          var topMargin = 146;
+          var size = window.innerHeight - topMargin;
+
+          $('#map').css({ 'height': size });
+          $('#map-overlay').css({ 'height': size, 'margin-top': -size });
+        }
+
+        this.map.leaflet.invalidateSize();
+        this.map.fullscreen = !this.map.fullscreen;
+      }.bind(this))
+    );
 
     // map redraws including zoom
     this.map.leaflet.on("zoomstart", function() {
@@ -3905,10 +3873,12 @@ var MainMap = (function() {
 
       // draw clusters and hexes
       var clusters = this.drawClusters(this.DOM.orgGroup, data.clusters, color);
+      var caseStudies = this.drawCaseStudies(this.DOM.orgGroup, data.clusters);
       var hexes = this.drawHexes(this.DOM.hexGroup, data.hexes);
 
       // act on mouse
-      this.handleMouse(clusters, { fromCluster: true });
+      this.handleMouse(clusters);
+      this.handleMouse(caseStudies);
       this.handleMouse(hexes);
 
       this.drawOrganisationHex();
@@ -3922,6 +3892,11 @@ var MainMap = (function() {
         .duration(200)
         .attr('opacity', 0);
 
+      this.DOM.orgGroup.selectAll('.case-study')
+        .transition()
+        .duration(200)
+        .attr('opacity', 0);
+
       this.DOM.hexGroup.selectAll('g')
         .transition()
         .duration(200)
@@ -3931,14 +3906,7 @@ var MainMap = (function() {
 
   MainMap.prototype.drawClusters = function(selection, data) {
     data = data.map(function(d) {
-      d.logoImages = d.organisations.reduce(function(memo, org) {
-        if (org.logoImage) { memo.push(org.logoImage); }
-        return memo;
-      }, []);
-
-      d.hasLogoImage = d.logoImages.length > 0;
       d.iconScale = Math.max(12 - Math.sqrt(d.organisations.length), 7);
-
       return d;
     });
 
@@ -3975,46 +3943,17 @@ var MainMap = (function() {
     groupTransform
       .select('image')
       .transition()
-      .attr('xlink:href', function(d) {
-        var img = 'assets/drop-icon.png';
-
-        if (d.hasLogoImage) {
-          // img = d.logoImages[Math.floor(Math.random() * d.logoImages.length)];
-          img = d.logoImages[0];
-        }
-
-        return img;
-      })
-      .attr('width', function(d) {
-        var width = 257 / d.iconScale;
-        if (d.hasLogoImage) { width = 50; }
-        return width;
-      })
-      .attr('height', function(d) {
-        var height = 308 / d.iconScale;
-        if (d.hasLogoImage) { height = 44; }
-        return height;
-      })
-      .attr('x', function(d) {
-        var x = -(257 / d.iconScale) / 2;
-        if (d.hasLogoImage) { x = -50 / 2; }
-        return x;
-      })
-      .attr('y', function(d) {
-        var y = -(308 / d.iconScale);
-        if (d.hasLogoImage) { y = -44 / 2; }
-        return y;
-      });
+      .attr('xlink:href', 'assets/drop-icon.png')
+      .attr('width', function(d) { return 257 / d.iconScale; })
+      .attr('height', function(d) { return 308 / d.iconScale; })
+      .attr('x', function(d) { return -(257 / d.iconScale) / 2; })
+      .attr('y', function(d) { return -(308 / d.iconScale); });
 
     groupTransform
       .select("text")
       .transition()
-      .attr('dy', function(d) {
-        return -(154 / d.iconScale);
-      })
-      .text(function(d) {
-        return d.hasLogoImage ? "" : d.organisations.length;
-      });
+      .attr('dy', function(d) { return -(154 / d.iconScale); })
+      .text(function(d) { return d.organisations.length; });
 
     var groupExit = clusters.exit();
 
@@ -4036,6 +3975,60 @@ var MainMap = (function() {
       .remove();
 
     return clusters;
+  };
+
+  MainMap.prototype.drawCaseStudies = function(selection, data) {
+    data = data
+      .map(function(data) {
+        return data.organisations.reduce(function(memo, org) {
+          if (org.logoImage) {
+            memo.push({
+              center: org.center,
+              logoImage: org.logoImage,
+              organisations: [ org ]
+            });
+          }
+          return memo;
+        }, []);
+      }, [])
+      .filter(function(array) {
+        return array.length > 1;
+      })
+      .reduce(function(memo, array) {
+        return memo.concat(array);
+      }, []);
+
+    var caseStudies = selection
+      .selectAll('.case-study')
+      .data(data);
+
+    caseStudies
+      .enter()
+      .append('svg:image')
+      .attr('class', 'case-study')
+      .attr('xlink:href', function(d) { return d.logoImage; })
+      .attr('width', 50)
+      .attr('height', 44)
+      .attr('x', -50 / 2 - 30)
+      .attr('y', -44 / 2 + 10)
+      .attr('opacity', 0);
+
+    caseStudies
+      .attr('transform', function(d) {
+        return "translate(" + d.center.x + "," + d.center.y + ")";
+      })
+      .transition()
+      .duration(300)
+      .attr('opacity', 1);
+
+    caseStudies
+      .exit()
+      .transition()
+      .duration(300)
+      .attr('opacity', 0)
+      .remove();
+
+    return caseStudies;
   };
 
   MainMap.prototype.drawHexes = function(selection, data) {
@@ -4154,7 +4147,7 @@ var MainMap = (function() {
   };
 
   MainMap.prototype.drawBigHex = function(data) {
-    var selection = this.DOM.overlay;
+    var selection = this.DOM.overlay.svg;
     var className = "hex-big";
     var hexSize = 300;
     var orgLabel = data.organisations[0].label;
@@ -4169,8 +4162,11 @@ var MainMap = (function() {
           var index = indexOfProp(memo, "areaOfDSI", area);
 
           if (index >= 0) {
+            var projectUrl = project.p.substr(project.p.lastIndexOf("/") + 1);
+            projectUrl = 'http://digitalsocial.eu/projects/' + projectUrl;
+
             memo[index].count++;
-            memo[index].projects.push(project.label);
+            memo[index].projects.push({ name: project.label, url: projectUrl });
           }
         });
 
@@ -4194,10 +4190,14 @@ var MainMap = (function() {
     bigHex.draw(data);
 
     // update overlay
-    $("#map-overlay").fadeIn();
-    $("#map-overlay .title").text(orgLabel);
+    this.DOM.overlay.div.fadeIn();
+    this.DOM.overlay.div.find(".title").text(orgLabel);
 
     return bigHex;
+  };
+
+  MainMap.prototype.hideBigHex = function() {
+    this.DOM.overlay.div.fadeOut();
   };
 
   MainMap.prototype.displayPopup = function(cluster) {
@@ -4263,8 +4263,6 @@ var MainMap = (function() {
     selection.on('mouseover', function(cluster) {
       if (isPreloading()) { return; }
 
-      VizConfig.tooltip.show();
-
       var maxOrgCount = 6;
       var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
       var organisations = cluster.organisations;
@@ -4280,6 +4278,7 @@ var MainMap = (function() {
       }
 
       VizConfig.tooltip.html(html);
+      VizConfig.tooltip.show();
     });
 
     selection.on('mouseout', function() {
@@ -4379,6 +4378,7 @@ var MainMap = (function() {
         .attr('y1', function(d) { return d.org.center.y; })
         .attr('x2', function(d) { return d.collaborator.center.x; })
         .attr('y2', function(d) { return d.collaborator.center.y; })
+        .attr('stroke-opacity', 0)
         .attr('stroke-width', 1)
         .transition()
         .delay(400)
