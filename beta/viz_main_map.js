@@ -1223,6 +1223,7 @@ var MainMap = (function() {
         .attr('y1', function(d) { return d.org.center.y; })
         .attr('x2', function(d) { return d.collaborator.center.x; })
         .attr('y2', function(d) { return d.collaborator.center.y; })
+        .attr('stroke-opacity', 0)
         .attr('stroke-width', 1)
         .transition()
         .delay(400)
