@@ -91,14 +91,14 @@ var MainMap = (function() {
       div: $("<div id=\"map-overlay\"><h3 class=\"title\"></h3><svg></svg></div>")
         .css({ 'height': this.h, 'margin-top': -this.h })
         .hide()
-        .on("click", function(e) {
+        .on("click", function() {
           this.selectedOrg = null;
           this.showOrganisations(this.map.leaflet.getZoom());
           this.showClusterNetwork(this.map.leaflet.getZoom());
           this.hideOrganisationHex();
           this.hideBigHex();
         }.bind(this))
-    }
+    };
 
     // add big hex overlay
     $(this.mainVizContainer).append(this.DOM.overlay.div);
@@ -703,10 +703,12 @@ var MainMap = (function() {
 
       // draw clusters and hexes
       var clusters = this.drawClusters(this.DOM.orgGroup, data.clusters, color);
+      var caseStudies = this.drawCaseStudies(this.DOM.orgGroup, data.clusters);
       var hexes = this.drawHexes(this.DOM.hexGroup, data.hexes);
 
       // act on mouse
-      this.handleMouse(clusters, { fromCluster: true });
+      this.handleMouse(clusters);
+      this.handleMouse(caseStudies);
       this.handleMouse(hexes);
 
       this.drawOrganisationHex();
@@ -720,6 +722,11 @@ var MainMap = (function() {
         .duration(200)
         .attr('opacity', 0);
 
+      this.DOM.orgGroup.selectAll('.case-study')
+        .transition()
+        .duration(200)
+        .attr('opacity', 0);
+
       this.DOM.hexGroup.selectAll('g')
         .transition()
         .duration(200)
@@ -729,14 +736,7 @@ var MainMap = (function() {
 
   MainMap.prototype.drawClusters = function(selection, data) {
     data = data.map(function(d) {
-      d.logoImages = d.organisations.reduce(function(memo, org) {
-        if (org.logoImage) { memo.push(org.logoImage); }
-        return memo;
-      }, []);
-
-      d.hasLogoImage = d.logoImages.length > 0;
       d.iconScale = Math.max(12 - Math.sqrt(d.organisations.length), 7);
-
       return d;
     });
 
@@ -773,46 +773,17 @@ var MainMap = (function() {
     groupTransform
       .select('image')
       .transition()
-      .attr('xlink:href', function(d) {
-        var img = 'assets/drop-icon.png';
-
-        if (d.hasLogoImage) {
-          // img = d.logoImages[Math.floor(Math.random() * d.logoImages.length)];
-          img = d.logoImages[0];
-        }
-
-        return img;
-      })
-      .attr('width', function(d) {
-        var width = 257 / d.iconScale;
-        if (d.hasLogoImage) { width = 50; }
-        return width;
-      })
-      .attr('height', function(d) {
-        var height = 308 / d.iconScale;
-        if (d.hasLogoImage) { height = 44; }
-        return height;
-      })
-      .attr('x', function(d) {
-        var x = -(257 / d.iconScale) / 2;
-        if (d.hasLogoImage) { x = -50 / 2; }
-        return x;
-      })
-      .attr('y', function(d) {
-        var y = -(308 / d.iconScale);
-        if (d.hasLogoImage) { y = -44 / 2; }
-        return y;
-      });
+      .attr('xlink:href', 'assets/drop-icon.png')
+      .attr('width', function(d) { return 257 / d.iconScale; })
+      .attr('height', function(d) { return 308 / d.iconScale; })
+      .attr('x', function(d) { return -(257 / d.iconScale) / 2; })
+      .attr('y', function(d) { return -(308 / d.iconScale); });
 
     groupTransform
       .select("text")
       .transition()
-      .attr('dy', function(d) {
-        return -(154 / d.iconScale);
-      })
-      .text(function(d) {
-        return d.hasLogoImage ? "" : d.organisations.length;
-      });
+      .attr('dy', function(d) { return -(154 / d.iconScale); })
+      .text(function(d) { return d.organisations.length; });
 
     var groupExit = clusters.exit();
 
@@ -834,6 +805,60 @@ var MainMap = (function() {
       .remove();
 
     return clusters;
+  };
+
+  MainMap.prototype.drawCaseStudies = function(selection, data) {
+    data = data
+      .map(function(data) {
+        return data.organisations.reduce(function(memo, org) {
+          if (org.logoImage) {
+            memo.push({
+              center: org.center,
+              logoImage: org.logoImage,
+              organisations: [ org ]
+            });
+          }
+          return memo;
+        }, []);
+      }, [])
+      .filter(function(array) {
+        return array.length > 1;
+      })
+      .reduce(function(memo, array) {
+        return memo.concat(array);
+      }, []);
+
+    var caseStudies = selection
+      .selectAll('.case-study')
+      .data(data);
+
+    caseStudies
+      .enter()
+      .append('svg:image')
+      .attr('class', 'case-study')
+      .attr('xlink:href', function(d) { return d.logoImage; })
+      .attr('width', 50)
+      .attr('height', 44)
+      .attr('x', -50 / 2 - 30)
+      .attr('y', -44 / 2 + 10)
+      .attr('opacity', 0);
+
+    caseStudies
+      .attr('transform', function(d) {
+        return "translate(" + d.center.x + "," + d.center.y + ")";
+      })
+      .transition()
+      .duration(300)
+      .attr('opacity', 1);
+
+    caseStudies
+      .exit()
+      .transition()
+      .duration(300)
+      .attr('opacity', 0)
+      .remove();
+
+    return caseStudies;
   };
 
   MainMap.prototype.drawHexes = function(selection, data) {
@@ -1068,8 +1093,6 @@ var MainMap = (function() {
     selection.on('mouseover', function(cluster) {
       if (isPreloading()) { return; }
 
-      VizConfig.tooltip.show();
-
       var maxOrgCount = 6;
       var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
       var organisations = cluster.organisations;
@@ -1085,6 +1108,7 @@ var MainMap = (function() {
       }
 
       VizConfig.tooltip.html(html);
+      VizConfig.tooltip.show();
     });
 
     selection.on('mouseout', function() {
