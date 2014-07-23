@@ -6,7 +6,7 @@ function VizKey(open) {
 
   var vizKeyContainer = this.vizKeyContainer = $('<div id="vizKeyContainer"></div>');
   var sideBar = this.sideBar = $('<div id="vizKeySideBar"></div>');
-  var thumb = this.thumb = $('<div id="vizKeyThumb"><span>Open Key</span></div>');
+  var thumb = this.thumb = $('<div id="vizKeyThumb"><span>Open Filters</span></div>');
 
   vizKeyContainer.append(sideBar);
   vizKeyContainer.append(thumb);
@@ -96,13 +96,13 @@ function VizKey(open) {
 
 VizKey.prototype.open = function() {
   this.vizKeyContainer.addClass('open');
-  this.thumb.children('span').text('Hide Key');
+  this.thumb.children('span').text('Hide Filters');
   this.vizKeyContainer.animate({ left: 0 });
 };
 
 VizKey.prototype.close = function() {
   this.vizKeyContainer.removeClass('open');
-  this.thumb.children('span').text('Open Key');
+  this.thumb.children('span').text('Open Filters');
 
   this.thumb.animate({ left: "137px" });
   this.vizKeyContainer.animate({ left: "-220px" });
