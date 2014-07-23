@@ -41,6 +41,8 @@ var MainMap = (function() {
       this.showOrganisations(this.map.leaflet.getZoom());
       this.showClusterNetwork(this.map.leaflet.getZoom());
       this.hideOrganisationHex();
+      this.hideBigHex();
+
       VizConfig.popup.close();
     }.bind(this));
 
@@ -85,22 +87,22 @@ var MainMap = (function() {
     // for some strange reason can't set this width d3.style()
     $('#map').css({ 'width': this.w, 'height': this.h });
 
-    // big hex overlay
-    $(this.mainVizContainer)
-      .append(
-        $("<div id=\"map-overlay\"><h3 class=\"title\"></h3><svg></svg></div>")
-          .css({ 'height': this.h, 'margin-top': -this.h })
-          .hide()
-          .on("click", function(e) {
-            $(e.currentTarget).fadeOut();
-            this.selectedOrg = null;
-            this.showOrganisations(this.map.leaflet.getZoom());
-            this.showClusterNetwork(this.map.leaflet.getZoom());
-            this.hideOrganisationHex();
-          }.bind(this))
-      );
+    this.DOM.overlay = {
+      div: $("<div id=\"map-overlay\"><h3 class=\"title\"></h3><svg></svg></div>")
+        .css({ 'height': this.h, 'margin-top': -this.h })
+        .hide()
+        .on("click", function(e) {
+          this.selectedOrg = null;
+          this.showOrganisations(this.map.leaflet.getZoom());
+          this.showClusterNetwork(this.map.leaflet.getZoom());
+          this.hideOrganisationHex();
+          this.hideBigHex();
+        }.bind(this))
+    }
 
-    this.DOM.overlay = d3.select("#map-overlay svg").attr("width", 300).attr("height", 300);
+    // add big hex overlay
+    $(this.mainVizContainer).append(this.DOM.overlay.div);
+    this.DOM.overlay.svg = d3.select("#map-overlay svg").attr("width", 300).attr("height", 300);
 
     // display preloader
     var preloaderHTML = '<img id="vizPreloader" src="' + VizConfig.assetsPath + '/preloader.gif"/>';
@@ -989,7 +991,7 @@ var MainMap = (function() {
   };
 
   MainMap.prototype.drawBigHex = function(data) {
-    var selection = this.DOM.overlay;
+    var selection = this.DOM.overlay.svg;
     var className = "hex-big";
     var hexSize = 300;
     var orgLabel = data.organisations[0].label;
@@ -1029,10 +1031,14 @@ var MainMap = (function() {
     bigHex.draw(data);
 
     // update overlay
-    $("#map-overlay").fadeIn();
-    $("#map-overlay .title").text(orgLabel);
+    this.DOM.overlay.div.fadeIn();
+    this.DOM.overlay.div.find(".title").text(orgLabel);
 
     return bigHex;
+  };
+
+  MainMap.prototype.hideBigHex = function() {
+    this.DOM.overlay.div.fadeOut();
   };
 
   MainMap.prototype.displayPopup = function(cluster) {
