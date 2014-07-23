@@ -40,6 +40,7 @@ var MainMap = (function() {
       this.selectedOrg = null;
       this.showOrganisations(this.map.leaflet.getZoom());
       this.showClusterNetwork(this.map.leaflet.getZoom());
+
       this.hideOrganisationHex();
       this.hideBigHex();
 
@@ -47,9 +48,12 @@ var MainMap = (function() {
     }.bind(this));
 
     VizConfig.events.addEventListener('casestudies', function(data) {
-      this.caseStudiesData = data;
-      this.updateCaseStudiesData();
-      this.showOrganisations(this.map.leaflet.getZoom());
+      // this should be done only once
+      if (!this.caseStudiesData) {
+        this.caseStudiesData = data;
+        this.updateCaseStudiesData();
+        this.showOrganisations(this.map.leaflet.getZoom());
+      }
     }.bind(this));
 
     this.getOrganisations().then(function(organisations) {
@@ -820,9 +824,9 @@ var MainMap = (function() {
           }
           return memo;
         }, []);
-      }, [])
+      })
       .filter(function(array) {
-        return array.length > 1;
+        return array.length > 0;
       })
       .reduce(function(memo, array) {
         return memo.concat(array);
