@@ -1006,8 +1006,11 @@ var MainMap = (function() {
           var index = indexOfProp(memo, "areaOfDSI", area);
 
           if (index >= 0) {
+            var projectUrl = project.p.substr(project.p.lastIndexOf("/") + 1);
+            projectUrl = 'http://digitalsocial.eu/projects/' + projectUrl;
+
             memo[index].count++;
-            memo[index].projects.push(project.label);
+            memo[index].projects.push({ name: project.label, url: projectUrl });
           }
         });
 
