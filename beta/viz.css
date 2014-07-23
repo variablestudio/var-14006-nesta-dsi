@@ -208,6 +208,19 @@
   font-size: 90%;
 }
 
+.map-fullscreen {
+  float: right;
+  position: absolute;
+  right: 0;
+  color: white;
+  background: #00B993;
+  padding: 7px;
+  font-size: 14px;
+  height: 14px;
+  margin-top: -28px;
+  cursor: pointer;
+}
+
 /*---------------------------------- carousel -------------------------------------*/
 
 #caseStudiesViz {
@@ -733,7 +746,7 @@
 }
 
 #vizPopup h4.org {
-	cursor: pointer;
+  cursor: pointer;
 }
 
 #vizPopup h4 span {

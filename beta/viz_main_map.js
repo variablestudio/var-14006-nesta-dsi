@@ -144,63 +144,6 @@ var MainMap = (function() {
 
     this.map.leaflet._initPathRoot(); // adds svg layer to leaflet
 
-    this.map.leaflet.addControl(new L.control.customButton({
-      title: 'Fullscreen',
-
-      className: 'leaflet-fullscreen-button',
-
-      click: function() {
-        if (this.map.fullscreen) {
-          $('#map').css({
-            'position': 'relative',
-            'height': this.h
-          });
-
-          $('#map-overlay').css({
-            'position': 'relative',
-            'height': this.h,
-            'margin-top': -this.h
-          });
-
-          // ugly workarounds for fixed positioning / z-index
-          $('.nav-bar .search').show();
-          $('#caseStudiesViz').show();
-        }
-        else {
-          $('#map').css({
-            'height': window.innerHeight,
-            'position': 'fixed',
-            'top': 0,
-            'left': 0
-          });
-
-          $('#map-overlay').css({
-            'height': window.innerHeight,
-            'position': 'fixed',
-            'top': 0,
-            'margin-top': 0,
-            'right': '100px'
-          });
-
-          // ugly workarounds for fixed positioning / z-index
-          $('.nav-bar .search').hide();
-          $('#caseStudiesViz').hide();
-        }
-
-        this.map.leaflet.invalidateSize();
-        this.map.fullscreen = !this.map.fullscreen;
-      }.bind(this),
-
-      mouseover: function() {
-        VizConfig.tooltip.html("Fullscreen");
-        VizConfig.tooltip.show();
-      },
-
-      mouseout: function() {
-        VizConfig.tooltip.hide();
-      }
-    }));
-
     this.map.leaflet.addControl(new L.control.zoom({ position: 'topright' }));
 
     $(".leaflet-control-zoom-in").on("mouseover", function() {
@@ -223,7 +166,6 @@ var MainMap = (function() {
 
     this.map.leaflet.addControl(new L.control.customButton({
       title: 'Center',
-
       className: 'leaflet-center-button',
 
       click: function() {
@@ -239,6 +181,25 @@ var MainMap = (function() {
         VizConfig.tooltip.hide();
       }
     }));
+
+    $(this.mainVizContainer).append(
+      $("<div class=\"map-fullscreen\">Fullscreen</div>").on("click", function() {
+        if (this.map.fullscreen) {
+          $('#map').css({ 'position': 'relative', 'height': this.h });
+          $('#map-overlay').css({ 'position': 'relative', 'height': this.h, 'margin-top': -this.h });
+        }
+        else {
+          var topMargin = 146;
+          var size = window.innerHeight - topMargin;
+
+          $('#map').css({ 'height': size });
+          $('#map-overlay').css({ 'height': size, 'margin-top': -size });
+        }
+
+        this.map.leaflet.invalidateSize();
+        this.map.fullscreen = !this.map.fullscreen;
+      }.bind(this))
+    );
 
     // map redraws including zoom
     this.map.leaflet.on("zoomstart", function() {
