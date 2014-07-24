@@ -17,7 +17,15 @@ var Stats = (function() {
 			"tech": d3.select(divs.tech),
 			"collaborators": d3.select(divs.collaborators)
 		};
+
+		this.setupDOM();
 	}
+
+	Stats.prototype.setupDOM = function() {
+		$(this.DOM.dsi[0]).css({ width: 370 });
+		$(this.DOM.tech[0]).css({ width: 570 });
+		$(this.DOM.collaborators[0]).css({ width: 940 });
+	};
 
 	Stats.prototype.cleanResults = function(results) {
 		var numericKeys = [ "lat", "long" ];
@@ -170,11 +178,10 @@ var Stats = (function() {
 
 	Stats.prototype.draw = function() {
 		this.drawDSIAreas();
-		// this.drawTechnologyAreas();
+		this.drawTechnologyAreas();
 		// this.drawCollaborators();
 	};
 
-	// counts fields in data that are arrays, used for dsi and technology area charts
 	Stats.prototype.countField = function(field) {
 		return this.data.reduce(function(memo, object) {
 			object[field].forEach(function(label) {
@@ -224,8 +231,8 @@ var Stats = (function() {
 			return memo;
 		}, []);
 
-		var width = 228;
-		var height = 228;
+		var width = 300;
+		var height = 300;
 
 		this.DOM.dsi
 			.append("svg")
@@ -245,22 +252,53 @@ var Stats = (function() {
 			return memo > object.count ? memo : object.count;
 		}, -Infinity);
 
-		var width = 228;
-		var height = 40;
-		var rectHeight = 5;
-		var rectMargin = 4;
-
-		var highlightOnActivityUrl = this.highlightOnActivityUrl;
+		var width = 228 * 2 + 60;
+		var height = 300;
+		var size = 90;
+		var margin = 40;
+		var marginTop = 70;
 
 		var scale = d3.scale.linear()
 			.domain([0, maxCount])
-			.range([0, width]);
+			.range([0, size]);
 
 		var svg = this.DOM.tech
 			.append("svg")
 			.attr("width", width)
-			.attr("height", height * (groupedData.length + 1))
-			.attr("class", "tech-areas");
+			.attr("height", height)
+			.attr("class", "tech-areas")
+			.append("g")
+			.attr("transform", "translate(0, " + marginTop + ")");
+
+		svg.selectAll(".tech-bar")
+			.data(groupedData)
+			.enter()
+			.append("rect")
+			.attr("class", "tech-bar")
+			.attr("x", function(d, i) {
+				return i * (size + margin);
+			})
+			.attr("y", function(d) {
+				return size - scale(d.count);
+			})
+			.attr("height", function(d) {
+				return scale(d.count);
+			})
+			.attr("width", size);
+
+		svg.selectAll(".percent")
+			.data(groupedData)
+			.enter()
+			.append("text")
+			.attr("class", "percent")
+			.text(function(d) {
+				var percentage = (d.count / maxCount) * 100;
+				return percentage.toFixed(0) + "%";
+			})
+			.attr("x", function(d, i) {
+				return i * (size + margin);
+			})
+			.attr("y", size + margin + 20);
 
 		svg.selectAll(".title")
 			.data(groupedData)
@@ -268,32 +306,12 @@ var Stats = (function() {
 			.append("text")
 			.attr("class", "title")
 			.text(function(d) {
-				var percentage = (d.count / maxCount) * 100;
-				return d.name + ": " + percentage.toFixed(0) + "%";
+				return d.name;
 			})
-			.attr("y", function(d, i) {
-				return (i + 1) * height;
-			});
-
-		svg.selectAll(".tech-bar")
-			.data(groupedData)
-			.enter()
-			.append("rect")
-			.attr("class", "tech-bar")
-			.attr("x", 0)
-			.attr("y", function(d, i) {
-				return (i + 1) * height + rectMargin;
+			.attr("x", function(d, i) {
+				return i * (size + margin);
 			})
-			.attr("width", function(d) {
-				return scale(d.count);
-			})
-			.attr("height", rectHeight)
-			.on("mouseover", function(d) {
-				highlightOnActivityUrl("over", d.values.map(function(object) { return object.url; }));
-			})
-			.on("mouseout", function() {
-				highlightOnActivityUrl("out");
-			});
+			.attr("y", size + margin + 45);
 	};
 
 	Stats.prototype.drawCollaborators = function() {

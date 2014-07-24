@@ -794,13 +794,22 @@
 .viz-1 h2,
 .viz-2 h2,
 .viz-3 h2 {
-  margin-bottom: 4px;
+  margin-bottom: 20px;
 }
 
-.viz-1 svg .title,
+.viz-2 svg .percent,
 .viz-2 svg .title {
   font-family: "Helvetica";
-  font-size: 12px;
+}
+
+.viz-2 svg .title {
+	fill: #808080;
+  font-size: 14px;
+}
+
+.viz-2 svg .percent {
+	font-size: 32px;
+	font-weight: 500;
 }
 
 /*---------------------------------- bighex -----------------------------------*/
