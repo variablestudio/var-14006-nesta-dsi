@@ -84,6 +84,7 @@ var Stats = (function() {
 				this.data = this.cleanResults(results);
 
 				var parentOrg = this.data[0].org_label;
+				this.parentOrg = parentOrg;
 
 				this.data = this.data.reduce(function(memo, object) {
 					var index = indexOfProp(memo, "activity_label", object.activity_label);
@@ -139,13 +140,15 @@ var Stats = (function() {
 			.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
 			.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
 			.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
-			.select("DISTINCT ?org_label ?activity ?activity_label ?lat ?long ?org")
+			.select("DISTINCT ?org_label ?activity ?activity_label ?adsi_label ?lat ?long ?org")
 			.where("?org", "a", "o:Organization")
 			.where("?org", "rdfs:label", "?org_label")
 			.where("?am", "a", "ds:ActivityMembership")
 			.where("?am", "ds:organization", "?org")
 			.where("?am", "ds:activity", "?activity")
 			.where("?activity", "rdfs:label", "?activity_label")
+			.where("?activity", "ds:areaOfDigitalSocialInnovation", "?adsi")
+			.where("?adsi", "rdfs:label", "?adsi_label")
 			.where("?org", "o:hasPrimarySite", "?org_site")
 			.where("?org_site", "geo:long", "?long")
 			.where("?org_site", "geo:lat", "?lat")
@@ -155,21 +158,59 @@ var Stats = (function() {
 			.then(function(results) {
 				var collabData = this.cleanResults(results);
 
-				collabData.forEach(function(collab) {
-					var index = indexOfProp(this.data, "activity_label", collab.activity_label);
+				collabData = collabData.reduce(function(memo, collab) {
+					var index = indexOfProp(memo, "org_label", collab.org_label);
 
-					if (index >= 0) {
-						var dataObject = this.data[index];
+					if (index < 0) {
+						collab.adsi_labels = [ { name: collab.adsi_label, count: 1 } ];
+						collab.activity_urls = [ collab.activity_url ];
+						collab.activity_labels = [ collab.activity_label ];
 
-						if (dataObject.collaborators !== undefined) {
-							dataObject.collaborators.push(collab);
+						delete collab.adsi_label;
+						delete collab.activity_url;
+						delete collab.activity_label;
+
+						memo.push(collab);
+					}
+					else {
+						var adsiIndex = indexOfProp(memo[index].adsi_labels, "name", memo[index].adsi_label);
+
+						if (adsiIndex < 0) {
+							memo[index].adsi_labels.push({ name: collab.adsi_label, count: 1 });
 						}
 						else {
-							dataObject.collaborators = [ collab ];
+							memo[index].adsi_labels[adsiIndex].count++;
 						}
 
-						this.data[index] = dataObject;
+						if (memo[index].activity_urls.indexOf(collab.activity_url) < 0) {
+							memo[index].activity_urls.push(collab.activity_url);
+						}
+
+						if (memo[index].activity_labels.indexOf(collab.activity_label) < 0) {
+							memo[index].activity_labels.push(collab.activity_label);
+						}
 					}
+
+					return memo;
+				}, []);
+
+				collabData.forEach(function(collab) {
+					collab.activity_labels.forEach(function(activity_label) {
+						var index = indexOfProp(this.data, "activity_label", activity_label);
+
+						if (index >= 0) {
+							var dataObject = this.data[index];
+
+							if (dataObject.collaborators !== undefined) {
+								dataObject.collaborators.push(collab);
+							}
+							else {
+								dataObject.collaborators = [ collab ];
+							}
+
+							this.data[index] = dataObject;
+						}
+					}.bind(this));
 				}.bind(this));
 
 				callback();
@@ -179,7 +220,7 @@ var Stats = (function() {
 	Stats.prototype.draw = function() {
 		this.drawDSIAreas();
 		this.drawTechnologyAreas();
-		// this.drawCollaborators();
+		this.drawCollaborators();
 	};
 
 	Stats.prototype.countField = function(field) {
@@ -315,6 +356,311 @@ var Stats = (function() {
 	};
 
 	Stats.prototype.drawCollaborators = function() {
+		var width = 940;
+		var height = 300;
+		var r = 20;
+
+		var svg = this.DOM.collaborators
+			.append("svg")
+			.attr("width", width)
+			.attr("height", height);
+
+		var linkGroup = svg.append("g");
+		var nodeGroup = svg.append("g");
+
+		var org = {
+			label: this.parentOrg,
+			x: width / 2,
+			y: height * 0.9,
+			projects: this.data,
+			adsi: this.countField("adsi_labels")
+		};
+
+		var projects = this.data.map(function(data, index, array) {
+			data.x = width / 2 + (index - Math.floor(array.length / 2) + 0.5) * 120 - 40;
+			data.y = height * 0.5;
+
+			return data;
+		});
+
+		var collaborators = this.data
+			.filter(function(data) {
+				return data.collaborators !== undefined;
+			})
+			.reduce(function(memo, data) {
+				memo.push.apply(memo, data.collaborators);
+				return memo;
+			}, [])
+			.reduce(function(memo, collaborator) {
+				var index = indexOfProp(memo, "org_url", collaborator.org_url);
+				if (index < 0) { memo.push(collaborator); }
+
+				return memo;
+			}, [])
+			.map(function(collaborator, index, array) {
+				collaborator.x = width / 2 + (index - array.length / 2) * (width - 30) / array.length + 15;
+				collaborator.y = height * 0.15;
+				collaborator.adsi = collaborator.adsi_labels;
+
+				return collaborator;
+			}.bind(this));
+
+		var rootNode = nodeGroup
+			.selectAll(".root")
+			.data([ org ])
+			.enter()
+			.append("g")
+			.attr("class", "root");
+
+		this.makeHexes(rootNode, r);
+
+		var projectNodes = nodeGroup
+			.selectAll(".project")
+			.data(projects)
+			.enter()
+			.append("g")
+			.attr("class", "project");
+
+		this.makeTriangles(projectNodes, r);
+
+		var collaboratorNodes = nodeGroup
+			.selectAll(".collaborator")
+			.data(collaborators)
+			.enter()
+			.append("g")
+			.attr("class", "collaborator");
+
+		this.makeHexes(collaboratorNodes, r * 0.7);
+
+		var diagonal = d3.svg.diagonal().projection(function(d) { return [d.x, d.y]; });
+		var links = [];
+
+		links.push.apply(links, projects.map(function(project) {
+			return { source: project, target: org, project: project };
+		}));
+
+		links.push.apply(links, collaborators.reduce(function(memo, collaborator) {
+			collaborator.activity_urls.forEach(function(url) {
+				projects
+					.filter(function(project) {
+						return (project.activity_url === url);
+					})
+					.forEach(function(project) {
+						memo.push({ source: project, target: collaborator, project: project });
+					});
+			});
+
+			return memo;
+		}, []));
+
+		linkGroup
+			.selectAll(".link")
+			.data(links)
+			.enter()
+			.append("path")
+			.attr("class", "link")
+			.style("fill", "none")
+			.style("stroke", "#DDD")
+			.attr("d", diagonal);
+	};
+
+	Stats.prototype.makeHexes = function(nodes, r) {
+		function hexBite(x, y, r, i) {
+			var a = i/6 * Math.PI * 2 + Math.PI/6;
+			var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
+			return [
+				[x, y],
+				[x + r * Math.cos(a), y + r * Math.sin(a)],
+				[x + r * Math.cos(na), y + r * Math.sin(na)]
+			];
+		}
+
+		function hexBorder(x, y, r, i) {
+			var a = i/6 * Math.PI * 2 + Math.PI/6;
+			var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
+			return [
+				[x + r * Math.cos(a), y + r * Math.sin(a)],
+				[x + r * Math.cos(a), y + r * Math.sin(a)],
+				[x + r * Math.cos(na), y + r * Math.sin(na)]
+			];
+		}
+
+		function hexEdge(x, y, r, i) {
+			var a = i/6 * Math.PI * 2 + Math.PI/6;
+			var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
+			var r2 = r ? r - 5 : 0;
+			return [
+				[x + r2 * Math.cos(na), y + r2 * Math.sin(na)],
+				[x + r2 * Math.cos(a), y + r2 * Math.sin(a)],
+				[x + r * Math.cos(a), y + r * Math.sin(a)],
+				[x + r * Math.cos(na), y + r * Math.sin(na)]
+			];
+		}
+
+		fn.sequence(0,6).forEach(function(i) {
+			nodes
+				.append("path")
+				.attr("d", function(item, itemIndex) {
+					var x = item.x;
+					var y = item.y;
+					return "M" + hexBite(x, y, r + 2, i).join("L") + "Z";
+				})
+				.attr("stroke", function(d) { return d.projects ? "#EEE" : "none"; })
+				.attr("fill", "#FFF");
+		});
+
+		fn.sequence(0,6).forEach(function(i) {
+			nodes
+				.append("path")
+				.attr("d", function(item, itemIndex) {
+					var x = item.x;
+					var y = item.y;
+					return "M" + hexBorder(x, y, r + 2, i).join("L") + "Z";
+				})
+				.attr("stroke", function(d) { return d.projects ? "#999" : "#999"; })
+				.attr("fill", "none");
+		});
+
+		fn.sequence(0,6).forEach(function(i) {
+			nodes
+				.append("path")
+				.attr("d", function(item, itemIndex) {
+					var x = item.x;
+					var y = item.y;
+
+					var path;
+					var areaR = 0;
+
+					var index = indexOfProp(item.adsi, "name", VizConfig.dsiAreas[i].label);
+					if (index >= 0) {
+						areaR = Math.min(r, 5 + 2 * item.adsi[index].count);
+					}
+					path = "M" + hexBite(x, y, areaR, i).join("L") + "Z";
+
+					return path;
+				})
+				.attr("fill", VizConfig.dsiAreas[i].color)
+				.attr("stroke", function(d) {
+					return (!d.project) ? "#FFF" : "none";
+				});
+		});
+	};
+
+	Stats.prototype.makeTriangles = function(nodes, r) {
+		function triangleBite(x, y, r, tr, i) {
+			var a = Math.PI / 3;
+			var trMod = tr;
+			var yMod = y;
+			var yMod2 = Math.sin(a) * r;
+			x += tr * ((i % 2) - 1.5);
+
+			if (i % 2 === 0) {
+				trMod *= i / 2;
+				trMod += tr / 2;
+				yMod += Math.sin(a) * tr;
+				yMod2 = -yMod2;
+			}
+			else {
+				trMod *= Math.floor(i / 2);
+			}
+
+			return [
+				[x + trMod, yMod],
+				[x - r / 2 + trMod, yMod + yMod2],
+				[x + r / 2 + trMod, yMod + yMod2],
+			]
+		}
+
+		function triangleBorder(x, y, r, i) {
+			var ret = triangleBite(x, y, r, r, i);
+
+			if (i === 0 || i === 5) {
+				if (i === 5) {
+					ret = [ ret[1], ret[2], ret[0], ret[2] ];
+				}
+				else {
+					ret = [ ret[0], ret[1], ret[2], ret[1] ];
+				}
+				return ret;
+			}
+
+			return [ ret[2], ret[1] ]
+		}
+
+		function triangleEdge(x, y, r, tr, i) {
+			var a = Math.PI / 3;
+			var trMod = tr;
+			var yMod = y;
+			var yMod2 = Math.sin(a) * r;
+			var r2 = r ? r - 5 : 0;
+			var yMod3 = Math.sin(a) * r2;
+			x += tr * ((i % 2) - 1.5);
+
+			if (i % 2 === 0) {
+				trMod *= i / 2;
+				trMod += tr / 2;
+				yMod += Math.sin(a) * tr;
+				yMod2 = -yMod2;
+				yMod3 = -yMod3;
+			}
+			else {
+				trMod *= Math.floor(i / 2);
+			}
+
+			return [
+				[x - r2 / 2 + trMod, yMod + yMod3],
+				[x + r2 / 2 + trMod, yMod + yMod3],
+				[x + r / 2 + trMod, yMod + yMod2],
+				[x - r / 2 + trMod, yMod + yMod2],
+			]
+		}
+
+		fn.sequence(0,6).forEach(function(i) {
+			nodes
+				.append("path")
+				.attr("d", function(item, itemIndex) {
+					var x = item.x;
+					var y = item.y;
+					return "M" + triangleBite(x, y, r + 2, r + 2, i).join("L") + "Z";
+				})
+				.attr("stroke", function(d) { return d.projects ? "#EEE" : "none"; })
+				.attr("fill", "#FFF")
+		});
+
+		fn.sequence(0,6).forEach(function(i) {
+			nodes
+				.append("path")
+				.attr("d", function(item, itemIndex) {
+					var x = item.x;
+					var y = item.y;
+					return "M" + triangleBorder(x, y, r + 2, i).join("L") + "Z";
+				})
+				.attr("stroke", function(d) { return d.projects ? "#999" : "#999"; })
+				.attr("fill", "none");
+		});
+
+		fn.sequence(0,6).forEach(function(i) {
+			nodes
+				.append("path")
+				.attr("d", function(item, itemIndex) {
+					var path;
+					var edgeR = 0;
+
+					var x = item.x;
+					var y = item.y;
+
+					var index = item.adsi_labels.indexOf(VizConfig.dsiAreas[i].label);
+					if (index >= 0) { edgeR = r + 2; }
+
+					path = "M" + triangleBite(x, y, edgeR, r + 2, i).join("L") + "Z";
+
+					return path;
+				})
+				.attr("fill", VizConfig.dsiAreas[i].color);
+		});
+	};
+
+	Stats.prototype.drawCollaboratorsMap = function() {
 		var width = 352;
 		var height = width;
 		var hexR = 25;
@@ -509,7 +855,6 @@ var Stats = (function() {
 		});
 	};
 
-	// highlight using state (over/out), and single, or list of activity urls
 	Stats.prototype.highlightOnActivityUrl = function(state, urls) {
 		state = (state === "over") ? "over" : "out";
 		urls = (urls instanceof Array) ? urls : [ urls ];
