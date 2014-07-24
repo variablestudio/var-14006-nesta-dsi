@@ -451,7 +451,11 @@ var Stats = (function() {
 				this.highlightOnActivityUrl("out");
 
 				VizConfig.tooltip.hide();
-			}.bind(this));
+			}.bind(this))
+			.on("click", function(d) {
+				var url = "http://digitalsocial.eu/projects/" + d.activity_url;
+				window.location.href = url;
+			});
 
 		this.makeTriangles(projectNodes, r);
 
@@ -471,7 +475,11 @@ var Stats = (function() {
 				this.highlightOnActivityUrl("out");
 
 				VizConfig.tooltip.hide();
-			}.bind(this));
+			}.bind(this))
+			.on("click", function(d) {
+				var url = "http://digitalsocial.eu/organisations/" + d.org_url;
+				window.location.href = url;
+			});
 
 		this.makeHexes(collaboratorNodes, r * 0.7);
 

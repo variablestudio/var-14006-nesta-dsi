@@ -113,19 +113,22 @@ d3.chart("BigHex", {
               VizConfig.tooltip.show();
               VizConfig.tooltip.html(VizConfig.dsiAreasById[parentData.areaOfDSI].label + ' Project ' + d.name, "#FFF", VizConfig.dsiAreasById[parentData.areaOfDSI].color);
 
-							if (chart._mouseoverCallback) { chart._mouseoverCallback(d); }
+              if (chart._mouseoverCallback) { chart._mouseoverCallback(d); }
             })
             .on("mouseout", function(d) {
               d3.select(this).style("fill", function(d) { return "rgba(255,255,255,0)"; })
               VizConfig.tooltip.hide();
 
-							if (chart._mouseoutCallback) { chart._mouseoutCallback(d); }
+              if (chart._mouseoutCallback) { chart._mouseoutCallback(d); }
             })
             .on("click", function(d) {
               d3.event.preventDefault();
               d3.event.stopPropagation();
 
-              if (d.url) { window.open(d.url, "_blank"); }
+              if (d.url) {
+                // window.open(d.url, "_blank");
+                window.location.href = d.url;
+              }
             });
 
           projects.exit()
@@ -227,21 +230,21 @@ d3.chart("BigHex", {
     return this;
   },
 
-	mouseoverCallback: function(newCallback) {
-		if (!newCallback) {
-			return this._mouseoverCallback;
-		}
+  mouseoverCallback: function(newCallback) {
+    if (!newCallback) {
+      return this._mouseoverCallback;
+    }
 
-		this._mouseoverCallback = newCallback;
-		return this;
-	},
+    this._mouseoverCallback = newCallback;
+    return this;
+  },
 
-	mouseoutCallback: function(newCallback) {
-		if (!newCallback) {
-			return this._mouseoutCallback;
-		}
+  mouseoutCallback: function(newCallback) {
+    if (!newCallback) {
+      return this._mouseoutCallback;
+    }
 
-		this._mouseoutCallback = newCallback;
-		return this;
-	}
+    this._mouseoutCallback = newCallback;
+    return this;
+  }
 });
