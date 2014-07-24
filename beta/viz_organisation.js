@@ -170,8 +170,8 @@ var Stats = (function() {
 
 	Stats.prototype.draw = function() {
 		this.drawDSIAreas();
-		this.drawTechnologyAreas();
-		this.drawCollaborators();
+		// this.drawTechnologyAreas();
+		// this.drawCollaborators();
 	};
 
 	// counts fields in data that are arrays, used for dsi and technology area charts
@@ -199,76 +199,44 @@ var Stats = (function() {
 	};
 
 	Stats.prototype.drawDSIAreas = function() {
-		var groupedData = this.countField("adsi_labels").filter(function(object) { return (object.count > 0); });
+		var hexData = this.data.reduce(function(memo, data) {
+			var url = data.activity_url.substr(data.activity_url.lastIndexOf("/") + 1);
+			url = "http://digitalsocial.eu/projects/" + url;
+
+			data.adsi_labels.forEach(function(adsi) {
+				var name = VizConfig.dsiAreasByLabel[adsi].id;
+				var index = indexOfProp(memo, "areaOfDSI", name);
+
+				if (index < 0) {
+					memo.push({
+						areaOfDSI: name,
+						color: VizConfig.dsiAreasByLabel[adsi].color,
+						count: 1,
+						projects: [ { name: data.activity_label, url: url } ]
+					});
+				}
+				else {
+					memo[index].count++;
+					memo[index].projects.push({ name: data.activity_label, url: url });
+				}
+			});
+
+			return memo;
+		}, []);
 
 		var width = 228;
-		var height = 40;
-		var rectWidth = 30;
-		var rectHeight = 15;
-		var rectMargin = 4;
+		var height = 228;
 
-		var highlightOnActivityUrl = this.highlightOnActivityUrl;
-
-		var svg = this.DOM.dsi
+		this.DOM.dsi
 			.append("svg")
 			.attr("width", width)
-			.attr("height", height * (groupedData.length + 1))
-			.attr("class", "dsi-areas");
-
-		svg.selectAll(".title")
-			.data(groupedData)
-			.enter()
-			.append("text")
-			.attr("class", "title")
-			.text(function(d) {
-				return d.name;
-			})
-			.attr("y", function(d, i) {
-				return (i + 1) * height;
-			})
-			.attr("fill", function(d) {
-				return VizConfig.dsiAreasByLabel[d.name].color;
-			});
-
-		svg.selectAll(".dsi-rects")
-			.data(groupedData)
-			.enter()
+			.attr("height", height)
+			.attr("class", "dsi-areas")
 			.append("g")
-			.attr("class", "dsi-rects")
-			.each(function(d, j) {
-				var name = d.name;
-				var selection = d3.select(this);
-
-				selection.selectAll(".dsi-rect")
-					.data(d.values)
-					.enter()
-					.append("rect")
-					.attr("class", "dsi-rect")
-					.attr("x", function(d, i) {
-						return i * (rectWidth + rectMargin);
-					})
-					.attr("y", function(d) {
-						return (j + 1) * height + rectMargin;
-					})
-					.attr("width", rectWidth)
-					.attr("height", rectHeight)
-					.attr("fill", VizConfig.dsiAreasByLabel[name].color)
-					.on("mouseover", function(d) {
-						VizConfig.tooltip.show();
-						VizConfig.tooltip.html(d.name, "#FFF", VizConfig.dsiAreasByLabel[name].color);
-
-						highlightOnActivityUrl("over", d.url);
-					})
-					.on("mouseout", function() {
-						VizConfig.tooltip.hide();
-
-						highlightOnActivityUrl("out");
-					})
-					.on("click", function(d) {
-						var url = "http://digitalsocial.eu/projects/" + d.url;
-						document.location.href = url;
-					});
-			});
+			.chart("BigHex")
+			.width(width)
+			.height(height)
+			.draw(hexData);
 	};
 
 	Stats.prototype.drawTechnologyAreas = function() {
