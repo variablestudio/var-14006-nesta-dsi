@@ -4434,7 +4434,15 @@ var Stats = (function() {
 			"tech": d3.select(divs.tech),
 			"collaborators": d3.select(divs.collaborators)
 		};
+
+		this.setupDOM();
 	}
+
+	Stats.prototype.setupDOM = function() {
+		$(this.DOM.dsi[0]).css({ width: 370 });
+		$(this.DOM.tech[0]).css({ width: 570 });
+		$(this.DOM.collaborators[0]).css({ width: 940 });
+	};
 
 	Stats.prototype.cleanResults = function(results) {
 		var numericKeys = [ "lat", "long" ];
@@ -4493,6 +4501,7 @@ var Stats = (function() {
 				this.data = this.cleanResults(results);
 
 				var parentOrg = this.data[0].org_label;
+				this.parentOrg = parentOrg;
 
 				this.data = this.data.reduce(function(memo, object) {
 					var index = indexOfProp(memo, "activity_label", object.activity_label);
@@ -4548,13 +4557,15 @@ var Stats = (function() {
 			.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
 			.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
 			.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
-			.select("DISTINCT ?org_label ?activity ?activity_label ?lat ?long ?org")
+			.select("DISTINCT ?org_label ?activity ?activity_label ?adsi_label ?lat ?long ?org")
 			.where("?org", "a", "o:Organization")
 			.where("?org", "rdfs:label", "?org_label")
 			.where("?am", "a", "ds:ActivityMembership")
 			.where("?am", "ds:organization", "?org")
 			.where("?am", "ds:activity", "?activity")
 			.where("?activity", "rdfs:label", "?activity_label")
+			.where("?activity", "ds:areaOfDigitalSocialInnovation", "?adsi")
+			.where("?adsi", "rdfs:label", "?adsi_label")
 			.where("?org", "o:hasPrimarySite", "?org_site")
 			.where("?org_site", "geo:long", "?long")
 			.where("?org_site", "geo:lat", "?lat")
@@ -4564,21 +4575,59 @@ var Stats = (function() {
 			.then(function(results) {
 				var collabData = this.cleanResults(results);
 
-				collabData.forEach(function(collab) {
-					var index = indexOfProp(this.data, "activity_label", collab.activity_label);
+				collabData = collabData.reduce(function(memo, collab) {
+					var index = indexOfProp(memo, "org_label", collab.org_label);
 
-					if (index >= 0) {
-						var dataObject = this.data[index];
+					if (index < 0) {
+						collab.adsi_labels = [ { name: collab.adsi_label, count: 1 } ];
+						collab.activity_urls = [ collab.activity_url ];
+						collab.activity_labels = [ collab.activity_label ];
 
-						if (dataObject.collaborators !== undefined) {
-							dataObject.collaborators.push(collab);
+						delete collab.adsi_label;
+						delete collab.activity_url;
+						delete collab.activity_label;
+
+						memo.push(collab);
+					}
+					else {
+						var adsiIndex = indexOfProp(memo[index].adsi_labels, "name", memo[index].adsi_label);
+
+						if (adsiIndex < 0) {
+							memo[index].adsi_labels.push({ name: collab.adsi_label, count: 1 });
 						}
 						else {
-							dataObject.collaborators = [ collab ];
+							memo[index].adsi_labels[adsiIndex].count++;
 						}
 
-						this.data[index] = dataObject;
+						if (memo[index].activity_urls.indexOf(collab.activity_url) < 0) {
+							memo[index].activity_urls.push(collab.activity_url);
+						}
+
+						if (memo[index].activity_labels.indexOf(collab.activity_label) < 0) {
+							memo[index].activity_labels.push(collab.activity_label);
+						}
 					}
+
+					return memo;
+				}, []);
+
+				collabData.forEach(function(collab) {
+					collab.activity_labels.forEach(function(activity_label) {
+						var index = indexOfProp(this.data, "activity_label", activity_label);
+
+						if (index >= 0) {
+							var dataObject = this.data[index];
+
+							if (dataObject.collaborators !== undefined) {
+								dataObject.collaborators.push(collab);
+							}
+							else {
+								dataObject.collaborators = [ collab ];
+							}
+
+							this.data[index] = dataObject;
+						}
+					}.bind(this));
 				}.bind(this));
 
 				callback();
@@ -4591,7 +4640,6 @@ var Stats = (function() {
 		this.drawCollaborators();
 	};
 
-	// counts fields in data that are arrays, used for dsi and technology area charts
 	Stats.prototype.countField = function(field) {
 		return this.data.reduce(function(memo, object) {
 			object[field].forEach(function(label) {
@@ -4616,21 +4664,99 @@ var Stats = (function() {
 	};
 
 	Stats.prototype.drawDSIAreas = function() {
-		var groupedData = this.countField("adsi_labels").filter(function(object) { return (object.count > 0); });
+		var hexData = this.data.reduce(function(memo, data) {
+			var url = data.activity_url.substr(data.activity_url.lastIndexOf("/") + 1);
+			url = "http://digitalsocial.eu/projects/" + url;
 
-		var width = 228;
-		var height = 40;
-		var rectWidth = 30;
-		var rectHeight = 15;
-		var rectMargin = 4;
+			data.adsi_labels.forEach(function(adsi) {
+				var name = VizConfig.dsiAreasByLabel[adsi].id;
+				var index = indexOfProp(memo, "areaOfDSI", name);
 
-		var highlightOnActivityUrl = this.highlightOnActivityUrl;
+				if (index < 0) {
+					memo.push({
+						areaOfDSI: name,
+						color: VizConfig.dsiAreasByLabel[adsi].color,
+						count: 1,
+						projects: [ { name: data.activity_label, url: url } ]
+					});
+				}
+				else {
+					memo[index].count++;
+					memo[index].projects.push({ name: data.activity_label, url: url });
+				}
+			});
 
-		var svg = this.DOM.dsi
+			return memo;
+		}, []);
+
+		var width = 300;
+		var height = 300;
+
+		this.DOM.dsi
 			.append("svg")
 			.attr("width", width)
-			.attr("height", height * (groupedData.length + 1))
-			.attr("class", "dsi-areas");
+			.attr("height", height)
+			.attr("class", "dsi-areas")
+			.append("g")
+			.chart("BigHex")
+			.width(width)
+			.height(height)
+			.draw(hexData);
+	};
+
+	Stats.prototype.drawTechnologyAreas = function() {
+		var groupedData = this.countField("tech_focuses").filter(function(object) { return (object.count > 0); });
+		var maxCount = groupedData.reduce(function(memo, object) {
+			return memo > object.count ? memo : object.count;
+		}, -Infinity);
+
+		var width = 228 * 2 + 60;
+		var height = 300;
+		var size = 90;
+		var margin = 40;
+		var marginTop = 70;
+
+		var scale = d3.scale.linear()
+			.domain([0, maxCount])
+			.range([0, size]);
+
+		var svg = this.DOM.tech
+			.append("svg")
+			.attr("width", width)
+			.attr("height", height)
+			.attr("class", "tech-areas")
+			.append("g")
+			.attr("transform", "translate(0, " + marginTop + ")");
+
+		svg.selectAll(".tech-bar")
+			.data(groupedData)
+			.enter()
+			.append("rect")
+			.attr("class", "tech-bar")
+			.attr("x", function(d, i) {
+				return i * (size + margin);
+			})
+			.attr("y", function(d) {
+				return size - scale(d.count);
+			})
+			.attr("height", function(d) {
+				return scale(d.count);
+			})
+			.attr("width", size);
+
+		svg.selectAll(".percent")
+			.data(groupedData)
+			.enter()
+			.append("text")
+			.attr("class", "percent")
+			.text(function(d) {
+				var percentage = (d.count / maxCount) * 100;
+				return percentage.toFixed(0) + "%";
+			})
+			.attr("x", function(d, i) {
+				return i * (size + margin);
+			})
+			.attr("y", size + margin + 20);
 
 		svg.selectAll(".title")
 			.data(groupedData)
@@ -4640,112 +4766,318 @@ var Stats = (function() {
 			.text(function(d) {
 				return d.name;
 			})
-			.attr("y", function(d, i) {
-				return (i + 1) * height;
+			.attr("x", function(d, i) {
+				return i * (size + margin);
 			})
-			.attr("fill", function(d) {
-				return VizConfig.dsiAreasByLabel[d.name].color;
-			});
-
-		svg.selectAll(".dsi-rects")
-			.data(groupedData)
-			.enter()
-			.append("g")
-			.attr("class", "dsi-rects")
-			.each(function(d, j) {
-				var name = d.name;
-				var selection = d3.select(this);
-
-				selection.selectAll(".dsi-rect")
-					.data(d.values)
-					.enter()
-					.append("rect")
-					.attr("class", "dsi-rect")
-					.attr("x", function(d, i) {
-						return i * (rectWidth + rectMargin);
-					})
-					.attr("y", function(d) {
-						return (j + 1) * height + rectMargin;
-					})
-					.attr("width", rectWidth)
-					.attr("height", rectHeight)
-					.attr("fill", VizConfig.dsiAreasByLabel[name].color)
-					.on("mouseover", function(d) {
-						VizConfig.tooltip.show();
-						VizConfig.tooltip.html(d.name, "#FFF", VizConfig.dsiAreasByLabel[name].color);
-
-						highlightOnActivityUrl("over", d.url);
-					})
-					.on("mouseout", function() {
-						VizConfig.tooltip.hide();
-
-						highlightOnActivityUrl("out");
-					})
-					.on("click", function(d) {
-						var url = "http://digitalsocial.eu/projects/" + d.url;
-						document.location.href = url;
-					});
-			});
-	};
-
-	Stats.prototype.drawTechnologyAreas = function() {
-		var groupedData = this.countField("tech_focuses").filter(function(object) { return (object.count > 0); });
-		var maxCount = groupedData.reduce(function(memo, object) {
-			return memo > object.count ? memo : object.count;
-		}, -Infinity);
-
-		var width = 228;
-		var height = 40;
-		var rectHeight = 5;
-		var rectMargin = 4;
-
-		var highlightOnActivityUrl = this.highlightOnActivityUrl;
-
-		var scale = d3.scale.linear()
-			.domain([0, maxCount])
-			.range([0, width]);
-
-		var svg = this.DOM.tech
-			.append("svg")
-			.attr("width", width)
-			.attr("height", height * (groupedData.length + 1))
-			.attr("class", "tech-areas");
-
-		svg.selectAll(".title")
-			.data(groupedData)
-			.enter()
-			.append("text")
-			.attr("class", "title")
-			.text(function(d) {
-				var percentage = (d.count / maxCount) * 100;
-				return d.name + ": " + percentage.toFixed(0) + "%";
-			})
-			.attr("y", function(d, i) {
-				return (i + 1) * height;
-			});
-
-		svg.selectAll(".tech-bar")
-			.data(groupedData)
-			.enter()
-			.append("rect")
-			.attr("class", "tech-bar")
-			.attr("x", 0)
-			.attr("y", function(d, i) {
-				return (i + 1) * height + rectMargin;
-			})
-			.attr("width", function(d) {
-				return scale(d.count);
-			})
-			.attr("height", rectHeight)
-			.on("mouseover", function(d) {
-				highlightOnActivityUrl("over", d.values.map(function(object) { return object.url; }));
-			})
-			.on("mouseout", function() {
-				highlightOnActivityUrl("out");
-			});
+			.attr("y", size + margin + 45);
 	};
 
 	Stats.prototype.drawCollaborators = function() {
+		var width = 940;
+		var height = 300;
+		var r = 20;
+
+		var svg = this.DOM.collaborators
+			.append("svg")
+			.attr("width", width)
+			.attr("height", height);
+
+		var linkGroup = svg.append("g");
+		var nodeGroup = svg.append("g");
+
+		var org = {
+			label: this.parentOrg,
+			x: width / 2,
+			y: height * 0.9,
+			projects: this.data,
+			adsi: this.countField("adsi_labels")
+		};
+
+		var projects = this.data.map(function(data, index, array) {
+			data.x = width / 2 + (index - Math.floor(array.length / 2) + 0.5) * 120 - 40;
+			data.y = height * 0.5;
+
+			return data;
+		});
+
+		var collaborators = this.data
+			.filter(function(data) {
+				return data.collaborators !== undefined;
+			})
+			.reduce(function(memo, data) {
+				memo.push.apply(memo, data.collaborators);
+				return memo;
+			}, [])
+			.reduce(function(memo, collaborator) {
+				var index = indexOfProp(memo, "org_url", collaborator.org_url);
+				if (index < 0) { memo.push(collaborator); }
+
+				return memo;
+			}, [])
+			.map(function(collaborator, index, array) {
+				collaborator.x = width / 2 + (index - array.length / 2) * (width - 30) / array.length + 15;
+				collaborator.y = height * 0.15;
+				collaborator.adsi = collaborator.adsi_labels;
+
+				return collaborator;
+			}.bind(this));
+
+		var rootNode = nodeGroup
+			.selectAll(".root")
+			.data([ org ])
+			.enter()
+			.append("g")
+			.attr("class", "root");
+
+		this.makeHexes(rootNode, r);
+
+		var projectNodes = nodeGroup
+			.selectAll(".project")
+			.data(projects)
+			.enter()
+			.append("g")
+			.attr("class", "project");
+
+		this.makeTriangles(projectNodes, r);
+
+		var collaboratorNodes = nodeGroup
+			.selectAll(".collaborator")
+			.data(collaborators)
+			.enter()
+			.append("g")
+			.attr("class", "collaborator");
+
+		this.makeHexes(collaboratorNodes, r * 0.7);
+
+		var diagonal = d3.svg.diagonal().projection(function(d) { return [d.x, d.y]; });
+		var links = [];
+
+		links.push.apply(links, projects.map(function(project) {
+			return { source: project, target: org, project: project };
+		}));
+
+		links.push.apply(links, collaborators.reduce(function(memo, collaborator) {
+			collaborator.activity_urls.forEach(function(url) {
+				projects
+					.filter(function(project) {
+						return (project.activity_url === url);
+					})
+					.forEach(function(project) {
+						memo.push({ source: project, target: collaborator, project: project });
+					});
+			});
+
+			return memo;
+		}, []));
+
+		linkGroup
+			.selectAll(".link")
+			.data(links)
+			.enter()
+			.append("path")
+			.attr("class", "link")
+			.style("fill", "none")
+			.style("stroke", "#DDD")
+			.attr("d", diagonal);
+	};
+
+	Stats.prototype.makeHexes = function(nodes, r) {
+		function hexBite(x, y, r, i) {
+			var a = i/6 * Math.PI * 2 + Math.PI/6;
+			var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
+			return [
+				[x, y],
+				[x + r * Math.cos(a), y + r * Math.sin(a)],
+				[x + r * Math.cos(na), y + r * Math.sin(na)]
+			];
+		}
+
+		function hexBorder(x, y, r, i) {
+			var a = i/6 * Math.PI * 2 + Math.PI/6;
+			var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
+			return [
+				[x + r * Math.cos(a), y + r * Math.sin(a)],
+				[x + r * Math.cos(a), y + r * Math.sin(a)],
+				[x + r * Math.cos(na), y + r * Math.sin(na)]
+			];
+		}
+
+		function hexEdge(x, y, r, i) {
+			var a = i/6 * Math.PI * 2 + Math.PI/6;
+			var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
+			var r2 = r ? r - 5 : 0;
+			return [
+				[x + r2 * Math.cos(na), y + r2 * Math.sin(na)],
+				[x + r2 * Math.cos(a), y + r2 * Math.sin(a)],
+				[x + r * Math.cos(a), y + r * Math.sin(a)],
+				[x + r * Math.cos(na), y + r * Math.sin(na)]
+			];
+		}
+
+		fn.sequence(0,6).forEach(function(i) {
+			nodes
+				.append("path")
+				.attr("d", function(item, itemIndex) {
+					var x = item.x;
+					var y = item.y;
+					return "M" + hexBite(x, y, r + 2, i).join("L") + "Z";
+				})
+				.attr("stroke", function(d) { return d.projects ? "#EEE" : "none"; })
+				.attr("fill", "#FFF");
+		});
+
+		fn.sequence(0,6).forEach(function(i) {
+			nodes
+				.append("path")
+				.attr("d", function(item, itemIndex) {
+					var x = item.x;
+					var y = item.y;
+					return "M" + hexBorder(x, y, r + 2, i).join("L") + "Z";
+				})
+				.attr("stroke", function(d) { return d.projects ? "#999" : "#999"; })
+				.attr("fill", "none");
+		});
+
+		fn.sequence(0,6).forEach(function(i) {
+			nodes
+				.append("path")
+				.attr("d", function(item, itemIndex) {
+					var x = item.x;
+					var y = item.y;
+
+					var path;
+					var areaR = 0;
+
+					var index = indexOfProp(item.adsi, "name", VizConfig.dsiAreas[i].label);
+					if (index >= 0) {
+						areaR = Math.min(r, 5 + 2 * item.adsi[index].count);
+					}
+					path = "M" + hexBite(x, y, areaR, i).join("L") + "Z";
+
+					return path;
+				})
+				.attr("fill", VizConfig.dsiAreas[i].color)
+				.attr("stroke", function(d) {
+					return (!d.project) ? "#FFF" : "none";
+				});
+		});
+	};
+
+	Stats.prototype.makeTriangles = function(nodes, r) {
+		function triangleBite(x, y, r, tr, i) {
+			var a = Math.PI / 3;
+			var trMod = tr;
+			var yMod = y;
+			var yMod2 = Math.sin(a) * r;
+			x += tr * ((i % 2) - 1.5);
+
+			if (i % 2 === 0) {
+				trMod *= i / 2;
+				trMod += tr / 2;
+				yMod += Math.sin(a) * tr;
+				yMod2 = -yMod2;
+			}
+			else {
+				trMod *= Math.floor(i / 2);
+			}
+
+			return [
+				[x + trMod, yMod],
+				[x - r / 2 + trMod, yMod + yMod2],
+				[x + r / 2 + trMod, yMod + yMod2],
+			]
+		}
+
+		function triangleBorder(x, y, r, i) {
+			var ret = triangleBite(x, y, r, r, i);
+
+			if (i === 0 || i === 5) {
+				if (i === 5) {
+					ret = [ ret[1], ret[2], ret[0], ret[2] ];
+				}
+				else {
+					ret = [ ret[0], ret[1], ret[2], ret[1] ];
+				}
+				return ret;
+			}
+
+			return [ ret[2], ret[1] ]
+		}
+
+		function triangleEdge(x, y, r, tr, i) {
+			var a = Math.PI / 3;
+			var trMod = tr;
+			var yMod = y;
+			var yMod2 = Math.sin(a) * r;
+			var r2 = r ? r - 5 : 0;
+			var yMod3 = Math.sin(a) * r2;
+			x += tr * ((i % 2) - 1.5);
+
+			if (i % 2 === 0) {
+				trMod *= i / 2;
+				trMod += tr / 2;
+				yMod += Math.sin(a) * tr;
+				yMod2 = -yMod2;
+				yMod3 = -yMod3;
+			}
+			else {
+				trMod *= Math.floor(i / 2);
+			}
+
+			return [
+				[x - r2 / 2 + trMod, yMod + yMod3],
+				[x + r2 / 2 + trMod, yMod + yMod3],
+				[x + r / 2 + trMod, yMod + yMod2],
+				[x - r / 2 + trMod, yMod + yMod2],
+			]
+		}
+
+		fn.sequence(0,6).forEach(function(i) {
+			nodes
+				.append("path")
+				.attr("d", function(item, itemIndex) {
+					var x = item.x;
+					var y = item.y;
+					return "M" + triangleBite(x, y, r + 2, r + 2, i).join("L") + "Z";
+				})
+				.attr("stroke", function(d) { return d.projects ? "#EEE" : "none"; })
+				.attr("fill", "#FFF")
+		});
+
+		fn.sequence(0,6).forEach(function(i) {
+			nodes
+				.append("path")
+				.attr("d", function(item, itemIndex) {
+					var x = item.x;
+					var y = item.y;
+					return "M" + triangleBorder(x, y, r + 2, i).join("L") + "Z";
+				})
+				.attr("stroke", function(d) { return d.projects ? "#999" : "#999"; })
+				.attr("fill", "none");
+		});
+
+		fn.sequence(0,6).forEach(function(i) {
+			nodes
+				.append("path")
+				.attr("d", function(item, itemIndex) {
+					var path;
+					var edgeR = 0;
+
+					var x = item.x;
+					var y = item.y;
+
+					var index = item.adsi_labels.indexOf(VizConfig.dsiAreas[i].label);
+					if (index >= 0) { edgeR = r + 2; }
+
+					path = "M" + triangleBite(x, y, edgeR, r + 2, i).join("L") + "Z";
+
+					return path;
+				})
+				.attr("fill", VizConfig.dsiAreas[i].color);
+		});
+	};
+
+	Stats.prototype.drawCollaboratorsMap = function() {
 		var width = 352;
 		var height = width;
 		var hexR = 25;
@@ -4940,7 +5272,6 @@ var Stats = (function() {
 		});
 	};
 
-	// highlight using state (over/out), and single, or list of activity urls
 	Stats.prototype.highlightOnActivityUrl = function(state, urls) {
 		state = (state === "over") ? "over" : "out";
 		urls = (urls instanceof Array) ? urls : [ urls ];
