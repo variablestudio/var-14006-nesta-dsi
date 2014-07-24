@@ -1,4 +1,4 @@
-/*global document, window, fn, d3, SPARQLDataSource, VizConfig */
+/*global document, window, fn, $, d3, SPARQLDataSource, VizConfig */
 
 var Stats = (function() {
 	var indexOfProp = function(data, prop, val) {
@@ -23,8 +23,8 @@ var Stats = (function() {
 
 	Stats.prototype.setupDOM = function() {
 		$(this.DOM.dsi[0]).css({ width: 370 });
-		$(this.DOM.tech[0]).css({ width: 570 });
-		$(this.DOM.collaborators[0]).css({ width: 940 });
+		$(this.DOM.tech[0]).css({ width: 570, padding: 0 });
+		$(this.DOM.collaborators[0]).css({ width: 940, "padding-left": 0, "padding-top": 30 });
 	};
 
 	Stats.prototype.cleanResults = function(results) {
@@ -485,22 +485,10 @@ var Stats = (function() {
 			];
 		}
 
-		function hexEdge(x, y, r, i) {
-			var a = i/6 * Math.PI * 2 + Math.PI/6;
-			var na = ((i+1)%6)/6 * Math.PI * 2 + Math.PI/6;
-			var r2 = r ? r - 5 : 0;
-			return [
-				[x + r2 * Math.cos(na), y + r2 * Math.sin(na)],
-				[x + r2 * Math.cos(a), y + r2 * Math.sin(a)],
-				[x + r * Math.cos(a), y + r * Math.sin(a)],
-				[x + r * Math.cos(na), y + r * Math.sin(na)]
-			];
-		}
-
 		fn.sequence(0,6).forEach(function(i) {
 			nodes
 				.append("path")
-				.attr("d", function(item, itemIndex) {
+				.attr("d", function(item) {
 					var x = item.x;
 					var y = item.y;
 					return "M" + hexBite(x, y, r + 2, i).join("L") + "Z";
@@ -512,19 +500,19 @@ var Stats = (function() {
 		fn.sequence(0,6).forEach(function(i) {
 			nodes
 				.append("path")
-				.attr("d", function(item, itemIndex) {
+				.attr("d", function(item) {
 					var x = item.x;
 					var y = item.y;
 					return "M" + hexBorder(x, y, r + 2, i).join("L") + "Z";
 				})
-				.attr("stroke", function(d) { return d.projects ? "#999" : "#999"; })
+				.attr("stroke", "#999")
 				.attr("fill", "none");
 		});
 
 		fn.sequence(0,6).forEach(function(i) {
 			nodes
 				.append("path")
-				.attr("d", function(item, itemIndex) {
+				.attr("d", function(item) {
 					var x = item.x;
 					var y = item.y;
 
@@ -568,7 +556,7 @@ var Stats = (function() {
 				[x + trMod, yMod],
 				[x - r / 2 + trMod, yMod + yMod2],
 				[x + r / 2 + trMod, yMod + yMod2],
-			]
+			];
 		}
 
 		function triangleBorder(x, y, r, i) {
@@ -584,65 +572,37 @@ var Stats = (function() {
 				return ret;
 			}
 
-			return [ ret[2], ret[1] ]
-		}
-
-		function triangleEdge(x, y, r, tr, i) {
-			var a = Math.PI / 3;
-			var trMod = tr;
-			var yMod = y;
-			var yMod2 = Math.sin(a) * r;
-			var r2 = r ? r - 5 : 0;
-			var yMod3 = Math.sin(a) * r2;
-			x += tr * ((i % 2) - 1.5);
-
-			if (i % 2 === 0) {
-				trMod *= i / 2;
-				trMod += tr / 2;
-				yMod += Math.sin(a) * tr;
-				yMod2 = -yMod2;
-				yMod3 = -yMod3;
-			}
-			else {
-				trMod *= Math.floor(i / 2);
-			}
-
-			return [
-				[x - r2 / 2 + trMod, yMod + yMod3],
-				[x + r2 / 2 + trMod, yMod + yMod3],
-				[x + r / 2 + trMod, yMod + yMod2],
-				[x - r / 2 + trMod, yMod + yMod2],
-			]
+			return [ ret[2], ret[1] ];
 		}
 
 		fn.sequence(0,6).forEach(function(i) {
 			nodes
 				.append("path")
-				.attr("d", function(item, itemIndex) {
+				.attr("d", function(item) {
 					var x = item.x;
 					var y = item.y;
 					return "M" + triangleBite(x, y, r + 2, r + 2, i).join("L") + "Z";
 				})
 				.attr("stroke", function(d) { return d.projects ? "#EEE" : "none"; })
-				.attr("fill", "#FFF")
+				.attr("fill", "#FFF");
 		});
 
 		fn.sequence(0,6).forEach(function(i) {
 			nodes
 				.append("path")
-				.attr("d", function(item, itemIndex) {
+				.attr("d", function(item) {
 					var x = item.x;
 					var y = item.y;
 					return "M" + triangleBorder(x, y, r + 2, i).join("L") + "Z";
 				})
-				.attr("stroke", function(d) { return d.projects ? "#999" : "#999"; })
+				.attr("stroke", "#999")
 				.attr("fill", "none");
 		});
 
 		fn.sequence(0,6).forEach(function(i) {
 			nodes
 				.append("path")
-				.attr("d", function(item, itemIndex) {
+				.attr("d", function(item) {
 					var path;
 					var edgeR = 0;
 
