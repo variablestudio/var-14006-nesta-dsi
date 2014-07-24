@@ -4836,7 +4836,14 @@ var Stats = (function() {
 			.data(projects)
 			.enter()
 			.append("g")
-			.attr("class", "project");
+			.attr("class", "project")
+			.on("mouseover", function(d) {
+				VizConfig.tooltip.html(d.activity_label);
+				VizConfig.tooltip.show();
+			})
+			.on("mouseout", function() {
+				VizConfig.tooltip.hide();
+			});
 
 		this.makeTriangles(projectNodes, r);
 
@@ -4845,7 +4852,14 @@ var Stats = (function() {
 			.data(collaborators)
 			.enter()
 			.append("g")
-			.attr("class", "collaborator");
+			.attr("class", "collaborator")
+			.on("mouseover", function(d) {
+				VizConfig.tooltip.html(d.org_label);
+				VizConfig.tooltip.show();
+			})
+			.on("mouseout", function() {
+				VizConfig.tooltip.hide();
+			});
 
 		this.makeHexes(collaboratorNodes, r * 0.7);
 
