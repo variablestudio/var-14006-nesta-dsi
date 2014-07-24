@@ -112,10 +112,14 @@ d3.chart("BigHex", {
               var parentData = d3.select(this.parentNode).datum();
               VizConfig.tooltip.show();
               VizConfig.tooltip.html(VizConfig.dsiAreasById[parentData.areaOfDSI].label + ' Project ' + d.name, "#FFF", VizConfig.dsiAreasById[parentData.areaOfDSI].color);
+
+							if (chart._mouseoverCallback) { chart._mouseoverCallback(d); }
             })
-            .on("mouseout", function() {
+            .on("mouseout", function(d) {
               d3.select(this).style("fill", function(d) { return "rgba(255,255,255,0)"; })
               VizConfig.tooltip.hide();
+
+							if (chart._mouseoutCallback) { chart._mouseoutCallback(d); }
             })
             .on("click", function(d) {
               d3.event.preventDefault();
@@ -221,5 +225,23 @@ d3.chart("BigHex", {
 
     this._y = newY;
     return this;
-  }
+  },
+
+	mouseoverCallback: function(newCallback) {
+		if (!newCallback) {
+			return this._mouseoverCallback;
+		}
+
+		this._mouseoverCallback = newCallback;
+		return this;
+	},
+
+	mouseoutCallback: function(newCallback) {
+		if (!newCallback) {
+			return this._mouseoutCallback;
+		}
+
+		this._mouseoutCallback = newCallback;
+		return this;
+	}
 });

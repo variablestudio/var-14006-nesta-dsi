@@ -173,7 +173,7 @@ var Stats = (function() {
 						memo.push(collab);
 					}
 					else {
-						var adsiIndex = indexOfProp(memo[index].adsi_labels, "name", memo[index].adsi_label);
+						var adsiIndex = indexOfProp(memo[index].adsi_labels, "name", collab.adsi_label);
 
 						if (adsiIndex < 0) {
 							memo[index].adsi_labels.push({ name: collab.adsi_label, count: 1 });
@@ -260,12 +260,20 @@ var Stats = (function() {
 						areaOfDSI: name,
 						color: VizConfig.dsiAreasByLabel[adsi].color,
 						count: 1,
-						projects: [ { name: data.activity_label, url: url } ]
+						projects: [ {
+							name: data.activity_label,
+							activity_url: data.activity_url,
+							url: url
+						} ]
 					});
 				}
 				else {
 					memo[index].count++;
-					memo[index].projects.push({ name: data.activity_label, url: url });
+					memo[index].projects.push({
+						name: data.activity_label,
+						activity_url: data.activity_url,
+						url: url
+					});
 				}
 			});
 
@@ -284,6 +292,12 @@ var Stats = (function() {
 			.chart("BigHex")
 			.width(width)
 			.height(height)
+			.mouseoverCallback(function(d) {
+				this.highlightOnActivityUrl("over", d.activity_url);
+			}.bind(this))
+			.mouseoutCallback(function() {
+				this.highlightOnActivityUrl("out");
+			}.bind(this))
 			.draw(hexData);
 	};
 
@@ -325,7 +339,14 @@ var Stats = (function() {
 			.attr("height", function(d) {
 				return scale(d.count);
 			})
-			.attr("width", size);
+			.attr("width", size)
+			.on("mouseover", function(d) {
+				var urls = d.values.map(function(v) { return v.url; });
+				this.highlightOnActivityUrl("over", urls);
+			}.bind(this))
+			.on("mouseout", function() {
+				this.highlightOnActivityUrl("out");
+			}.bind(this));
 
 		svg.selectAll(".percent")
 			.data(groupedData)
@@ -421,12 +442,16 @@ var Stats = (function() {
 			.append("g")
 			.attr("class", "project")
 			.on("mouseover", function(d) {
+				this.highlightOnActivityUrl("over", d.activity_url);
+
 				VizConfig.tooltip.html(d.activity_label);
 				VizConfig.tooltip.show();
-			})
+			}.bind(this))
 			.on("mouseout", function() {
+				this.highlightOnActivityUrl("out");
+
 				VizConfig.tooltip.hide();
-			});
+			}.bind(this));
 
 		this.makeTriangles(projectNodes, r);
 
@@ -437,12 +462,16 @@ var Stats = (function() {
 			.append("g")
 			.attr("class", "collaborator")
 			.on("mouseover", function(d) {
+				this.highlightOnActivityUrl("over", d.activity_urls);
+
 				VizConfig.tooltip.html(d.org_label);
 				VizConfig.tooltip.show();
-			})
+			}.bind(this))
 			.on("mouseout", function() {
+				this.highlightOnActivityUrl("out");
+
 				VizConfig.tooltip.hide();
-			});
+			}.bind(this));
 
 		this.makeHexes(collaboratorNodes, r * 0.7);
 
@@ -833,36 +862,60 @@ var Stats = (function() {
 		state = (state === "over") ? "over" : "out";
 		urls = (urls instanceof Array) ? urls : [ urls ];
 
-		if (state === "over") {
-			// handle opacity for visualizations with simple accesors
-			[ { "query": ".dsi-rect", "accesor": "url" },
-				{ "query": ".collaborator", "accesor": "activity_url" },
-				{ "query": ".connection", "accesor": "activity_url" } ].forEach(function(object) {
-					d3.selectAll(object.query)
-						.transition()
-						.duration(200)
-						.style("opacity", function(d) {
-							return (urls.indexOf(d[object.accesor]) >= 0) ? 1.0 : 0.2;
-						});
-				});
+		var selectors = [
+			{ query: ".tech-bar", accessor: "values", prop: "url" },
+			{ query: ".collaborator", accessor: "activity_urls" },
+			{ query: ".link", accessor: [ "project", "activity_url" ] },
+			{ query: ".project", accessor: "activity_url" }
+		];
 
-				// more complicated technology bar opacity transition
-				d3.selectAll(".tech-bar")
+		if (state === "over") {
+			// handle opacity for visualizations with simple accessors
+			 selectors.forEach(function(object) {
+				d3.selectAll(object.query)
 					.transition()
 					.duration(200)
 					.style("opacity", function(d) {
-						var urlMatches = urls.reduce(function(memo, url) {
-							if (!memo) { memo = (indexOfProp(d.values, "url", url) >= 0); }
-							return memo;
-						}, false);
+						// recursively acces JSON if accessor is path
+						var accessed;
+						if (object.accessor instanceof Array) {
+							accessed = d;
+							object.accessor.forEach(function(accessor) { accessed = accessed[accessor]; });
+						}
+						else {
+							accessed = d[object.accessor];
+						}
+
+						var urlMatches = false;
+
+						// check if urls match using accessor and prop
+						if (d[object.accessor] instanceof Array) {
+							urlMatches = urls.reduce(function(memo, url) {
+								if (!memo) {
+									if (object.prop) {
+										memo = (indexOfProp(accessed, object.prop, url) >= 0);
+									}
+									else {
+										memo = (accessed.indexOf(url) >= 0);
+									}
+								}
+								return memo;
+							}, false);
+						}
+						else {
+							urlMatches = (urls.indexOf(accessed) >= 0);
+						}
 
 						return urlMatches ? 1.0 : 0.2;
 					});
+			});
 		}
 		else {
-			// transition everything back to 1.0
-			[ ".dsi-rect", ".tech-bar", ".connection", ".collaborator" ].forEach(function(query) {
-				d3.selectAll(query).transition().duration(200).style("opacity", 1.0);
+			selectors.forEach(function(object) {
+				d3.selectAll(object.query)
+					.transition()
+					.duration(200)
+					.style("opacity", 1.0);
 			});
 		}
 	};
