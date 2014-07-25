@@ -187,10 +187,11 @@ var MainMap = (function() {
     }));
 
     $(this.mainVizContainer).append(
-      $("<div class=\"map-fullscreen\">Fullscreen</div>").on("click", function() {
+      $("<div class=\"map-fullscreen\">Expand Map</div>").on("click", function() {
         if (this.map.fullscreen) {
           $('#map').css({ 'position': 'relative', 'height': this.h });
           $('#map-overlay').css({ 'position': 'relative', 'height': this.h, 'margin-top': -this.h });
+          $('.map-fullscreen').text("Expand Map");
         }
         else {
           var topMargin = 146;
@@ -198,6 +199,7 @@ var MainMap = (function() {
 
           $('#map').css({ 'height': size });
           $('#map-overlay').css({ 'height': size, 'margin-top': -size });
+          $('.map-fullscreen').text("Collapse Map");
         }
 
         this.map.leaflet.invalidateSize();
