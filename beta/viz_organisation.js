@@ -22,8 +22,11 @@ var Stats = (function() {
 	}
 
 	Stats.prototype.setupDOM = function() {
+		// FIXME: this should be done on Nesta page, not here
+
 		$(this.DOM.dsi[0]).css({ width: 370 });
 		$(this.DOM.tech[0]).css({ width: 570, padding: 0 });
+		$(this.DOM.tech[0]).children("h2").text("Technology Focus");
 		$(this.DOM.collaborators[0]).css({ width: 940, "padding-left": 0, "padding-top": 30 });
 	};
 
