@@ -444,7 +444,7 @@ var Stats = (function() {
 			.on("mouseover", function(d) {
 				this.highlightOnActivityUrl("over", d.activity_url);
 
-				VizConfig.tooltip.html(d.activity_label);
+				VizConfig.tooltip.html(d.activity_label + "<br><span>click to open project page</span>");
 				VizConfig.tooltip.show();
 			}.bind(this))
 			.on("mouseout", function() {
@@ -468,7 +468,7 @@ var Stats = (function() {
 			.on("mouseover", function(d) {
 				this.highlightOnActivityUrl("over", d.activity_urls);
 
-				VizConfig.tooltip.html(d.org_label);
+				VizConfig.tooltip.html(d.org_label + "<br><span>click to open organisation page</span>");
 				VizConfig.tooltip.show();
 			}.bind(this))
 			.on("mouseout", function() {
@@ -848,8 +848,8 @@ var Stats = (function() {
 		var highlightOnActivityUrl = this.highlightOnActivityUrl;
 
 		hex.on("mouseover", function(d) {
+			VizConfig.tooltip.html(d.org_label + "<br><span>click to open organisation page</span>", "#FFF", "#666");
 			VizConfig.tooltip.show();
-			VizConfig.tooltip.html(d.org_label, "#FFF", "#666");
 
 			highlightOnActivityUrl("over", d.activity_url);
 		});

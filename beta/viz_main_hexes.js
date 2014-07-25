@@ -341,8 +341,8 @@ var MainHexes = (function() {
 
 			itemGroup
 				.on("mouseover", function(item) {
-					VizConfig.tooltip.show();
 					VizConfig.tooltip.html(item.label);
+					VizConfig.tooltip.show();
 				})
 				.on("mouseout", function() {
 					VizConfig.tooltip.hide();
@@ -358,7 +358,6 @@ var MainHexes = (function() {
 						url = 'http://digitalsocial.eu/organisations/' + item.id.substr(item.id.lastIndexOf('/')+1);
 						window.location.href = url;
 					}
-					//VizConfig.tooltip.hide();
 				});
 		}
 

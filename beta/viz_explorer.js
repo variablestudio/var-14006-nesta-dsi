@@ -201,7 +201,7 @@ var Explorer = (function() {
 			}.bind(this))
 			.on("mouseover", function() {
 				VizConfig.tooltip.show();
-				VizConfig.tooltip.html(title + " : " + count, "#FFF", fillColor);
+				VizConfig.tooltip.html(title + " : " + count + "<br><span>click to expand</span>", "#FFF", fillColor);
 			})
 			.on("mouseout", function() {
 				VizConfig.tooltip.hide();

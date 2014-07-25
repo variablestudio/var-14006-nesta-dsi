@@ -30,7 +30,9 @@ VizTooltip.prototype.hide = function() {
 VizTooltip.prototype.html = function(content, textColor, bgColor) {
   textColor = textColor ? textColor : '';
   bgColor = bgColor ? bgColor : '';
+
   this.vizTooltip.css('color', textColor);
   this.vizTooltip.css('background', bgColor);
   this.vizTooltip.html(content);
+  this.vizTooltip.find('span').css({ 'color': textColor, 'opacity': 0.5 });
 }

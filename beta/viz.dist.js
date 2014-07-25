@@ -482,7 +482,7 @@ d3.chart("BigHex", {
               var parentIndex = Array.prototype.indexOf.call(this.parentNode.parentNode.childNodes, this.parentNode);
               var parentData = d3.select(this.parentNode).datum();
               VizConfig.tooltip.show();
-              VizConfig.tooltip.html(VizConfig.dsiAreasById[parentData.areaOfDSI].label + ' Project ' + d.name, "#FFF", VizConfig.dsiAreasById[parentData.areaOfDSI].color);
+              VizConfig.tooltip.html(VizConfig.dsiAreasById[parentData.areaOfDSI].label + ' Project ' + d.name + '<br><span>click to open project page</span>', "#FFF", VizConfig.dsiAreasById[parentData.areaOfDSI].color);
 
               if (chart._mouseoverCallback) { chart._mouseoverCallback(d); }
             })
@@ -2321,7 +2321,7 @@ var Explorer = (function() {
 			}.bind(this))
 			.on("mouseover", function() {
 				VizConfig.tooltip.show();
-				VizConfig.tooltip.html(title + " : " + count, "#FFF", fillColor);
+				VizConfig.tooltip.html(title + " : " + count + "<br><span>click to expand</span>", "#FFF", fillColor);
 			})
 			.on("mouseout", function() {
 				VizConfig.tooltip.hide();
@@ -3003,9 +3003,11 @@ VizTooltip.prototype.hide = function() {
 VizTooltip.prototype.html = function(content, textColor, bgColor) {
   textColor = textColor ? textColor : '';
   bgColor = bgColor ? bgColor : '';
+
   this.vizTooltip.css('color', textColor);
   this.vizTooltip.css('background', bgColor);
   this.vizTooltip.html(content);
+  this.vizTooltip.find('span').css({ 'color': textColor, 'opacity': 0.5 });
 }
 
 function VizPopup() {
@@ -3286,18 +3288,27 @@ var MainMap = (function() {
     // for some strange reason can't set this width d3.style()
     $('#map').css({ 'width': this.w, 'height': this.h });
 
-    this.DOM.overlay = {
-      div: $("<div id=\"map-overlay\"><h3 class=\"title\"></h3><svg></svg></div>")
-        .css({ 'height': this.h, 'margin-top': -this.h })
-        .hide()
-        .on("click", function() {
-          this.selectedOrg = null;
-          this.showOrganisations(this.map.leaflet.getZoom());
-          this.showClusterNetwork(this.map.leaflet.getZoom());
-          this.hideOrganisationHex();
-          this.hideBigHex();
-        }.bind(this))
-    };
+    var mapOverlay = $("<div id=\"map-overlay\"><h3 class=\"title\"></h3><svg></svg></div>")
+      .css({ 'height': this.h, 'margin-top': -this.h })
+      .hide()
+      .on("click", function() {
+        this.selectedOrg = null;
+        this.showOrganisations(this.map.leaflet.getZoom());
+        this.showClusterNetwork(this.map.leaflet.getZoom());
+        this.hideOrganisationHex();
+        this.hideBigHex();
+      }.bind(this));
+
+    mapOverlay.find(".title")
+      .on("mouseover", function() {
+        VizConfig.tooltip.html("click to open organisation page");
+        VizConfig.tooltip.show();
+      })
+      .on("mouseout", function() {
+        VizConfig.tooltip.hide();
+      });
+
+    this.DOM.overlay = { div: mapOverlay };
 
     // add big hex overlay
     $(this.mainVizContainer).append(this.DOM.overlay.div);
@@ -3382,10 +3393,11 @@ var MainMap = (function() {
     }));
 
     $(this.mainVizContainer).append(
-      $("<div class=\"map-fullscreen\">Fullscreen</div>").on("click", function() {
+      $("<div class=\"map-fullscreen\">Expand Map</div>").on("click", function() {
         if (this.map.fullscreen) {
           $('#map').css({ 'position': 'relative', 'height': this.h });
           $('#map-overlay').css({ 'position': 'relative', 'height': this.h, 'margin-top': -this.h });
+          $('.map-fullscreen').text("Expand Map");
         }
         else {
           var topMargin = 146;
@@ -3393,6 +3405,7 @@ var MainMap = (function() {
 
           $('#map').css({ 'height': size });
           $('#map-overlay').css({ 'height': size, 'margin-top': -size });
+          $('.map-fullscreen').text("Collapse Map");
         }
 
         this.map.leaflet.invalidateSize();
@@ -4180,6 +4193,9 @@ var MainMap = (function() {
     var className = "hex-big";
     var hexSize = 300;
     var orgLabel = data.organisations[0].label;
+    var orgUrl = data.organisations[0].org;
+    orgUrl = orgUrl.substr(orgUrl.lastIndexOf("/") + 1);
+    orgUrl = 'http://digitalsocial.eu/organisations/' + orgUrl;
 
     var prepareDataForHex = function(data) {
       var defaultData = VizConfig.dsiAreas.map(function(area) {
@@ -4220,7 +4236,7 @@ var MainMap = (function() {
 
     // update overlay
     this.DOM.overlay.div.fadeIn();
-    this.DOM.overlay.div.find(".title").text(orgLabel);
+    this.DOM.overlay.div.find(".title").html("<a href=\"" + orgUrl + "\">" + orgLabel + "</a>");
 
     return bigHex;
   };
@@ -4292,18 +4308,24 @@ var MainMap = (function() {
     selection.on('mouseover', function(cluster) {
       if (isPreloading()) { return; }
 
-      var maxOrgCount = 6;
-      var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
-      var organisations = cluster.organisations;
+      // var maxOrgCount = 6;
+      // var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
+      // var organisations = cluster.organisations;
 
-      if (cutOrganisationsCount) {
-        organisations = organisations.slice(0, maxOrgCount);
+      // if (cutOrganisationsCount) {
+      //   organisations = organisations.slice(0, maxOrgCount);
+      // }
+
+      // var html = organisations.map(function(o) { return o.label; }).join("<br/>");
+
+      // if (cutOrganisationsCount) { html += "<br/>..."; }
+
+      var html;
+      if (cluster.organisations.length > 1) {
+        html = cluster.organisations.length + " organisations in this cluster<br><span>click to show more info</span>";
       }
-
-      var html = organisations.map(function(o) { return o.label; }).join("<br/>");
-
-      if (cutOrganisationsCount) {
-        html += "<br/>...";
+      else {
+        html = cluster.organisations[0].label + "<br><span>click to show more info</span>";
       }
 
       VizConfig.tooltip.html(html);
@@ -4886,7 +4908,7 @@ var Stats = (function() {
 			.on("mouseover", function(d) {
 				this.highlightOnActivityUrl("over", d.activity_url);
 
-				VizConfig.tooltip.html(d.activity_label);
+				VizConfig.tooltip.html(d.activity_label + "<br><span>click to open project page</span>");
 				VizConfig.tooltip.show();
 			}.bind(this))
 			.on("mouseout", function() {
@@ -4910,7 +4932,7 @@ var Stats = (function() {
 			.on("mouseover", function(d) {
 				this.highlightOnActivityUrl("over", d.activity_urls);
 
-				VizConfig.tooltip.html(d.org_label);
+				VizConfig.tooltip.html(d.org_label + "<br><span>click to open organisation page</span>");
 				VizConfig.tooltip.show();
 			}.bind(this))
 			.on("mouseout", function() {
@@ -5290,8 +5312,8 @@ var Stats = (function() {
 		var highlightOnActivityUrl = this.highlightOnActivityUrl;
 
 		hex.on("mouseover", function(d) {
+			VizConfig.tooltip.html(d.org_label + "<br><span>click to open organisation page</span>", "#FFF", "#666");
 			VizConfig.tooltip.show();
-			VizConfig.tooltip.html(d.org_label, "#FFF", "#666");
 
 			highlightOnActivityUrl("over", d.activity_url);
 		});
