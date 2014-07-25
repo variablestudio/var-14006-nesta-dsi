@@ -178,6 +178,20 @@ var Choropleth = (function() {
 			.enter()
 			.append("g")
 			.attr("class", "rect")
+			.on("mouseover", function(d) {
+				var html = "no case studies for this combination";
+
+				if (d.caseStudies.length > 0) {
+					html = d.caseStudies.length + " case studies for this combination";
+					html += "<br><span>click to show them</span>";
+				}
+
+				VizConfig.tooltip.html(html);
+				VizConfig.tooltip.show();
+			})
+			.on("mouseout", function(d) {
+				VizConfig.tooltip.hide();
+			})
 			.on("click", function(d) {
 				var popupContent;
 				var windowOffset = $(svg[0]).offset();
@@ -191,13 +205,10 @@ var Choropleth = (function() {
 					popupContent += d.caseStudies.map(function(caseStudy) {
 						return "<a href=\"" + caseStudy.url + "\">" + caseStudy.name + "</a>";
 					}).join("");
-				}
-				else {
-					popupContent = "No Case Studies for this combination yet...";
-				}
 
-				VizConfig.popup.html(popupContent);
-				VizConfig.popup.open(rectOffset.x, rectOffset.y, windowOffset.left, windowOffset.top);
+					VizConfig.popup.html(popupContent);
+					VizConfig.popup.open(rectOffset.x, rectOffset.y, windowOffset.left, windowOffset.top);
+				}
 			}.bind(this));
 
 		rectGroups
