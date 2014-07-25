@@ -201,7 +201,6 @@
   position: relative;
   padding: 30px 20px 0 20px;
   width: 300px;
-  cursor: pointer;
 }
 
 #map-overlay h3 {
@@ -209,8 +208,19 @@
 }
 
 #map-overlay h3 a {
-	text-decoration: none;
-	color: black;
+  text-decoration: none;
+  color: black;
+}
+
+#map-overlay .close {
+  float: right;
+  color: white;
+  background: #00B993;
+  padding: 7px;
+  font-size: 14px;
+  margin-top: -30px;
+  margin-right: -20px;
+  cursor: pointer;
 }
 
 .map-fullscreen {
@@ -808,13 +818,13 @@
 }
 
 .viz-2 svg .title {
-	fill: #808080;
+  fill: #808080;
   font-size: 14px;
 }
 
 .viz-2 svg .percent {
-	font-size: 32px;
-	font-weight: 500;
+  font-size: 32px;
+  font-weight: 500;
 }
 
 /*---------------------------------- bighex -----------------------------------*/

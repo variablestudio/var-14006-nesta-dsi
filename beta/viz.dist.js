@@ -3288,9 +3288,11 @@ var MainMap = (function() {
     // for some strange reason can't set this width d3.style()
     $('#map').css({ 'width': this.w, 'height': this.h });
 
-    var mapOverlay = $("<div id=\"map-overlay\"><h3 class=\"title\"></h3><svg></svg></div>")
+    var mapOverlay = $("<div id=\"map-overlay\"><span class=\"close\">Close</span><h3 class=\"title\"></h3><svg></svg></div>")
       .css({ 'height': this.h, 'margin-top': -this.h })
-      .hide()
+      .hide();
+
+    mapOverlay.find(".close")
       .on("click", function() {
         this.selectedOrg = null;
         this.showOrganisations(this.map.leaflet.getZoom());
