@@ -1219,11 +1219,14 @@ var Carousel = (function() {
 		this.DOM.popup.find(".title").html(data.name).css({ "color": color, "border-top": "4px solid " + color });
 		this.DOM.popup.find(".content").html(html);
 
-		// finally show poppup
+		$("body").css({ overflow: "hidden" }); // disable page scroll
+
 		this.DOM.popup.show();
 	};
 
 	Carousel.prototype.caseStudyHide = function() {
+		$("body").css({ overflow: "scroll" }); // enable page scroll
+
 		this.DOM.popup.hide();
 	};
 
