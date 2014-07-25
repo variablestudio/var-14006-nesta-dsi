@@ -48,7 +48,6 @@ var MainMap = (function() {
     }.bind(this));
 
     VizConfig.events.addEventListener('casestudies', function(data) {
-      // this should be done only once
       if (!this.caseStudiesData) {
         this.caseStudiesData = data;
         this.updateCaseStudiesData();
@@ -533,11 +532,20 @@ var MainMap = (function() {
       }.bind(this));
     }
 
+		filteredOrganisations = filteredOrganisations.filter(function(data) {
+			var shouldShow = filters.reduce(function(memo, filter) {
+				if (memo) { memo = data[filter.property] && data[filter.property].indexOf(filter.id) >= 0; }
+				return memo;
+			}, true);
+
+			return shouldShow;
+		});
+
     filters.forEach(function(filter) {
-      filteredOrganisations = filteredOrganisations.filter(function(org) {
-        var value = org[filter.property] || '';
-        return value.indexOf(filter.id) !== -1;
-      });
+      // filteredOrganisations = filteredOrganisations.filter(function(org) {
+      //   var value = org[filter.property] || '';
+      //   return value.indexOf(filter.id) !== -1;
+      // });
 
       if (filter.property === 'areaOfDigitalSocialInnovation' && numAreasOfDsi === 1) {
         color = VizConfig.dsiAreasById[filter.id].color;
@@ -831,6 +839,7 @@ var MainMap = (function() {
           if (org.logoImage) {
             memo.push({
               center: org.center,
+              pos: { x: org.x, y: org.y },
               logoImage: org.logoImage,
               organisations: [ org ]
             });
@@ -845,6 +854,8 @@ var MainMap = (function() {
         return memo.concat(array);
       }, []);
 
+    var showWithCluster = true;
+
     var caseStudies = selection
       .selectAll('.case-study')
       .data(data);
@@ -853,16 +864,27 @@ var MainMap = (function() {
       .enter()
       .append('svg:image')
       .attr('class', 'case-study')
-      .attr('xlink:href', function(d) { return d.logoImage; })
       .attr('width', 50)
       .attr('height', 44)
-      .attr('x', -50 / 2 - 30)
-      .attr('y', -44 / 2 + 10)
+      .attr('x', -50 / 2)
+      .attr('y', -44 / 2)
       .attr('opacity', 0);
 
     caseStudies
+      .attr('xlink:href', function(d) { return d.logoImage; })
       .attr('transform', function(d) {
-        return "translate(" + d.center.x + "," + d.center.y + ")";
+        var x, y;
+
+        if (showWithCluster) {
+          x = d.center.x - 30;
+          y = d.center.y + 10;
+        }
+        else {
+          x = d.pos.x;
+          y = d.pos.y;
+        }
+
+        return "translate(" + x + "," + y + ")";
       })
       .transition()
       .duration(300)

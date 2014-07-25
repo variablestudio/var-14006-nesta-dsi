@@ -163,8 +163,8 @@ var Carousel = (function() {
 			.where("?am", "ds:organization", "?org")
 			.where("?am", "ds:activity", "?activity")
 			.where("?activity", "rdfs:label", "?activity_label")
-			.where("?activity", "ds:areaOfDigitalSocialInnovation", "?adsi", { optional: true })
-			.where("?activity", "ds:technologyFocus", "?tech_focus", { optional: true })
+			.where("?activity", "ds:areaOfDigitalSocialInnovation", "?adsi")
+			.where("?activity", "ds:technologyFocus", "?tech_focus")
 			.where("?activity", "ds:areaOfSociety", "?area_of_society", { optional: true })
 			.where("?org", "rdfs:label", "?org_label")
 			.where("?org", "o:hasPrimarySite", "?org_site")
@@ -173,24 +173,28 @@ var Carousel = (function() {
 			.where("FILTER (str(?org) IN (" + orgs + "))", "", "")
 			.execute()
 			.then(function(results) {
-				var reduceOrgByProp = function(data, prop, newPropName) {
+				var reduceOrgByProps = function(data, props) {
 					return data.reduce(function(memo, org) {
-						if (org[prop]) {
-							org[prop] = org[prop].substr(org[prop].lastIndexOf('/') + 1);
-						}
+						props.forEach(function(p) {
+							if (org[p.old]) { org[p.old] = org[p.old].substr(org[p.old].lastIndexOf('/') + 1); }
+						});
 
 						var index = indexOfProp(memo, "org", org.org);
 
-						if (index >= 0 && org[prop]) {
-							if (memo[index][newPropName].indexOf(org[prop]) < 0) {
-								memo[index][newPropName].push(org[prop]);
-							}
+						if (index >= 0) {
+							props.forEach(function(p) {
+								if (org[p.old] && memo[index][p.new].indexOf(org[p.old]) < 0) {
+									memo[index][p.new].push(org[p.old]);
+								}
+							});
 						}
 						else {
-							if (org[prop]) {
-								org[newPropName] = [ org[prop] ];
-								delete org[prop];
-							}
+							props.forEach(function(p) {
+								if (org[p.old]) {
+									org[p.new] = [ org[p.old] ];
+									delete org[p.old];
+								}
+							});
 
 							memo.push(org);
 						}
@@ -210,10 +214,12 @@ var Carousel = (function() {
 					return o;
 				});
 
-				results = reduceOrgByProp(results, "org_type", "organisationType");
-				results = reduceOrgByProp(results, "adsi", "areaOfDigitalSocialInnovation");
-				results = reduceOrgByProp(results, "area_of_society", "areaOfSociety");
-				results = reduceOrgByProp(results, "tech_focus", "technologyFocus");
+				results = reduceOrgByProps(results, [
+					{ old: "org_type", new: "organisationType" },
+					{ old: "adsi", new: "areaOfDigitalSocialInnovation" },
+					{ old: "area_of_society", new: "areaOfSociety" },
+					{ old: "tech_focus", new: "technologyFocus" }
+				]);
 
 				// merge SPARQL results with wordpress custom fields data
 				data = data.map(function(caseStudy) {

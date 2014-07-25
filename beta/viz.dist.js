@@ -954,8 +954,8 @@ var Carousel = (function() {
 			.where("?am", "ds:organization", "?org")
 			.where("?am", "ds:activity", "?activity")
 			.where("?activity", "rdfs:label", "?activity_label")
-			.where("?activity", "ds:areaOfDigitalSocialInnovation", "?adsi", { optional: true })
-			.where("?activity", "ds:technologyFocus", "?tech_focus", { optional: true })
+			.where("?activity", "ds:areaOfDigitalSocialInnovation", "?adsi")
+			.where("?activity", "ds:technologyFocus", "?tech_focus")
 			.where("?activity", "ds:areaOfSociety", "?area_of_society", { optional: true })
 			.where("?org", "rdfs:label", "?org_label")
 			.where("?org", "o:hasPrimarySite", "?org_site")
@@ -964,24 +964,28 @@ var Carousel = (function() {
 			.where("FILTER (str(?org) IN (" + orgs + "))", "", "")
 			.execute()
 			.then(function(results) {
-				var reduceOrgByProp = function(data, prop, newPropName) {
+				var reduceOrgByProps = function(data, props) {
 					return data.reduce(function(memo, org) {
-						if (org[prop]) {
-							org[prop] = org[prop].substr(org[prop].lastIndexOf('/') + 1);
-						}
+						props.forEach(function(p) {
+							if (org[p.old]) { org[p.old] = org[p.old].substr(org[p.old].lastIndexOf('/') + 1); }
+						});
 
 						var index = indexOfProp(memo, "org", org.org);
 
-						if (index >= 0 && org[prop]) {
-							if (memo[index][newPropName].indexOf(org[prop]) < 0) {
-								memo[index][newPropName].push(org[prop]);
-							}
+						if (index >= 0) {
+							props.forEach(function(p) {
+								if (org[p.old] && memo[index][p.new].indexOf(org[p.old]) < 0) {
+									memo[index][p.new].push(org[p.old]);
+								}
+							});
 						}
 						else {
-							if (org[prop]) {
-								org[newPropName] = [ org[prop] ];
-								delete org[prop];
-							}
+							props.forEach(function(p) {
+								if (org[p.old]) {
+									org[p.new] = [ org[p.old] ];
+									delete org[p.old];
+								}
+							});
 
 							memo.push(org);
 						}
@@ -1001,10 +1005,12 @@ var Carousel = (function() {
 					return o;
 				});
 
-				results = reduceOrgByProp(results, "org_type", "organisationType");
-				results = reduceOrgByProp(results, "adsi", "areaOfDigitalSocialInnovation");
-				results = reduceOrgByProp(results, "area_of_society", "areaOfSociety");
-				results = reduceOrgByProp(results, "tech_focus", "technologyFocus");
+				results = reduceOrgByProps(results, [
+					{ old: "org_type", new: "organisationType" },
+					{ old: "adsi", new: "areaOfDigitalSocialInnovation" },
+					{ old: "area_of_society", new: "areaOfSociety" },
+					{ old: "tech_focus", new: "technologyFocus" }
+				]);
 
 				// merge SPARQL results with wordpress custom fields data
 				data = data.map(function(caseStudy) {
@@ -3245,7 +3251,6 @@ var MainMap = (function() {
     }.bind(this));
 
     VizConfig.events.addEventListener('casestudies', function(data) {
-      // this should be done only once
       if (!this.caseStudiesData) {
         this.caseStudiesData = data;
         this.updateCaseStudiesData();
@@ -3730,11 +3735,20 @@ var MainMap = (function() {
       }.bind(this));
     }
 
+		filteredOrganisations = filteredOrganisations.filter(function(data) {
+			var shouldShow = filters.reduce(function(memo, filter) {
+				if (memo) { memo = data[filter.property] && data[filter.property].indexOf(filter.id) >= 0; }
+				return memo;
+			}, true);
+
+			return shouldShow;
+		});
+
     filters.forEach(function(filter) {
-      filteredOrganisations = filteredOrganisations.filter(function(org) {
-        var value = org[filter.property] || '';
-        return value.indexOf(filter.id) !== -1;
-      });
+      // filteredOrganisations = filteredOrganisations.filter(function(org) {
+      //   var value = org[filter.property] || '';
+      //   return value.indexOf(filter.id) !== -1;
+      // });
 
       if (filter.property === 'areaOfDigitalSocialInnovation' && numAreasOfDsi === 1) {
         color = VizConfig.dsiAreasById[filter.id].color;
@@ -4028,6 +4042,7 @@ var MainMap = (function() {
           if (org.logoImage) {
             memo.push({
               center: org.center,
+              pos: { x: org.x, y: org.y },
               logoImage: org.logoImage,
               organisations: [ org ]
             });
@@ -4042,6 +4057,8 @@ var MainMap = (function() {
         return memo.concat(array);
       }, []);
 
+    var showWithCluster = true;
+
     var caseStudies = selection
       .selectAll('.case-study')
       .data(data);
@@ -4050,16 +4067,27 @@ var MainMap = (function() {
       .enter()
       .append('svg:image')
       .attr('class', 'case-study')
-      .attr('xlink:href', function(d) { return d.logoImage; })
       .attr('width', 50)
       .attr('height', 44)
-      .attr('x', -50 / 2 - 30)
-      .attr('y', -44 / 2 + 10)
+      .attr('x', -50 / 2)
+      .attr('y', -44 / 2)
       .attr('opacity', 0);
 
     caseStudies
+      .attr('xlink:href', function(d) { return d.logoImage; })
       .attr('transform', function(d) {
-        return "translate(" + d.center.x + "," + d.center.y + ")";
+        var x, y;
+
+        if (showWithCluster) {
+          x = d.center.x - 30;
+          y = d.center.y + 10;
+        }
+        else {
+          x = d.pos.x;
+          y = d.pos.y;
+        }
+
+        return "translate(" + x + "," + y + ")";
       })
       .transition()
       .duration(300)
