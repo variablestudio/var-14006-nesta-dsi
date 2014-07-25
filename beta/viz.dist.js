@@ -3067,7 +3067,9 @@ VizPopup.prototype.isOpen = function() {
 
 /*global $, d3, VizConfig */
 
-function VizKey(open) {
+function VizKey(open, showMore) {
+  showMore = showMore !== undefined ? showMore : true;
+
   var updateFilters = this.updateFilters.bind(this);
   this.activeFilters = [];
 
@@ -3135,9 +3137,11 @@ function VizKey(open) {
     sidebarSection.parent.append(section);
   });
 
-  var moreButton = this.moreButton = $('<div class="section more"><h3>MORE</h3></div>');
-
-  rowLeft.append(moreButton);
+  if (showMore) {
+    var moreButton = this.moreButton = $('<div class="section more"><h3>MORE</h3></div>');
+    moreButton.on('click', function() { this.toggleMore(); }.bind(this));
+    rowLeft.append(moreButton);
+  }
 
   sideBar.append(rowLeft);
   sideBar.append(rowRight);
@@ -3146,8 +3150,6 @@ function VizKey(open) {
     'left': rowLeft,
     'right': rowRight
   };
-
-  moreButton.on('click', function() { this.toggleMore(); }.bind(this));
 
   thumb.on('click', function() {
     if (vizKeyContainer.hasClass('open')) { this.close(); }
@@ -5685,8 +5687,8 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     explorer.init();
   }
 
-	function initMainStats(vizContainer, settings) {
-		settings.timeout = settings.timeout || 0;
+  function initMainStats(vizContainer, settings) {
+    settings.timeout = settings.timeout || 0;
 
     var mainStatsTitle = $('<h1>Stats</h1>');
     vizContainer.append(mainStatsTitle);
@@ -5694,11 +5696,11 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     var mainStatsViz = $('<div id="mainStatsViz"></div>');
     vizContainer.append(mainStatsViz);
 
-		setTimeout(function() {
-			var mainStats = new MainStats("#mainStatsViz", { minValue: 10 });
-			mainStats.init();
-		}, settings.timeout);
-	}
+    setTimeout(function() {
+      var mainStats = new MainStats("#mainStatsViz", { minValue: 10 });
+      mainStats.init();
+    }, settings.timeout);
+  }
 
   function initVizKey() {
     var openOnInit = !showIntro;
@@ -5713,7 +5715,8 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     };
 
     var openVizKey = false;
-    var vizKey = new VizKey(openVizKey);
+    var showMoreFilters = false;
+    var vizKey = new VizKey(openVizKey, showMoreFilters);
 
     var stats = new Stats(divs, orgId);
     stats.init();
