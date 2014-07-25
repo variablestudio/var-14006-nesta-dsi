@@ -80,11 +80,7 @@ function VizKey(open) {
     'right': rowRight
   };
 
-  moreButton.on('click', function() {
-    this.row.right.animate({ width: "220px"});
-    this.thumb.animate({ left: "357px" });
-    this.moreButton.fadeOut();
-  }.bind(this));
+  moreButton.on('click', function() { this.toggleMore(); }.bind(this));
 
   thumb.on('click', function() {
     if (vizKeyContainer.hasClass('open')) { this.close(); }
@@ -107,7 +103,22 @@ VizKey.prototype.close = function() {
   this.thumb.animate({ left: "137px" });
   this.vizKeyContainer.animate({ left: "-220px" });
 
-  this.row.right.animate({ width: 0 }, { complete: function() { this.moreButton.show(); }.bind(this) });
+  this.row.right.animate({ width: 0 }, { complete: function() { this.toggleMore({ close: true }) }.bind(this) });
+};
+
+VizKey.prototype.toggleMore = function(settings) {
+  var shouldClose = settings ? settings.close : false;
+
+  if (this.row.right.width() > 0 || shouldClose) {
+    this.row.right.animate({ width: 0 });
+    this.thumb.animate({ left: "137px" });
+    this.moreButton.children("h3").text("MORE");
+  }
+  else {
+    this.row.right.animate({ width: "220px"});
+    this.thumb.animate({ left: "357px" });
+    this.moreButton.children("h3").text("LESS");
+  }
 };
 
 VizKey.prototype.updateFilters = function(filter) {
