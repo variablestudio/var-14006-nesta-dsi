@@ -248,6 +248,12 @@
   margin: 0 auto;
 }
 
+#carousel .filters {
+  font-size: 14px;
+  color: #808080;
+  margin-bottom: 20px;
+}
+
 #carousel .button {
   cursor: pointer;
   margin-top: 70px;

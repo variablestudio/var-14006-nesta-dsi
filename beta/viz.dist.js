@@ -813,7 +813,8 @@ var Carousel = (function() {
 		$("body").on("click", this.caseStudyHide.bind(this));
 
 		this.DOM = {
-			"wrapper": DOMElements.wrapper, // carousel wrapper
+			"filters": DOMElements.filters,
+			"wrapper": DOMElements.wrapper,
 			"buttonNext": DOMElements.buttonNext,
 			"buttonPrev": DOMElements.buttonPrev,
 			"popup": popup
@@ -928,7 +929,7 @@ var Carousel = (function() {
 
 			VizConfig.events.fire('casestudies', this.carousel.data);
 
-			this.updateCaseStudiesTitle();
+			this.updateFiltersText();
 		}.bind(this));
 	}
 
@@ -1230,9 +1231,8 @@ var Carousel = (function() {
 		this.DOM.popup.hide();
 	};
 
-	Carousel.prototype.updateCaseStudiesTitle = function() {
+	Carousel.prototype.updateFiltersText = function() {
 		var filters = VizConfig.vizKey.getActiveFilters();
-		var title = VizConfig.text.caseStudiesTitle;
 
 		var datasourceByProperty = {
 			areaOfDigitalSocialInnovation: VizConfig.dsiAreasById,
@@ -1241,14 +1241,14 @@ var Carousel = (function() {
 			organisationType: VizConfig.organisationTypeById
 		};
 
+		var text = "";
 		if (filters.length > 0) {
-			title += ' from ';
-			title += filters.map(function(filter) {
+			text = filters.map(function(filter) {
 				return datasourceByProperty[filter.property][filter.id].title.replace('<br/>', '');
 			}).join(', ');
 		}
 
-		$('#caseStudiesTitle').text(title);
+		this.DOM.filters.text(text);
 	};
 
 	return Carousel;
@@ -5648,15 +5648,18 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     vizContainer.append(caseStudiesViz);
 
     var carouselDiv = $('<div id="carousel"></div>');
+    var carouselFilters = $('<div class="filters"></div>');
     var carouselPrev = $('<div class="button button-prev">&lang;</div>');
     var carouselNext = $('<div class="button button-next">&rang;</div>');
     var carouselWrap = $('<div class="carousel-wrapper"></div>');
     carouselDiv.append(carouselPrev);
     carouselDiv.append(carouselNext);
+    carouselDiv.append(carouselFilters);
     carouselDiv.append(carouselWrap);
     caseStudiesViz.append(carouselDiv);
 
     var carousel = new Carousel({
+      "filters": $("#carousel > .filters"),
       "wrapper": $("#carousel >.carousel-wrapper"),
       "buttonPrev": $("#carousel > .button-prev"),
       "buttonNext": $("#carousel > .button-next")

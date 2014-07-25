@@ -83,15 +83,18 @@
     vizContainer.append(caseStudiesViz);
 
     var carouselDiv = $('<div id="carousel"></div>');
+    var carouselFilters = $('<div class="filters"></div>');
     var carouselPrev = $('<div class="button button-prev">&lang;</div>');
     var carouselNext = $('<div class="button button-next">&rang;</div>');
     var carouselWrap = $('<div class="carousel-wrapper"></div>');
     carouselDiv.append(carouselPrev);
     carouselDiv.append(carouselNext);
+    carouselDiv.append(carouselFilters);
     carouselDiv.append(carouselWrap);
     caseStudiesViz.append(carouselDiv);
 
     var carousel = new Carousel({
+      "filters": $("#carousel > .filters"),
       "wrapper": $("#carousel >.carousel-wrapper"),
       "buttonPrev": $("#carousel > .button-prev"),
       "buttonNext": $("#carousel > .button-next")

@@ -22,7 +22,8 @@ var Carousel = (function() {
 		$("body").on("click", this.caseStudyHide.bind(this));
 
 		this.DOM = {
-			"wrapper": DOMElements.wrapper, // carousel wrapper
+			"filters": DOMElements.filters,
+			"wrapper": DOMElements.wrapper,
 			"buttonNext": DOMElements.buttonNext,
 			"buttonPrev": DOMElements.buttonPrev,
 			"popup": popup
@@ -137,7 +138,7 @@ var Carousel = (function() {
 
 			VizConfig.events.fire('casestudies', this.carousel.data);
 
-			this.updateCaseStudiesTitle();
+			this.updateFiltersText();
 		}.bind(this));
 	}
 
@@ -439,9 +440,8 @@ var Carousel = (function() {
 		this.DOM.popup.hide();
 	};
 
-	Carousel.prototype.updateCaseStudiesTitle = function() {
+	Carousel.prototype.updateFiltersText = function() {
 		var filters = VizConfig.vizKey.getActiveFilters();
-		var title = VizConfig.text.caseStudiesTitle;
 
 		var datasourceByProperty = {
 			areaOfDigitalSocialInnovation: VizConfig.dsiAreasById,
@@ -450,14 +450,14 @@ var Carousel = (function() {
 			organisationType: VizConfig.organisationTypeById
 		};
 
+		var text = "";
 		if (filters.length > 0) {
-			title += ' from ';
-			title += filters.map(function(filter) {
+			text = filters.map(function(filter) {
 				return datasourceByProperty[filter.property][filter.id].title.replace('<br/>', '');
 			}).join(', ');
 		}
 
-		$('#caseStudiesTitle').text(title);
+		this.DOM.filters.text(text);
 	};
 
 	return Carousel;
