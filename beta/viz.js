@@ -105,11 +105,22 @@
     var euCountriesTitle = $('<h1 id="countriesVizTitle">EU Countries with the most DSI Projects <a href="#">(Show all)</a></h1>');
     vizContainer.append(euCountriesTitle);
 
-    euCountriesTitle.select('a').click(function(e) {
-      $('div.map').show();
+    euCountriesTitle.children('a').click(function(e) {
       e.preventDefault();
-      return false;
-    })
+      e.stopPropagation();
+
+      var hidden = $('div.map:hidden').length > 0;
+      if (hidden) {
+        $('div.map').show();
+        $(this).text("(Show less)");
+      }
+      else {
+        $('div.map').each(function(index) {
+          if (index >= 8) { $(this).hide(); }
+        });
+        $(this).text("(Show all)");
+      }
+    });
 
     var countriesViz = $('<div id="countriesViz"></div>');
     vizContainer.append(countriesViz);

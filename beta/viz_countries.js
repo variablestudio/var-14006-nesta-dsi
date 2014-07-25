@@ -206,9 +206,7 @@ var Countries = (function() {
 			var mapDiv = div.append("div").attr("class", "country");
 			this.drawMap(mapDiv, data);
 
-			if (dataIndex >= 8) {
-				$(div[0]).hide();
-			}
+			if (dataIndex >= 8) { $(div[0]).hide(); }
 		}.bind(this));
 	};
 
