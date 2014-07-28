@@ -249,9 +249,11 @@
 }
 
 #carousel .filters {
+  width: 994px;
+  margin: 0 auto;
+  margin-bottom: 20px;
   font-size: 14px;
   color: #808080;
-  margin-bottom: 20px;
 }
 
 #carousel .button {
