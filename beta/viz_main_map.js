@@ -532,14 +532,14 @@ var MainMap = (function() {
       }.bind(this));
     }
 
-		filteredOrganisations = filteredOrganisations.filter(function(data) {
-			var shouldShow = filters.reduce(function(memo, filter) {
-				if (memo) { memo = data[filter.property] && data[filter.property].indexOf(filter.id) >= 0; }
-				return memo;
-			}, true);
+    filteredOrganisations = filteredOrganisations.filter(function(data) {
+      var shouldShow = filters.reduce(function(memo, filter) {
+        if (memo) { memo = data[filter.property] && data[filter.property].indexOf(filter.id) >= 0; }
+        return memo;
+      }, true);
 
-			return shouldShow;
-		});
+      return shouldShow;
+    });
 
     filters.forEach(function(filter) {
       // filteredOrganisations = filteredOrganisations.filter(function(org) {
