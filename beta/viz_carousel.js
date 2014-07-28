@@ -50,6 +50,8 @@ var Carousel = (function() {
 				this.carousel.parsedData = data; // get parsed data
 				this.filter(null); // filter(null) to display all, automatically redraws carousel
 
+				console.log(data);
+
 				VizConfig.events.fire('casestudies', this.carousel.data);
 			}.bind(this));
 		}.bind(this));
@@ -139,6 +141,15 @@ var Carousel = (function() {
 			VizConfig.events.fire('casestudies', this.carousel.data);
 
 			this.updateFiltersText();
+		}.bind(this));
+
+		// show case study popup from event
+		VizConfig.events.addEventListener("casestudypopup", function(org) {
+			var index = indexOfProp(this.carousel.parsedData, "org", org);
+			if (index >= 0) {
+				var data = this.carousel.parsedData[index];
+				this.caseStudyShow(data);
+			}
 		}.bind(this));
 	}
 

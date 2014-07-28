@@ -733,7 +733,7 @@ var MainMap = (function() {
 
       // act on mouse
       this.handleMouse(clusters);
-      this.handleMouse(caseStudies);
+      this.handleMouse(caseStudies, { caseStudyPopup: true });
       this.handleMouse(hexes);
 
       this.drawOrganisationHex();
@@ -1119,7 +1119,10 @@ var MainMap = (function() {
     }
   };
 
-  MainMap.prototype.handleMouse = function(selection) {
+  MainMap.prototype.handleMouse = function(selection, settings) {
+    settings = settings || {};
+
+    var showCaseStudyPopup = settings.caseStudyPopup || false;
     var displayPopup = this.displayPopup.bind(this);
     var isPreloading = function() { return this.preloader.is(":visible"); }.bind(this);
 
@@ -1129,26 +1132,22 @@ var MainMap = (function() {
 
       if (isPreloading()) { return; }
 
-      displayPopup(cluster);
+      if (showCaseStudyPopup) {
+        VizConfig.events.fire("casestudypopup", cluster.organisations[0].org);
+      }
+      else {
+        displayPopup(cluster);
+      }
     });
 
     selection.on('mouseover', function(cluster) {
       if (isPreloading()) { return; }
 
-      // var maxOrgCount = 6;
-      // var cutOrganisationsCount = cluster.organisations.length > maxOrgCount;
-      // var organisations = cluster.organisations;
-
-      // if (cutOrganisationsCount) {
-      //   organisations = organisations.slice(0, maxOrgCount);
-      // }
-
-      // var html = organisations.map(function(o) { return o.label; }).join("<br/>");
-
-      // if (cutOrganisationsCount) { html += "<br/>..."; }
-
       var html;
-      if (cluster.organisations.length > 1) {
+      if (showCaseStudyPopup) {
+        html = cluster.organisations[0].label + "<br><span>click to show case study</span>";
+      }
+      else if (cluster.organisations.length > 1) {
         html = cluster.organisations.length + " organisations in this cluster<br><span>click to show more info</span>";
       }
       else {
