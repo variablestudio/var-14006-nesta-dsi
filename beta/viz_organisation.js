@@ -449,6 +449,8 @@ var Stats = (function() {
 		var height = 300;
 		var r = 20;
 
+		var highlightOnActivityUrl = this.highlightOnActivityUrl.bind(this);
+
 		var svg = this.DOM.collaborators
 			.append("svg")
 			.attr("width", width)
@@ -510,16 +512,18 @@ var Stats = (function() {
 			.append("g")
 			.attr("class", "project")
 			.on("mouseover", function(d) {
-				this.highlightOnActivityUrl("over", d.activity_url);
+				highlightOnActivityUrl("over", d.activity_url);
 
 				VizConfig.tooltip.html(d.activity_label + "<br><span>click to open project page</span>");
+				VizConfig.tooltip.margin(-70, -10);
 				VizConfig.tooltip.show();
-			}.bind(this))
+			})
 			.on("mouseout", function() {
-				this.highlightOnActivityUrl("out");
+				highlightOnActivityUrl("out");
 
+				VizConfig.tooltip.margin();
 				VizConfig.tooltip.hide();
-			}.bind(this))
+			})
 			.on("click", function(d) {
 				var url = "http://digitalsocial.eu/projects/" + d.activity_url;
 				window.location.href = url;
@@ -534,16 +538,25 @@ var Stats = (function() {
 			.append("g")
 			.attr("class", "collaborator")
 			.on("mouseover", function(d) {
-				this.highlightOnActivityUrl("over", d.activity_urls);
+				var orgUrl = d.org_url;
+
+				highlightOnActivityUrl("over", d.activity_urls, { dontHighlightCollab: true });
+
+				d3.select(this).transition().delay(100).style("opacity", 1.0);
+				d3.selectAll(".link").transition().duration(200).style("opacity", function(d) {
+					return (d.target.org_url === orgUrl) ? 1.0 : 0.2;
+				});
 
 				VizConfig.tooltip.html(d.org_label + "<br><span>click to open organisation page</span>");
+				VizConfig.tooltip.margin(-80, -10);
 				VizConfig.tooltip.show();
-			}.bind(this))
+			})
 			.on("mouseout", function() {
-				this.highlightOnActivityUrl("out");
+				highlightOnActivityUrl("out");
 
+				VizConfig.tooltip.margin();
 				VizConfig.tooltip.hide();
-			}.bind(this))
+			})
 			.on("click", function(d) {
 				var url = "http://digitalsocial.eu/organisations/" + d.org_url;
 				window.location.href = url;
@@ -913,7 +926,7 @@ var Stats = (function() {
 			}.bind(this));
 		}
 
-		var highlightOnActivityUrl = this.highlightOnActivityUrl;
+		var highlightOnActivityUrl = this.highlightOnActivityUrl.bind(this);
 
 		hex.on("mouseover", function(d) {
 			VizConfig.tooltip.html(d.org_label + "<br><span>click to open organisation page</span>", "#FFF", "#666");
@@ -934,55 +947,63 @@ var Stats = (function() {
 		});
 	};
 
-	Stats.prototype.highlightOnActivityUrl = function(state, urls) {
+	Stats.prototype.highlightOnActivityUrl = function(state, urls, settings) {
+		settings = settings || {};
 		state = (state === "over") ? "over" : "out";
 		urls = (urls instanceof Array) ? urls : [ urls ];
 
 		var selectors = [
 			{ query: ".tech-bar", accessor: "values", prop: "url" },
-			{ query: ".collaborator", accessor: "activity_urls" },
+			{ query: ".collaborator", accessor: "activity_urls", shouldHighlight: !settings.dontHighlightCollab },
 			{ query: ".link", accessor: [ "project", "activity_url" ] },
 			{ query: ".project", accessor: "activity_url" }
 		];
 
 		if (state === "over") {
 			// handle opacity for visualizations with simple accessors
-			 selectors.forEach(function(object) {
+			selectors.forEach(function(object) {
 				d3.selectAll(object.query)
 					.transition()
 					.duration(200)
 					.style("opacity", function(d) {
-						// recursively acces JSON if accessor is path
-						var accessed;
-						if (object.accessor instanceof Array) {
-							accessed = d;
-							object.accessor.forEach(function(accessor) { accessed = accessed[accessor]; });
-						}
-						else {
-							accessed = d[object.accessor];
-						}
+						var shouldHighlight = object.shouldHighlight !== undefined ? object.shouldHighlight : true;
+						var opacity = 0.2;
 
-						var urlMatches = false;
+						if (shouldHighlight) {
+							// recursively acces JSON if accessor is path
+							var accessed;
+							if (object.accessor instanceof Array) {
+								accessed = d;
+								object.accessor.forEach(function(accessor) { accessed = accessed[accessor]; });
+							}
+							else {
+								accessed = d[object.accessor];
+							}
 
-						// check if urls match using accessor and prop
-						if (d[object.accessor] instanceof Array) {
-							urlMatches = urls.reduce(function(memo, url) {
-								if (!memo) {
-									if (object.prop) {
-										memo = (indexOfProp(accessed, object.prop, url) >= 0);
+							var urlMatches = false;
+
+							// check if urls match using accessor and prop
+							if (d[object.accessor] instanceof Array) {
+								urlMatches = urls.reduce(function(memo, url) {
+									if (!memo) {
+										if (object.prop) {
+											memo = (indexOfProp(accessed, object.prop, url) >= 0);
+										}
+										else {
+											memo = (accessed.indexOf(url) >= 0);
+										}
 									}
-									else {
-										memo = (accessed.indexOf(url) >= 0);
-									}
-								}
-								return memo;
-							}, false);
-						}
-						else {
-							urlMatches = (urls.indexOf(accessed) >= 0);
+									return memo;
+								}, false);
+							}
+							else {
+								urlMatches = (urls.indexOf(accessed) >= 0);
+							}
+
+							if (urlMatches) { opacity = 1.0; }
 						}
 
-						return urlMatches ? 1.0 : 0.2;
+						return opacity;
 					});
 			});
 		}
