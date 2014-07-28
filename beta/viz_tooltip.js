@@ -36,3 +36,10 @@ VizTooltip.prototype.html = function(content, textColor, bgColor) {
   this.vizTooltip.html(content);
   this.vizTooltip.find('span').css({ 'color': textColor, 'opacity': 0.5 });
 }
+
+VizTooltip.prototype.margin = function(top, left) {
+  top = top || 0;
+  left = left || 0;
+
+  this.vizTooltip.css({ 'margin-top': top, 'margin-left': left });
+}
