@@ -370,7 +370,6 @@
   top: 0;
   bottom: 0;
   margin: auto;
-  overflow: hidden;
   background: white;
   border: 1px solid #eee;
   box-shadow: 0px 10px 15px #999;
@@ -387,14 +386,19 @@
 
 #carousel-popup .content-container {
   height: 90%;
-  overflow: scroll;
+  overflow: hidden;
 }
 
 #carousel-popup .content {
   font-family: Helvetica, sans-serif;
   font-size: 15px;
 
-  padding: 25px;
+  float: right;
+  width: 32%;
+  height: 100%;
+  padding: 2%;
+
+  overflow: scroll;
 }
 
 #carousel-popup .content .cover {
@@ -410,6 +414,34 @@
 #carousel-popup .content p a {
   color: #000;
 }
+
+#carousel-popup .images {
+  float: left;
+  width: 60%;
+  padding: 2%;
+}
+
+#carousel-popup .images img {
+  width: 100%;
+}
+
+#carousel-popup .button-next,
+#carousel-popup .button-prev {
+  cursor: pointer;
+  margin-top: 20%;
+  font-size: 40px;
+}
+
+#carousel-popup .button-prev {
+  float: left;
+  margin-left: -40px;
+}
+
+#carousel-popup .button-next {
+  float: right;
+  margin-right: -40px;
+}
+
 
 /*---------------------------------- eu countries -------------------------------------*/
 

@@ -10,10 +10,13 @@ var Carousel = (function() {
 		// create popup
 		var popupStr = [
 			"<div id=\"carousel-popup\">",
-			"<div class=\"title\"></div>",
-			"<div class=\"content-container\">",
-			"<div class=\"content\"></div>",
-			"</div>",
+				"<div class=\"button-prev\">&lang;</div>",
+				"<div class=\"button-next\">&rang;</div>",
+				"<div class=\"title\"></div>",
+				"<div class=\"content-container\">",
+					"<div class=\"images\"></div>",
+					"<div class=\"content\"></div>",
+				"</div>",
 			"</div>"
 		].join("");
 
@@ -26,7 +29,14 @@ var Carousel = (function() {
 			"wrapper": DOMElements.wrapper,
 			"buttonNext": DOMElements.buttonNext,
 			"buttonPrev": DOMElements.buttonPrev,
-			"popup": popup
+			"popup": popup,
+			"popupButtonPrev": popup.find(".button-prev"),
+			"popupButtonNext": popup.find(".button-next")
+		};
+
+		this.popup = {
+			"images": 0,
+			"index": 0
 		};
 
 		this.carousel = {
@@ -117,6 +127,22 @@ var Carousel = (function() {
 						}.bind(this)
 					});
 				}.bind(this));
+		}.bind(this));
+
+		this.DOM.popupButtonPrev.on("click", function(e) {
+			e.preventDefault();
+			e.stopPropagation();
+
+			this.popup.index = (this.popup.index - 1) < 0 ? (this.popup.images.length - 1) : (this.popup.index - 1);
+			this.updateImage();
+		}.bind(this));
+
+		this.DOM.popupButtonNext.on("click", function(e) {
+			e.preventDefault();
+			e.stopPropagation();
+
+			this.popup.index = (this.popup.index + 1) % this.popup.images.length;
+			this.updateImage();
 		}.bind(this));
 
 		// build carousel with preloading gif on launch
@@ -378,6 +404,12 @@ var Carousel = (function() {
 					return customField;
 				};
 
+				// get images
+				var minImgWidth = 400;
+				var popupImages = data.attachments
+					.map(function(img) { return img.images.full; })
+					.filter(function(img) { return img.width > minImgWidth; });
+
 				// prepare tech focus array
 				var techFocus = arrayFromCustomField(data.custom_fields["tech-focus"]);
 				var areaOfDSI = arrayFromCustomField(data.custom_fields["area-of-digital-social-innovation"]);
@@ -398,6 +430,7 @@ var Carousel = (function() {
 					"content": data.content,
 					"coverImage": coverImage,
 					"logoImage": logoImage,
+					"popupImages": popupImages,
 					"name": data.title,
 					"url": data.url
 				};
@@ -420,33 +453,63 @@ var Carousel = (function() {
 
 	// display popup
 	Carousel.prototype.caseStudyShow = function(data) {
+		// hide buttons
+		this.DOM.buttonNext.hide();
+		this.DOM.buttonPrev.hide();
+
+		// disable page scroll
+		$("body").css({ overflow: "hidden" });
+
 		// get color from config
 		var color = VizConfig.dsiAreas.filter(function(dsi) {
 			return dsi.id === data.areaOfDigitalSocialInnovation[0];
 		})[0].color;
 
 		// build content for popup
-		var html = "<img class=\"cover\" src=\"" + data.coverImage + "\"/>";
+		var html;
 		if (data.content.length > 0) {
-			html += data.content;
+			html = data.content;
 		}
 		else {
-			html += "No content yet...";
+			html = "No content yet...";
+		}
+
+		// update popup images
+		this.popup.images = data.popupImages;
+		this.popup.index = 0;
+
+		if (this.popup.images.length > 1) {
+			this.DOM.popupButtonNext.show();
+			this.DOM.popupButtonPrev.show();
+
+			this.updateImage();
+		}
+		else {
+			this.DOM.popupButtonNext.hide();
+			this.DOM.popupButtonPrev.hide();
 		}
 
 		// update popup elements
 		this.DOM.popup.find(".title").html(data.name).css({ "color": color, "border-top": "4px solid " + color });
 		this.DOM.popup.find(".content").html(html);
-
-		$("body").css({ overflow: "hidden" }); // disable page scroll
-
 		this.DOM.popup.show();
+
 	};
 
 	Carousel.prototype.caseStudyHide = function() {
 		$("body").css({ overflow: "scroll" }); // enable page scroll
 
 		this.DOM.popup.hide();
+
+		this.DOM.buttonNext.show();
+		this.DOM.buttonPrev.show();
+	};
+
+	Carousel.prototype.updateImage = function() {
+		var imageIndex = this.popup.index;
+		var img = "<img src=\"" + this.popup.images[imageIndex].url + "\"/>";
+
+		this.DOM.popup.find(".images").html(img);
 	};
 
 	Carousel.prototype.updateFiltersText = function() {
