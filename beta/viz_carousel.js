@@ -50,8 +50,6 @@ var Carousel = (function() {
 				this.carousel.parsedData = data; // get parsed data
 				this.filter(null); // filter(null) to display all, automatically redraws carousel
 
-				console.log(data);
-
 				VizConfig.events.fire('casestudies', this.carousel.data);
 			}.bind(this));
 		}.bind(this));

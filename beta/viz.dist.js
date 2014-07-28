@@ -841,8 +841,6 @@ var Carousel = (function() {
 				this.carousel.parsedData = data; // get parsed data
 				this.filter(null); // filter(null) to display all, automatically redraws carousel
 
-				console.log(data);
-
 				VizConfig.events.fire('casestudies', this.carousel.data);
 			}.bind(this));
 		}.bind(this));
@@ -3965,16 +3963,12 @@ var MainMap = (function() {
         data = { hexes: [], clusters: this.clusters };
       }
 
-      // draw clusters and hexes
       var clusters = this.drawClusters(this.DOM.orgGroup, data.clusters, color);
-      var caseStudies = this.drawCaseStudies(this.DOM.orgGroup, data.clusters);
       var hexes = this.drawHexes(this.DOM.hexGroup, data.hexes);
-
-      // act on mouse
       this.handleMouse(clusters);
-      this.handleMouse(caseStudies, { caseStudyPopup: true });
       this.handleMouse(hexes);
 
+      this.drawCaseStudies(this.DOM.orgGroup, data.clusters);
       this.drawOrganisationHex();
     }.bind(this));
   };
@@ -4083,47 +4077,69 @@ var MainMap = (function() {
               organisations: [ org ]
             });
           }
+
           return memo;
         }, []);
       })
       .filter(function(array) {
         return array.length > 0;
-      })
-      .reduce(function(memo, array) {
-        return memo.concat(array);
-      }, []);
+      });
 
     var showWithCluster = true;
+    var handleMouse = this.handleMouse.bind(this);
 
     var caseStudies = selection
-      .selectAll('.case-study')
+      .selectAll('.case-study-cluster')
       .data(data);
 
     caseStudies
       .enter()
-      .append('svg:image')
-      .attr('class', 'case-study')
-      .attr('width', 50)
-      .attr('height', 44)
-      .attr('x', -50 / 2)
-      .attr('y', -44 / 2)
+      .append('g')
+      .attr('class', 'case-study-cluster')
       .attr('opacity', 0);
 
     caseStudies
-      .attr('xlink:href', function(d) { return d.logoImage; })
-      .attr('transform', function(d) {
-        var x, y;
+      .each(function(d) {
+        var numCaseStudies = 6;
 
-        if (showWithCluster) {
-          x = d.center.x - 30;
-          y = d.center.y + 10;
-        }
-        else {
-          x = d.pos.x;
-          y = d.pos.y;
-        }
+        var caseStudy = d3.select(this)
+          .selectAll('.case-study')
+          .data(d);
 
-        return "translate(" + x + "," + y + ")";
+        caseStudy
+          .enter()
+          .append('svg:image')
+          .attr('class', 'case-study')
+          .attr('width', 50)
+          .attr('height', 44)
+          .attr('x', -50 / 2)
+          .attr('y', -44 / 2);
+
+        caseStudy
+          .attr('xlink:href', function(d) { return d.logoImage; })
+          .attr('transform', function(d, i) {
+            var x, y;
+            var r = 44;
+
+            if (showWithCluster) {
+              var angle = (30 / 360) + (i / numCaseStudies);
+              x = d.center.x + r * Math.sin(angle * 2 * Math.PI);
+              y = d.center.y + r * Math.cos(angle * 2 * Math.PI) - 20;
+            }
+            else {
+              x = d.pos.x;
+              y = d.pos.y;
+            }
+
+            return "translate(" + x + "," + y + ")";
+          })
+          .attr('opacity', 1);
+
+        caseStudy
+          .exit()
+          .remove();
+
+        handleMouse(caseStudy, { caseStudyPopup: true });
       })
       .transition()
       .duration(300)
