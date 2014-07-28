@@ -305,10 +305,27 @@ var Stats = (function() {
 	};
 
 	Stats.prototype.drawTechnologyAreas = function() {
-		var groupedData = this.countField("tech_focuses").filter(function(object) { return (object.count > 0); });
+		var masks = [
+			{ name: "Open-Hardware", path: undefined },
+			{ name: "Open-Networks", path: "M53.311,37.342 L63.932,19.056 L42.838,19.056 L32.041,0.284 L21.229,19.056 L0.142,19.056 L10.745,37.342 L0.142,55.882 L21.49,55.882 L32.041,74.025 L42.559,55.882 L63.932,55.882 L53.311,37.342 Z", scale: 90 / 74 },
+			{ name: "Open-Data", path: "M70.186,35.984 C70.186,55.338 54.5,71.026 35.144,71.026 C15.79,71.026 0.094,55.338 0.094,35.984 C0.094,16.629 15.791,0.934 35.144,0.934 C54.5,0.934 70.186,16.629 70.186,35.984 L70.186,35.984 Z", scale: 90 / 71 },
+			{ name: "Open-Knowledge", path: "M35.993,61.025 L0.807,61.025 L18.394,30.608 L35.993,0.163 L53.579,30.6 L71.165,61.025 L35.993,61.025 Z", scale: 90 / 71 }
+		];
+
+		var groupedData = this.countField("tech_focuses")
+			.filter(function(object) { return (object.count > 0); })
+			.map(function(object) {
+				var index = indexOfProp(masks, "name", object.name.replace(" ", "-"));
+				object.clipPath = masks[index].path;
+				object.clipScale = masks[index].scale || 1;
+				return object;
+			});
+
 		var maxCount = groupedData.reduce(function(memo, object) {
 			return memo > object.count ? memo : object.count;
 		}, -Infinity);
+
+		console.log(groupedData);
 
 		var width = 228 * 2 + 60;
 		var height = 300;
@@ -328,6 +345,51 @@ var Stats = (function() {
 			.append("g")
 			.attr("transform", "translate(0, " + marginTop + ")");
 
+		svg
+			.selectAll(".clip-stroke")
+			.data(groupedData)
+			.enter()
+			.append("g")
+			.each(function(d) {
+				var type = d.clipPath ? "path" : "rect";
+
+				d3.select(this)
+					.append(type)
+					.attr("class", "clip-stroke")
+					.attr("width", size)
+					.attr("height", size)
+					.attr("d", function(d) { return d.clipPath; })
+					.attr("fill", "none")
+					.attr("stroke", "#999");
+			})
+			.attr("transform", function(d, i) {
+				var x = i * (size + margin);
+				var y = 0;
+
+				return "translate(" + x + "," + y + "), scale(" + d.clipScale + ")";
+			});
+
+		svg
+			.selectAll("clipPath")
+			.data(groupedData)
+			.enter()
+			.append("clipPath")
+			.attr("id", function(d) {
+				return "clip-" + d.name.replace(" ", "-");
+			})
+			.attr("width", size)
+			.attr("height", size)
+			.append("path")
+			.attr("d", function(d) {
+				return d.clipPath;
+			})
+			.attr("transform", function(d, i) {
+				var x = i * (size + margin);
+				var y = 0;
+
+				return "translate(" + x + "," + y + "), scale(" + d.clipScale + ")";
+			});
+
 		svg.selectAll(".tech-bar")
 			.data(groupedData)
 			.enter()
@@ -343,6 +405,9 @@ var Stats = (function() {
 				return scale(d.count);
 			})
 			.attr("width", size)
+			.attr("clip-path", function(d) {
+				return d.clipPath ? "url(#clip-" + d.name.replace(" ", "-") + ")" : undefined;
+			})
 			.on("mouseover", function(d) {
 				var urls = d.values.map(function(v) { return v.url; });
 				this.highlightOnActivityUrl("over", urls);
