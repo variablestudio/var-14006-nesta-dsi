@@ -330,7 +330,12 @@ var Carousel = (function() {
 				e.preventDefault();
 				e.stopPropagation();
 
-				this.caseStudyShow(data);
+				if (this.DOM.popup.is(":visible")) {
+					this.caseStudyHide();
+				}
+				else {
+					this.caseStudyShow(data);
+				}
 			}.bind(this));
 		}
 
@@ -492,8 +497,8 @@ var Carousel = (function() {
 		// update popup elements
 		this.DOM.popup.find(".title").html(data.name).css({ "color": color, "border-top": "4px solid " + color });
 		this.DOM.popup.find(".content").html(html);
-		this.DOM.popup.show();
 
+		this.DOM.popup.show();
 	};
 
 	Carousel.prototype.caseStudyHide = function() {
