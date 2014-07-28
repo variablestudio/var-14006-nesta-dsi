@@ -566,8 +566,8 @@ var MainMap = (function() {
     var finishedClustering = false;
 
     var currentZoom = zoom;
-    var clusterByCountry = 3 < currentZoom && currentZoom < 7;
-    var clusterByDistance = (currentZoom <= 3) || (7 <= currentZoom && currentZoom < 15);
+    var clusterByCountry = 5 < currentZoom && currentZoom < 8;
+    var clusterByDistance = (currentZoom <= 5) || (8 <= currentZoom && currentZoom < 15);
 
     var calcDist = function(a, b) {
       var xd = (b.x - a.x);

@@ -111,7 +111,7 @@ d3.chart("BigHex", {
               var parentIndex = Array.prototype.indexOf.call(this.parentNode.parentNode.childNodes, this.parentNode);
               var parentData = d3.select(this.parentNode).datum();
               VizConfig.tooltip.show();
-              VizConfig.tooltip.html(VizConfig.dsiAreasById[parentData.areaOfDSI].label + ' Project ' + d.name + '<br><span>click to open project page</span>', "#FFF", VizConfig.dsiAreasById[parentData.areaOfDSI].color);
+              VizConfig.tooltip.html(d.name + '<br><span>' + VizConfig.dsiAreasById[parentData.areaOfDSI].label + '</span><br><span>click to open project page</span>', "#FFF", VizConfig.dsiAreasById[parentData.areaOfDSI].color);
 
               if (chart._mouseoverCallback) { chart._mouseoverCallback(d); }
             })
