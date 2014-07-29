@@ -51,7 +51,7 @@ function MainStats(dom, settings) {
 			predicate: "ds:activityType",
 			name: "Project Type",
 			image: "assets/iconchart-hex-empty.png",
-			imageSize: { width: 12, height: 13 },
+			imageSize: { width: 14, height: 15 },
 			width: 124,
 			margin: 4,
 			layout: "hex"
