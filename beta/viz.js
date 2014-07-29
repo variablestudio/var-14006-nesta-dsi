@@ -53,10 +53,17 @@
   function initIntroViz(vizContainer, cb) {
     var introViz = $('<div id="introViz"></div>');
     vizContainer.append(introViz);
+
+    $("#vizKeyThumb").hide();
+    $(".map-fullscreen").hide();
+
     function onExplore() {
+      $("#vizKeyThumb").fadeIn();
+      $(".map-fullscreen").fadeIn();
       VizConfig.vizKey.open();
-      introViz.fadeOut('slow');
+      introViz.fadeOut("slow");
     }
+
     var intro = new Intro(introViz, onExplore);
   }
 

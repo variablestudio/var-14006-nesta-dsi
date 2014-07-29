@@ -3,6 +3,7 @@ function VizPopup() {
   this.content = $('<div id="vizPopupContent"></div>')
   this.vizPopup.append(this.content);
   $('body').append(this.vizPopup);
+  this.vizPopup.hide()
   this.content.text('');
 }
 
@@ -14,7 +15,7 @@ VizPopup.prototype.open = function(x, y, dx, dy, zoom) {
     var nx = x * scale + dx + translate[0];
     var ny = y * scale + dy + translate[1];
     this.setPosition(nx, ny);
-    this.vizPopup.show();
+    this.vizPopup.fadeIn();
   }.bind(this), 10);
 
   if (zoom) {
@@ -27,7 +28,7 @@ VizPopup.prototype.open = function(x, y, dx, dy, zoom) {
 }
 
 VizPopup.prototype.close = function() {
-  this.vizPopup.hide();
+  this.vizPopup.fadeOut();
 }
 
 VizPopup.prototype.html = function(content, textColor, bgColor) {
