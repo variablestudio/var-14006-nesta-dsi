@@ -193,6 +193,10 @@
 */
 /*---------------------------------- main map -------------------------------------*/
 
+#map {
+  width: 100%;
+}
+
 #map .leaflet-fullscreen-button {
   background-image: url(assets/leaflet-fullscreen.png);
 }
@@ -220,6 +224,12 @@
   text-decoration: none;
   color: black;
 }
+
+#map-overlay h3 a span {
+  font-weight: 100;
+  color: #999;
+}
+
 
 #map-overlay .close {
   float: right;
@@ -390,6 +400,7 @@
   position: fixed;
   width: 60%;
   height: 60%;
+  max-height: 420px;
   left: 0;
   right: 0;
   top: 0;
@@ -403,8 +414,7 @@
 
 #carousel-popup .title {
   text-align: center;
-  padding-top: 10px;
-  padding-bottom: 10px;
+  padding-top: 18px;
   font-family: "Scene Pro", "Helvetica", sans-serif;
   font-size: 20px;
 }

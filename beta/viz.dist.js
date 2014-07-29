@@ -3415,7 +3415,7 @@ var MainMap = (function() {
       .attr('id', 'map');
 
     // for some strange reason can't set this width d3.style()
-    $('#map').css({ 'width': this.w, 'height': this.h });
+    $('#map').css({ 'height': this.h });
 
     var mapOverlayHtml = [
       "<div id=\"map-overlay\">",
@@ -3881,11 +3881,6 @@ var MainMap = (function() {
     });
 
     filters.forEach(function(filter) {
-      // filteredOrganisations = filteredOrganisations.filter(function(org) {
-      //   var value = org[filter.property] || '';
-      //   return value.indexOf(filter.id) !== -1;
-      // });
-
       if (filter.property === 'areaOfDigitalSocialInnovation' && numAreasOfDsi === 1) {
         color = VizConfig.dsiAreasById[filter.id].color;
       }
@@ -4426,7 +4421,7 @@ var MainMap = (function() {
 
     // update overlay
     this.DOM.overlay.div.fadeIn();
-    this.DOM.overlay.div.find(".title").html("<a href=\"" + orgUrl + "\">" + orgLabel + "</a>");
+    this.DOM.overlay.div.find(".title").html("<a href=\"" + orgUrl + "\">" + orgLabel + " <span>(more)</span></a>");
 
     return bigHex;
   };
