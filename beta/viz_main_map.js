@@ -90,14 +90,14 @@ var MainMap = (function() {
     // for some strange reason can't set this width d3.style()
     $('#map').css({ 'width': this.w, 'height': this.h });
 
-		var mapOverlayHtml = [
-			"<div id=\"map-overlay\">",
-				"<span class=\"close\">&#x2715;</span>",
-				"<h3 class=\"title\"></h3>",
-				"<div class=\"tech-areas\"></div>",
-				"<svg></svg>",
-			"</div>"
-		].join("");
+    var mapOverlayHtml = [
+      "<div id=\"map-overlay\">",
+        "<span class=\"close\">&#x2715;</span>",
+        "<h3 class=\"title\"></h3>",
+        "<div class=\"tech-areas\"></div>",
+        "<svg></svg>",
+      "</div>"
+    ].join("");
 
     var mapOverlay = $(mapOverlayHtml)
       .css({ 'height': this.h, 'margin-top': -this.h })
@@ -122,9 +122,9 @@ var MainMap = (function() {
       });
 
     this.DOM.overlay = {
-			div: mapOverlay,
-			techAreas: mapOverlay.find(".tech-areas")
-		};
+      div: mapOverlay,
+      techAreas: mapOverlay.find(".tech-areas")
+    };
 
     // add big hex overlay
     $(this.mainVizContainer).append(this.DOM.overlay.div);
@@ -578,8 +578,8 @@ var MainMap = (function() {
     var finishedClustering = false;
 
     var currentZoom = zoom;
-    var clusterByCountry = 5 < currentZoom && currentZoom < 8;
-    var clusterByDistance = (currentZoom <= 5) || (8 <= currentZoom && currentZoom < 15);
+    var clusterByCountry = 5 < currentZoom && currentZoom < 7;
+    var clusterByDistance = (currentZoom <= 5) || (7 <= currentZoom && currentZoom < 15);
 
     var calcDist = function(a, b) {
       var xd = (b.x - a.x);
@@ -1076,11 +1076,11 @@ var MainMap = (function() {
       }, defaultData) : defaultData;
     };
 
-		var techFocusHtml = data.organisations[0].technologyFocus.map(function(name) {
-			return "<div class=\"tech-icon " + name + "\"></div>";
-		}).join("");
+    var techFocusHtml = data.organisations[0].technologyFocus.map(function(name) {
+      return "<div class=\"tech-icon " + name + "\"></div>";
+    }).join("");
 
-		this.DOM.overlay.techAreas.html(techFocusHtml);
+    this.DOM.overlay.techAreas.html(techFocusHtml);
 
     // preprate data
     data = prepareDataForHex(data.organisations[0]);
