@@ -410,7 +410,7 @@ d3.chart("BigHex", {
         return this.append("path")
           .attr("d", "M" + hex(chart.width()/2, chart.height()/2, chart.radius()).join("L") + "Z")
           .style("fill", "#FFFFFF")
-          .style("fill-opacity", 0.5)
+          // .style("fill-opacity", 0.5)
           .style("stroke", "#000000");
       }
     });
