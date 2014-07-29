@@ -1270,6 +1270,18 @@ var Carousel = (function() {
 			html = "No content yet...";
 		}
 
+		// get url to link to
+		var url;
+		if (data.org) {
+			url = data.org.substr(data.org.lastIndexOf("/") + 1);
+			url = "http://digitalsocial.eu/organisations/" + url;
+		}
+		else {
+			url = data.url;
+		}
+
+		var popupTitleHtml = $("<a href=\"" + url  + "\">" + data.name + "</a>").css({ "color": color });
+
 		// update popup images
 		this.popup.images = data.popupImages;
 		this.popup.index = 0;
@@ -1283,19 +1295,21 @@ var Carousel = (function() {
 		else {
 			this.DOM.popupButtonNext.hide();
 			this.DOM.popupButtonPrev.hide();
+
+			this.DOM.popup.find(".images").html("");
 		}
 
 		// update popup elements
-		this.DOM.popup.find(".title").html(data.name).css({ "color": color, "border-top": "4px solid " + color });
+		this.DOM.popup.find(".title").html(popupTitleHtml).css({ "border-top": "4px solid " + color });
 		this.DOM.popup.find(".content").html(html);
 
-		this.DOM.popup.show();
+		this.DOM.popup.fadeIn();
 	};
 
 	Carousel.prototype.caseStudyHide = function() {
 		$("body").css({ overflow: "scroll" }); // enable page scroll
 
-		this.DOM.popup.hide();
+		this.DOM.popup.fadeOut();
 
 		this.DOM.buttonNext.show();
 		this.DOM.buttonPrev.show();
@@ -2487,7 +2501,7 @@ function MainStats(dom, settings) {
 			predicate: "ds:activityType",
 			name: "Project Type",
 			image: "assets/iconchart-hex-empty.png",
-			imageSize: { width: 12, height: 13 },
+			imageSize: { width: 14, height: 15 },
 			width: 124,
 			margin: 4,
 			layout: "hex"
@@ -3117,6 +3131,7 @@ function VizPopup() {
   this.content = $('<div id="vizPopupContent"></div>')
   this.vizPopup.append(this.content);
   $('body').append(this.vizPopup);
+  this.vizPopup.hide()
   this.content.text('');
 }
 
@@ -3128,7 +3143,7 @@ VizPopup.prototype.open = function(x, y, dx, dy, zoom) {
     var nx = x * scale + dx + translate[0];
     var ny = y * scale + dy + translate[1];
     this.setPosition(nx, ny);
-    this.vizPopup.show();
+    this.vizPopup.fadeIn();
   }.bind(this), 10);
 
   if (zoom) {
@@ -3141,7 +3156,7 @@ VizPopup.prototype.open = function(x, y, dx, dy, zoom) {
 }
 
 VizPopup.prototype.close = function() {
-  this.vizPopup.hide();
+  this.vizPopup.fadeOut();
 }
 
 VizPopup.prototype.html = function(content, textColor, bgColor) {
@@ -3234,7 +3249,7 @@ function VizKey(open, showMore) {
   });
 
   if (showMore) {
-    var moreButton = this.moreButton = $('<div class="section more"><h3>MORE</h3></div>');
+    var moreButton = this.moreButton = $('<div class="section more"><h3>MORE FILTERS</h3></div>');
     moreButton.on('click', function() { this.toggleMore(); }.bind(this));
     rowLeft.append(moreButton);
   }
@@ -3277,12 +3292,12 @@ VizKey.prototype.toggleMore = function(settings) {
   if (this.row.right.width() > 0 || shouldClose) {
     this.row.right.animate({ width: 0 });
     this.thumb.animate({ left: "137px" });
-    this.moreButton.children("h3").text("MORE");
+    this.moreButton.children("h3").text("MORE FILTERS");
   }
   else {
     this.row.right.animate({ width: "220px"});
     this.thumb.animate({ left: "357px" });
-    this.moreButton.children("h3").text("LESS");
+    this.moreButton.children("h3").text("LESS FILTERS");
   }
 };
 
@@ -3402,7 +3417,16 @@ var MainMap = (function() {
     // for some strange reason can't set this width d3.style()
     $('#map').css({ 'width': this.w, 'height': this.h });
 
-    var mapOverlay = $("<div id=\"map-overlay\"><span class=\"close\">Close</span><h3 class=\"title\"></h3><svg></svg></div>")
+		var mapOverlayHtml = [
+			"<div id=\"map-overlay\">",
+				"<span class=\"close\">&#x2715;</span>",
+				"<h3 class=\"title\"></h3>",
+				"<div class=\"tech-areas\"></div>",
+				"<svg></svg>",
+			"</div>"
+		].join("");
+
+    var mapOverlay = $(mapOverlayHtml)
       .css({ 'height': this.h, 'margin-top': -this.h })
       .hide();
 
@@ -3424,7 +3448,10 @@ var MainMap = (function() {
         VizConfig.tooltip.hide();
       });
 
-    this.DOM.overlay = { div: mapOverlay };
+    this.DOM.overlay = {
+			div: mapOverlay,
+			techAreas: mapOverlay.find(".tech-areas")
+		};
 
     // add big hex overlay
     $(this.mainVizContainer).append(this.DOM.overlay.div);
@@ -4375,6 +4402,12 @@ var MainMap = (function() {
         return memo;
       }, defaultData) : defaultData;
     };
+
+		var techFocusHtml = data.organisations[0].technologyFocus.map(function(name) {
+			return "<div class=\"tech-icon " + name + "\"></div>";
+		}).join("");
+
+		this.DOM.overlay.techAreas.html(techFocusHtml);
 
     // preprate data
     data = prepareDataForHex(data.organisations[0]);
@@ -5803,10 +5836,17 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
   function initIntroViz(vizContainer, cb) {
     var introViz = $('<div id="introViz"></div>');
     vizContainer.append(introViz);
+
+    $("#vizKeyThumb").hide();
+    $(".map-fullscreen").hide();
+
     function onExplore() {
+      $("#vizKeyThumb").fadeIn();
+      $(".map-fullscreen").fadeIn();
       VizConfig.vizKey.open();
-      introViz.fadeOut('slow');
+      introViz.fadeOut("slow");
     }
+
     var intro = new Intro(introViz, onExplore);
   }
 
