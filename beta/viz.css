@@ -204,7 +204,7 @@
 #map-overlay {
   float: right;
   margin-right: 100px;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(204, 204, 204, 0.3);
   position: relative;
   padding: 30px 20px 0 20px;
   width: 300px;
