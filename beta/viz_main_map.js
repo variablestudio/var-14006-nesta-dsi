@@ -90,7 +90,16 @@ var MainMap = (function() {
     // for some strange reason can't set this width d3.style()
     $('#map').css({ 'width': this.w, 'height': this.h });
 
-    var mapOverlay = $("<div id=\"map-overlay\"><span class=\"close\">Close</span><h3 class=\"title\"></h3><svg></svg></div>")
+		var mapOverlayHtml = [
+			"<div id=\"map-overlay\">",
+				"<span class=\"close\">&#x2715;</span>",
+				"<h3 class=\"title\"></h3>",
+				"<div class=\"tech-areas\"></div>",
+				"<svg></svg>",
+			"</div>"
+		].join("");
+
+    var mapOverlay = $(mapOverlayHtml)
       .css({ 'height': this.h, 'margin-top': -this.h })
       .hide();
 
@@ -112,7 +121,10 @@ var MainMap = (function() {
         VizConfig.tooltip.hide();
       });
 
-    this.DOM.overlay = { div: mapOverlay };
+    this.DOM.overlay = {
+			div: mapOverlay,
+			techAreas: mapOverlay.find(".tech-areas")
+		};
 
     // add big hex overlay
     $(this.mainVizContainer).append(this.DOM.overlay.div);
@@ -1063,6 +1075,12 @@ var MainMap = (function() {
         return memo;
       }, defaultData) : defaultData;
     };
+
+		var techFocusHtml = data.organisations[0].technologyFocus.map(function(name) {
+			return "<div class=\"tech-icon " + name + "\"></div>";
+		}).join("");
+
+		this.DOM.overlay.techAreas.html(techFocusHtml);
 
     // preprate data
     data = prepareDataForHex(data.organisations[0]);

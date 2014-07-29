@@ -206,12 +206,14 @@
   margin-right: 100px;
   background: rgba(204, 204, 204, 0.3);
   position: relative;
-  padding: 30px 20px 0 20px;
+  padding: 0 20px 0 20px;
   width: 300px;
 }
 
 #map-overlay h3 {
   font-size: 90%;
+  margin-top: 30px;
+  margin-bottom: 10px;
 }
 
 #map-overlay h3 a {
@@ -225,10 +227,26 @@
   background: #00B993;
   padding: 7px;
   font-size: 14px;
-  margin-top: -30px;
   margin-right: -20px;
   cursor: pointer;
 }
+
+#map-overlay .tech-areas {
+  height: 12px;
+  margin-bottom: 10px;
+}
+
+#map-overlay .tech-areas > div {
+  float: left;
+  margin-right: 4px;
+  width: 12px;
+  height: 12px;
+}
+
+#map-overlay .tech-areas .open-data { background-image: url(assets/open-data.png); }
+#map-overlay .tech-areas .open-hardware { background-image: url(assets/open-hardware.png); }
+#map-overlay .tech-areas .open-knowledge { background-image: url(assets/open-knowledge.png); }
+#map-overlay .tech-areas .open-networks { background-image: url(assets/open-networks.png); }
 
 .map-fullscreen {
   float: right;
