@@ -409,6 +409,10 @@
   font-size: 20px;
 }
 
+#carousel-popup .title a {
+  text-decoration: none;
+}
+
 #carousel-popup .content-container {
   height: 90%;
   overflow: hidden;
@@ -818,6 +822,7 @@
   line-height: 140%;
   x-display: none;
   box-sizing: border-box;
+  z-index: 200;
 }
 
 #vizPopup span {

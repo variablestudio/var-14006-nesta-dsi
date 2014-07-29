@@ -479,6 +479,18 @@ var Carousel = (function() {
 			html = "No content yet...";
 		}
 
+		// get url to link to
+		var url;
+		if (data.org) {
+			url = data.org.substr(data.org.lastIndexOf("/") + 1);
+			url = "http://digitalsocial.eu/organisations/" + url;
+		}
+		else {
+			url = data.url;
+		}
+
+		var popupTitleHtml = $("<a href=\"" + url  + "\">" + data.name + "</a>").css({ "color": color });
+
 		// update popup images
 		this.popup.images = data.popupImages;
 		this.popup.index = 0;
@@ -492,19 +504,21 @@ var Carousel = (function() {
 		else {
 			this.DOM.popupButtonNext.hide();
 			this.DOM.popupButtonPrev.hide();
+
+			this.DOM.popup.find(".images").html("");
 		}
 
 		// update popup elements
-		this.DOM.popup.find(".title").html(data.name).css({ "color": color, "border-top": "4px solid " + color });
+		this.DOM.popup.find(".title").html(popupTitleHtml).css({ "border-top": "4px solid " + color });
 		this.DOM.popup.find(".content").html(html);
 
-		this.DOM.popup.show();
+		this.DOM.popup.fadeIn();
 	};
 
 	Carousel.prototype.caseStudyHide = function() {
 		$("body").css({ overflow: "scroll" }); // enable page scroll
 
-		this.DOM.popup.hide();
+		this.DOM.popup.fadeOut();
 
 		this.DOM.buttonNext.show();
 		this.DOM.buttonPrev.show();
