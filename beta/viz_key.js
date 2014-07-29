@@ -71,7 +71,7 @@ function VizKey(open, showMore) {
   });
 
   if (showMore) {
-    var moreButton = this.moreButton = $('<div class="section more"><h3>MORE</h3></div>');
+    var moreButton = this.moreButton = $('<div class="section more"><h3>MORE FILTERS</h3></div>');
     moreButton.on('click', function() { this.toggleMore(); }.bind(this));
     rowLeft.append(moreButton);
   }
@@ -114,12 +114,12 @@ VizKey.prototype.toggleMore = function(settings) {
   if (this.row.right.width() > 0 || shouldClose) {
     this.row.right.animate({ width: 0 });
     this.thumb.animate({ left: "137px" });
-    this.moreButton.children("h3").text("MORE");
+    this.moreButton.children("h3").text("MORE FILTERS");
   }
   else {
     this.row.right.animate({ width: "220px"});
     this.thumb.animate({ left: "357px" });
-    this.moreButton.children("h3").text("LESS");
+    this.moreButton.children("h3").text("LESS FILTERS");
   }
 };
 
