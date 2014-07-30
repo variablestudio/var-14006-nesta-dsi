@@ -96,6 +96,7 @@ var MainMap = (function() {
         "<h3 class=\"title\"></h3>",
         "<div class=\"tech-areas\"></div>",
         "<svg></svg>",
+        "<a class=\"more\">More details...</a>",
       "</div>"
     ].join("");
 
@@ -123,7 +124,8 @@ var MainMap = (function() {
 
     this.DOM.overlay = {
       div: mapOverlay,
-      techAreas: mapOverlay.find(".tech-areas")
+      techAreas: mapOverlay.find(".tech-areas"),
+      more: mapOverlay.find(".more")
     };
 
     // add big hex overlay
@@ -1076,6 +1078,7 @@ var MainMap = (function() {
     }).join("");
 
     this.DOM.overlay.techAreas.html(techFocusHtml);
+    this.DOM.overlay.more.attr("href", orgUrl);
 
     // preprate data
     data = prepareDataForHex(data.organisations[0]);
@@ -1094,7 +1097,7 @@ var MainMap = (function() {
 
     // update overlay
     this.DOM.overlay.div.fadeIn();
-    this.DOM.overlay.div.find(".title").html("<a href=\"" + orgUrl + "\">" + orgLabel + " <span>(more)</span></a>");
+    this.DOM.overlay.div.find(".title").html("<a href=\"" + orgUrl + "\">" + orgLabel + "</a>");
 
     return bigHex;
   };

@@ -223,7 +223,7 @@
 }
 
 #map-overlay h3 {
-  font-size: 90%;
+  font-size: 22px;
   margin-top: 30px;
   margin-bottom: 10px;
 }
@@ -233,20 +233,20 @@
   color: black;
 }
 
-#map-overlay h3 a span {
-  font-weight: 100;
-  color: #999;
+#map-overlay .more {
+  font-size: 90%;
+  color: black;
+  margin-top: 10px;
 }
-
 
 #map-overlay .close {
   float: right;
-  color: white;
-  background: #00B993;
+  color: #808080;
   padding: 7px;
-  font-size: 14px;
+  font-size: 18px;
   margin-right: -20px;
   cursor: pointer;
+  font-weight: bold;
 }
 
 #map-overlay .tech-areas {

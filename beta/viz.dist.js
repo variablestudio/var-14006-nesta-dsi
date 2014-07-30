@@ -3482,6 +3482,7 @@ var MainMap = (function() {
         "<h3 class=\"title\"></h3>",
         "<div class=\"tech-areas\"></div>",
         "<svg></svg>",
+        "<a class=\"more\">More details...</a>",
       "</div>"
     ].join("");
 
@@ -3509,7 +3510,8 @@ var MainMap = (function() {
 
     this.DOM.overlay = {
       div: mapOverlay,
-      techAreas: mapOverlay.find(".tech-areas")
+      techAreas: mapOverlay.find(".tech-areas"),
+      more: mapOverlay.find(".more")
     };
 
     // add big hex overlay
@@ -4462,6 +4464,7 @@ var MainMap = (function() {
     }).join("");
 
     this.DOM.overlay.techAreas.html(techFocusHtml);
+    this.DOM.overlay.more.attr("href", orgUrl);
 
     // preprate data
     data = prepareDataForHex(data.organisations[0]);
@@ -4480,7 +4483,7 @@ var MainMap = (function() {
 
     // update overlay
     this.DOM.overlay.div.fadeIn();
-    this.DOM.overlay.div.find(".title").html("<a href=\"" + orgUrl + "\">" + orgLabel + " <span>(more)</span></a>");
+    this.DOM.overlay.div.find(".title").html("<a href=\"" + orgUrl + "\">" + orgLabel + "</a>");
 
     return bigHex;
   };
@@ -5828,7 +5831,7 @@ VizConfig.organisationTypeById = {
   "government-and-public-sector": VizConfig.organisationType[4]
 };
 
-VizConfig.initialMapHeight = Math.max(400, Math.min(window.innerHeight - 360, 500));
+VizConfig.initialMapHeight = Math.max(420, Math.min(window.innerHeight - 360, 500));
 
 VizConfig.technologyFocusesById['open-hardware'].info = 'New ways of making and using open hard­ware solutions and moving towards and Open Source Internet of Things';
 VizConfig.technologyFocusesById['open-networks'].info = 'Innovative combinations of network solutions and infrastructures, e.g. sensor net­works, free interoperable network services, open Wifi, bottom-up-broadband, distribut­ed social networks, p2p infrastructures';
