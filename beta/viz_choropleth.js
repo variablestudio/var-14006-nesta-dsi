@@ -5,17 +5,32 @@ var Choropleth = (function() {
 		return data.map(function(o) { return o[prop]; }).indexOf(val);
 	};
 
-	function Choropleth(dom, colorScale) {
+	function Choropleth(dom, settings) {
+		settings = settings || {};
+
+		this.isDesktopBrowser = settings.isDesktopBrowser;
+
 		// will be filled after SPARQL query
 		this.maxCount = 0;
 		this.techNames = [];
 		this.adsiNames = [];
 		this.data = [];
 
-		this.colorScale = colorScale || ["#f2f0f7", "#dadaeb", "#bcbddc", "#9e9ac8", "#756bb1", "#54278f"];
+		this.colorScale = settings.colorScale !== undefined  ? settings.colorScale : ["#f2f0f7", "#dadaeb", "#bcbddc", "#9e9ac8", "#756bb1", "#54278f"];
 
-		this.rect = { "width": 150, "height": 50 };
-		this.margin = { "top": 50, "left": 150 };
+		this.size = {
+			"width": this.isDesktopBrowser ? 994 : 768
+		};
+
+		this.rect = {
+			"width": this.isDesktopBrowser ? 150 : 100,
+			"height": 50
+		};
+
+		this.margin = {
+			"left": 150,
+			"top": 50
+		};
 
 		this.DOM = { "div": d3.select(dom) };
 	}
@@ -140,7 +155,7 @@ var Choropleth = (function() {
 
 	Choropleth.prototype.draw = function() {
 		var height = (this.adsiNames.length + 1) * this.rect.height + this.margin.top;
-		var width = 994;
+		var width = this.width;
 
 		var svg = this.DOM.div.append("svg")
 			.attr("width", width)
@@ -240,19 +255,19 @@ var Choropleth = (function() {
 	};
 
 	Choropleth.prototype.drawTitle = function(svg, name, orient, index) {
-		svg
+		var anchor;
+		if (orient === "top") {
+			anchor = "middle";
+		}
+		else {
+			anchor = "end";
+		}
+
+		var position = {};
+
+		var text = svg
 			.append("text")
-			.text(name)
-			.attr("text-anchor", function() {
-				var anchor;
-				if (orient === "top") {
-					anchor = "middle";
-				}
-				else {
-					anchor = "end";
-				}
-				return anchor;
-			})
+			.attr("text-anchor", anchor)
 			.attr("x", function() {
 				var pos = this.margin.left;
 
@@ -262,6 +277,8 @@ var Choropleth = (function() {
 				else {
 					pos += this.rect.width - 12;
 				}
+
+				position.x = pos;
 
 				return pos;
 			}.bind(this))
@@ -275,8 +292,30 @@ var Choropleth = (function() {
 					pos += 4;
 				}
 
+				position.y = pos;
+
 				return pos;
 			}.bind(this));
+
+		if (this.isDesktopBrowser) {
+			text.text(name);
+		}
+		else {
+			name = name.replace(" ", "\n");
+			var names = name.split("\n");
+
+			text
+				.append("tspan")
+				.attr("x", position.x)
+				.text(names[0])
+				.attr("dy", -10);
+
+			text
+				.append("tspan")
+				.text(names[1])
+				.attr("x", position.x)
+				.attr("dy", 20);
+		}
 	};
 
 	return Choropleth;

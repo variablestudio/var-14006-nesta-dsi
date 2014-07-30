@@ -45,10 +45,14 @@
 
 /*---------------------------------- intro -------------------------------------*/
 
-#introViz {
+#introViz.desktop {
   position: absolute;
   top: 0;
   left: 0;
+}
+
+#introViz {
+  position: relative;
   color: white;
   font-family: 'Scene Std', sans-serif;
   background: rgba(0, 0, 0, 0.7);
@@ -85,6 +89,10 @@
   padding: 0.5em;
   -webkit-transition: background 0.2s; -moz-transition: background 0.2s; transition: background 0.2s;
   cursor: pointer;
+}
+
+#introVizContent .introColumn .exploreBtn.disabled {
+  background: #808080;
 }
 
 #introVizContent .introColumn .exploreBtn:hover {
@@ -190,7 +198,7 @@
 #introVizExploreBtn img:hover {
   transform: scale(1.1); -webkit-transform: scale(1.1); -moz-transform: scale(1.1);
 }
-*/
+
 /*---------------------------------- main map -------------------------------------*/
 
 #map {
@@ -278,7 +286,7 @@
 }
 
 #carousel {
-  width: 1008px;
+  width: 994px;
 
   margin: 0 auto;
 }
@@ -291,26 +299,34 @@
   color: #808080;
 }
 
-#carousel .button {
+#carousel .button,
+#carousel-popup .button {
   cursor: pointer;
-  margin-top: 70px;
-  font-size: 40px;
+  width: 14px;
+  height: 26px;
 }
 
-#carousel .button-prev {
+#carousel .button {
+  margin-top: 76px;
+}
+
+#carousel .button-prev,
+#carousel-popup .button-prev {
   float: left;
   margin-left: -40px;
+  background-image: url(assets/larrow.png);
 }
 
-#carousel .button-next {
+#carousel .button-next,
+#carousel-popup .button-next {
   float: right;
   margin-right: -40px;
+  background-image: url(assets/rarrow.png);
 }
 
 #carousel .carousel-wrapper {
-  width: 1008px;
-
   height: 181px;
+  margin: 0 auto;
 
   overflow: hidden;
   position: relative;
@@ -555,6 +571,7 @@
 #choroplethViz svg {
   display: block;
   margin: 0 auto;
+  width: 944px;
 }
 
 #choroplethViz text {
@@ -912,4 +929,184 @@
 #bigHexViz {
   color: white;
   font-family: 'Scene Std', sans-serif;
+}
+
+/*---------------------------------- tablet -----------------------------------*/
+
+@media only screen and (min-width:768px) and (max-width:959px) {
+  .container {
+    width: 100%;
+  }
+}
+
+@media (min-width: 642px) and (max-width: 1025px) {
+  #introVizContent .introColumn h1 {
+    min-width: 0;
+  }
+
+  #introVizContent .introColumn,
+  #introVizContent .introColumn:first-child {
+    width: 32%;
+    margin-left: 1%;
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+
+  #introVizContent .introColumn:first-child p {
+    margin-top: 60px;
+  }
+
+  #introVizContent .introColumn:last-child p {
+    margin-top: 120px;
+  }
+
+  #viz h1,
+  #introVizContent,
+  #carousel,
+  #carousel .filters,
+  #countriesViz,
+  #mainStatsViz {
+    width: 90%;
+    min-width: 768px;
+  }
+
+  #countriesViz,
+  #mainStatsViz {
+    width: 720px;
+    margin: 0 auto;
+    min-width: 0;
+  }
+
+  #viz h1 {
+    margin-top: 2em;
+    margin-bottom: 1.5em;
+    margin-left: 10px;
+    margin-right: 10px;
+    min-width: 748px;
+    clear: both;
+  }
+
+  #carousel .button-prev {
+    margin-left: 20px;
+  }
+
+  #carousel .button-next {
+    margin-right: 20px;
+  }
+
+  #countriesViz .map {
+    margin-right: 8px;
+  }
+
+  #countriesViz .map:nth-child(8n+0) {
+    margin-right: 8px;
+  }
+
+  #countriesViz .map:nth-child(8n+9) {
+    clear: none;
+  }
+
+  #countriesViz .map:nth-child(6n+0) {
+    margin-right: 0;
+  }
+
+  #countriesViz .map:nth-child(6n+7) {
+    clear: left;
+  }
+
+  #choroplethViz svg {
+    width: 720px;
+    display: block;
+    margin: 0 auto;
+  }
+}
+
+@media (min-width: 642px) and (max-width: 961px) {
+  #header .nav-bar a {
+    display: block;
+    margin-bottom: 30px;
+    margin-left: 20px;
+  }
+
+  #header .nav-bar ul.links {
+    float: none;
+    display: block;
+    margin: 0 auto;
+    width: 700px;
+  }
+
+  #header .nav-bar ul.links li {
+    margin-left: 4px;
+  }
+
+  #header .nav-bar .search {
+    right: 40px;
+    top: 132px;
+    width: 700px;
+  }
+
+  #introVizContent .introColumn h1 {
+    min-width: 0;
+  }
+
+  #introVizContent .introColumn,
+  #introVizContent .introColumn:first-child {
+    float: none;
+    display: block;
+    margin: 0 auto;
+    width: 640px;
+    height: auto;
+  }
+
+  #introVizContent #introHex svg {
+    display: block;
+    margin: 0 auto;
+  }
+
+  #introVizContent .introColumn > p {
+    text-align: center;
+  }
+
+  #introVizContent .introColumn:last-child p {
+    margin-top: 10px;
+  }
+}
+
+@media (max-width: 641px) {
+  #header .nav-bar .links,
+  #header .nav-bar .search {
+    display: none;
+  }
+
+  #introVizContent {
+    width: 100%;
+  }
+
+  #introVizContent .introColumn h1 {
+    min-width: 0;
+    width: 80%;
+  }
+
+  #introVizContent .introColumn,
+  #introVizContent .introColumn:first-child {
+    float: none;
+    display: block;
+    margin: 0 auto;
+    width: 100%;
+    height: auto;
+  }
+
+  #introVizContent #introHex svg {
+    display: block;
+    margin: 0 auto;
+  }
+
+  #introVizContent .introColumn > p {
+    text-align: center;
+  }
+
+  #introVizContent .introColumn p {
+    margin-top: 20px;
+    margin-top: 30px;
+  }
 }

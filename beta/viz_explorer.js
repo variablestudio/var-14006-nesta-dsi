@@ -5,14 +5,15 @@ var Explorer = (function() {
 		return data.map(function(o) { return o[prop]; }).indexOf(val);
 	};
 
-	function Explorer(dom) {
+	function Explorer(dom, settings) {
+		settings = settings || {};
 		this.data = []; // will be filled on SPARQL query
 
 		this.fieldProgression = [ "tech_focuses", "tech_methods", "country", "activity_label" ];
 		this.fieldIndex = 0;
 
 		this.size = {
-			"width": 994,
+			"width": settings.isDesktopBrowser ? 994 : 740,
 			"height": 100
 		};
 

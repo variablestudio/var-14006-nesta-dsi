@@ -1,5 +1,6 @@
 (function() {
   var showIntro = (document.location.hash !== '#nointro');
+  var browser = "desktop";
 
   function init() {
     var url = window.location.href;
@@ -7,6 +8,10 @@
     var urlIsVariableIO = (url.match(/variable\.io/) !== null);
     var urlIsOrganisation = (url.match(/\/organisations\//) !== null);
     var urlIsBeta = (url.match(/\/beta/) !== null);
+
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+      browser = ($(document).width() <= 480) ? "phone" : "tablet";
+    }
 
     if (urlIsOrganisation) {
       // get organisation id
@@ -19,6 +24,7 @@
       if (document.location.pathname != '/' && document.location.pathname.indexOf('beta') == -1) {
         return;
       }
+
       var mainContainer = document.getElementById('main');
       mainContainer.removeChild(mainContainer.childNodes[0]);
       mainContainer.removeChild(mainContainer.childNodes[0]);
@@ -26,28 +32,36 @@
       var vizContainer = $('#viz');
 
       initEvents();
+      initVizKey();
+      initPopup();
+      initTooltip();
 
-      initVisualizations(vizContainer);
       if (showIntro) {
         initIntroViz(vizContainer);
       }
+
+      initVisualizations(vizContainer);
     }
   }
 
   function initEvents() {
-    VizConfig.events = EventDispatcher.extend({});
+    if (browser !== "phone") {
+      VizConfig.events = EventDispatcher.extend({});
+    }
   }
 
   function initVisualizations(vizContainer) {
-    initMainViz(vizContainer);
-    initCaseStudies(vizContainer);
-    initEUCountries(vizContainer);
-    initChoropleth(vizContainer);
-    initExplorer(vizContainer);
-    initMainStats(vizContainer, { timeout: 4000 });
-    initVizKey();
-    initPopup();
-    initTooltip();
+    if (browser === "desktop") {
+      initMainViz(vizContainer);
+    }
+
+    if (browser !== "phone") {
+      initCaseStudies(vizContainer);
+      initEUCountries(vizContainer);
+      initChoropleth(vizContainer);
+      initExplorer(vizContainer);
+      initMainStats(vizContainer, { timeout: 4000 });
+    }
   }
 
   function initIntroViz(vizContainer, cb) {
@@ -64,7 +78,10 @@
       introViz.fadeOut("slow");
     }
 
-    var intro = new Intro(introViz, onExplore);
+    var intro = new Intro(introViz, {
+      callback: onExplore,
+      isDesktopBrowser: (browser === "desktop")
+    });
   }
 
   function initTooltip() {
@@ -91,8 +108,8 @@
 
     var carouselDiv = $('<div id="carousel"></div>');
     var carouselFilters = $('<div class="filters"></div>');
-    var carouselPrev = $('<div class="button button-prev">&lang;</div>');
-    var carouselNext = $('<div class="button button-next">&rang;</div>');
+    var carouselPrev = $('<div class="button button-prev"></div>');
+    var carouselNext = $('<div class="button button-next"></div>');
     var carouselWrap = $('<div class="carousel-wrapper"></div>');
     carouselDiv.append(carouselPrev);
     carouselDiv.append(carouselNext);
@@ -105,6 +122,9 @@
       "wrapper": $("#carousel >.carousel-wrapper"),
       "buttonPrev": $("#carousel > .button-prev"),
       "buttonNext": $("#carousel > .button-next")
+    },
+    {
+      isDesktopBrowser: (browser === "desktop")
     });
   }
 
@@ -112,7 +132,9 @@
     var euCountriesTitle = $('<h1 id="countriesVizTitle">EU Countries with the most DSI Projects <a href="#">(Show all)</a></h1>');
     vizContainer.append(euCountriesTitle);
 
-    euCountriesTitle.children('a').click(function(e) {
+    var numEuCountries = browser === "desktop" ? 8 : 6;
+
+    euCountriesTitle.children('a').on("click touchstart", function(e) {
       e.preventDefault();
       e.stopPropagation();
 
@@ -123,7 +145,7 @@
       }
       else {
         $('div.map').each(function(index) {
-          if (index >= 8) { $(this).hide(); }
+          if (index >= numEuCountries) { $(this).hide(); }
         });
         $(this).text("(Show all)");
       }
@@ -132,7 +154,7 @@
     var countriesViz = $('<div id="countriesViz"></div>');
     vizContainer.append(countriesViz);
 
-    var countries = new Countries("#countriesViz");
+    var countries = new Countries("#countriesViz", { isDesktopBrowser: (browser === "desktop") });
     countries.init();
   }
 
@@ -143,9 +165,7 @@
     var choroplethViz = $('<div id="choroplethViz"></div>');
     vizContainer.append(choroplethViz);
 
-    var choroplethColors = ["#f2f0f7", "#dadaeb", "#bcbddc", "#9e9ac8", "#756bb1", "#54278f"];
-
-    var choropleth = new Choropleth("#choroplethViz");
+    var choropleth = new Choropleth("#choroplethViz", { isDesktopBrowser: (browser === "desktop") });
     choropleth.init();
   }
 
@@ -156,7 +176,7 @@
     var explorerViz = $('<div id="explorerViz"></div>');
     vizContainer.append(explorerViz);
 
-    var explorer = new Explorer("#explorerViz");
+    var explorer = new Explorer("#explorerViz", { isDesktopBrowser: (browser === "desktop") });
     explorer.init();
   }
 

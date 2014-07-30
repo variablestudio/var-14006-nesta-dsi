@@ -798,11 +798,13 @@ var Carousel = (function() {
 	};
 
 	function Carousel(DOMElements, settings) {
+		settings = settings || {};
+
 		// create popup
 		var popupStr = [
 			"<div id=\"carousel-popup\">",
-				"<div class=\"button-prev\">&lang;</div>",
-				"<div class=\"button-next\">&rang;</div>",
+				"<div class=\"button button-prev\"></div>",
+				"<div class=\"button button-next\"></div>",
 				"<div class=\"title\"></div>",
 				"<div class=\"content-container\">",
 					"<div class=\"images\"></div>",
@@ -811,9 +813,16 @@ var Carousel = (function() {
 			"</div>"
 		].join("");
 
-		var popup = $(popupStr).hide().on("click", this.caseStudyHide.bind(this));
+		var popup = $(popupStr)
+			.hide()
+			.on("click", this.caseStudyHide.bind(this))
+			.on("touchstart", function(e) {
+				e.preventDefault();
+				e.stopPropagation();
+			});
+
 		$("body").append(popup);
-		$("body").on("click", this.caseStudyHide.bind(this));
+		$("body").on("click touchstart", this.caseStudyHide.bind(this));
 
 		this.DOM = {
 			"filters": DOMElements.filters,
@@ -833,7 +842,7 @@ var Carousel = (function() {
 		this.carousel = {
 			"data": [],
 			"parsedData": [],
-			"numItems": 3,
+			"numItems": settings.isDesktopBrowser ? 3 : 2,
 			"index": 0
 		};
 
@@ -842,8 +851,11 @@ var Carousel = (function() {
 			"prev": false
 		};
 
-		this.width = settings ? settings.width : 322 + 14; // 14px margin
-		var apiUrl = settings ? settings.url : "http://content.digitalsocial.eu/api/get_page/?slug=case-studies&children=true";
+		var margin = 14;
+		this.width = settings.width || 322 + margin;
+		var apiUrl = settings.url || "http://content.digitalsocial.eu/api/get_page/?slug=case-studies&children=true";
+
+		this.DOM.wrapper.width(this.width * this.carousel.numItems - margin);
 
 		// fetch data
 		$.getJSON(apiUrl, function(data) {
@@ -856,7 +868,7 @@ var Carousel = (function() {
 		}.bind(this));
 
 		// setup button events
-		this.DOM.buttonNext.on("click", function() {
+		this.DOM.buttonNext.on("click touchstart", function() {
 			// don't do anything if currently animatin
 			if (this.animating.next || this.animating.prev) { return; }
 
@@ -887,7 +899,7 @@ var Carousel = (function() {
 				}.bind(this));
 		}.bind(this));
 
-		this.DOM.buttonPrev.on("click", function() {
+		this.DOM.buttonPrev.on("click touchstart", function() {
 			// don't do anything if currently animatin
 			if (this.animating.next || this.animating.prev) { return; }
 
@@ -920,7 +932,7 @@ var Carousel = (function() {
 				}.bind(this));
 		}.bind(this));
 
-		this.DOM.popupButtonPrev.on("click", function(e) {
+		this.DOM.popupButtonPrev.on("click touchstart", function(e) {
 			e.preventDefault();
 			e.stopPropagation();
 
@@ -928,7 +940,7 @@ var Carousel = (function() {
 			this.updateImage();
 		}.bind(this));
 
-		this.DOM.popupButtonNext.on("click", function(e) {
+		this.DOM.popupButtonNext.on("click touchstart", function(e) {
 			e.preventDefault();
 			e.stopPropagation();
 
@@ -1117,7 +1129,7 @@ var Carousel = (function() {
 
 		// add event handler if item has data
 		if (data) {
-			carouselItem.on("click", function(e) {
+			carouselItem.on("click touchstart", function(e) {
 				e.preventDefault();
 				e.stopPropagation();
 
@@ -1148,7 +1160,7 @@ var Carousel = (function() {
 			}.bind(this));
 		}
 		else {
-			// add first three items to DOM
+			// add first numItems items to DOM
 			this.carousel.data.slice(0, this.carousel.numItems).forEach(function(object, index) {
 				this.DOM.wrapper.append(
 					this.buildItem(object).css({ "left": index * this.width + "px" })
@@ -1249,10 +1261,6 @@ var Carousel = (function() {
 
 	// display popup
 	Carousel.prototype.caseStudyShow = function(data) {
-		// hide buttons
-		this.DOM.buttonNext.hide();
-		this.DOM.buttonPrev.hide();
-
 		// disable page scroll
 		$("body").css({ overflow: "hidden" });
 
@@ -1310,9 +1318,6 @@ var Carousel = (function() {
 		$("body").css({ overflow: "scroll" }); // enable page scroll
 
 		this.DOM.popup.fadeOut();
-
-		this.DOM.buttonNext.show();
-		this.DOM.buttonPrev.show();
 	};
 
 	Carousel.prototype.updateImage = function() {
@@ -1352,7 +1357,10 @@ var Countries = (function() {
 		return data.map(function(o) { return o[prop]; }).indexOf(val);
 	};
 
-	function Countries(div) {
+	function Countries(div, settings) {
+		settings = settings || {};
+		this.isDesktopBrowser = settings.isDesktopBrowser !== undefined ? settings.isDesktopBrowser : true;
+
 		this.ADSILabels = [];  // will be filled on SPARQL query
 		this.ADSIMaxCount = 0; // will be filled on SPARQL query
 
@@ -1538,6 +1546,8 @@ var Countries = (function() {
 	};
 
 	Countries.prototype.draw = function() {
+		var numCountries = this.isDesktopBrowser ? 8 : 6;
+
 		this.data.forEach(function(data, dataIndex) {
 			var div = this.DOM.div.append("div").attr("class", "map " + data.country_code);
 
@@ -1553,7 +1563,7 @@ var Countries = (function() {
 			var mapDiv = div.append("div").attr("class", "country");
 			this.drawMap(mapDiv, data);
 
-			if (dataIndex >= 8) { $(div[0]).hide(); }
+			if (dataIndex >= numCountries) { $(div[0]).hide(); }
 		}.bind(this));
 	};
 
@@ -1669,28 +1679,34 @@ var Countries = (function() {
 	return Countries;
 }());
 
-function Intro(introVizContainer, clickCb) {
+function Intro(introVizContainer, settings) {
+  settings = settings || {};
+  var isDesktopBrowser = settings.isDesktopBrowser !== undefined ? settings.isDesktopBrowser : true;
+
   var w = window.innerWidth;
   var h = VizConfig.initialMapHeight;
-
-  var contentWidth = 994;
-  introVizContainer.css('height', h);
 
   var learnTitle = 'Learn about DSI';
   var dsiTitle = '6 DSI AREAS:';
   var techTitle = '4 DSI TECHNOLOGY FOCUSES:';
 
+  var titleText = 'Learn about Digital Social Innovation';
+  var exploreBtnText = isDesktopBrowser ? 'Explore the map' : 'Explore the map on desktop browser';
+
   var numOrganizations = 516;
   var numProjects = 319;
-
-  var titleText = 'Learn about Digital Social Innovation';
-  var exploreBtnText = 'Explore the map';
 
   var dsiIntroText = [
     'We are setting up a network of organisations that use the Internet for the social good.',
     'Explore <strong>NUM_ORG</strong> organisations with <strong>NUM_PROJECTS</strong> collaborative research and innovation projects.',
     '<em>"Digital Social Innovation is a type of collaborative innovation in which innovators, users and communities co-create knowledge and solutions for a wide range of social needs exploiting the network effect of the Internet."</em>'
   ];
+
+  var contentWidth = 994;
+  if (settings.isDesktopBrowser) {
+    introVizContainer.addClass("desktop");
+    introVizContainer.css('height', h);
+  }
 
   dsiIntroText = dsiIntroText.map(function(line) {
     return line.replace('NUM_ORG', numOrganizations).replace('NUM_PROJECTS', numProjects);
@@ -1717,10 +1733,13 @@ function Intro(introVizContainer, clickCb) {
 
   content2.append($('<div id="introHex"></div>'));
 
-  var exploreBtn = $('<div class="exploreBtn">' + exploreBtnText + '</div>')
+  var exploreBtn = $('<div class="exploreBtn">' + exploreBtnText + '</div>');
+  if (!isDesktopBrowser) { exploreBtn.addClass("disabled"); }
   content2.append(exploreBtn);
-  exploreBtn.click(clickCb);
 
+  if (isDesktopBrowser && settings.callback) {
+    exploreBtn.click(settings.callback);
+  }
 
   column3.append($('<p><a href="http://digitalsocial.eu/organisations/build/new_user"><img src="assets/WorldMap.png" width="322"/></a></p>'));
 
@@ -1950,17 +1969,32 @@ var Choropleth = (function() {
 		return data.map(function(o) { return o[prop]; }).indexOf(val);
 	};
 
-	function Choropleth(dom, colorScale) {
+	function Choropleth(dom, settings) {
+		settings = settings || {};
+
+		this.isDesktopBrowser = settings.isDesktopBrowser;
+
 		// will be filled after SPARQL query
 		this.maxCount = 0;
 		this.techNames = [];
 		this.adsiNames = [];
 		this.data = [];
 
-		this.colorScale = colorScale || ["#f2f0f7", "#dadaeb", "#bcbddc", "#9e9ac8", "#756bb1", "#54278f"];
+		this.colorScale = settings.colorScale !== undefined  ? settings.colorScale : ["#f2f0f7", "#dadaeb", "#bcbddc", "#9e9ac8", "#756bb1", "#54278f"];
 
-		this.rect = { "width": 150, "height": 50 };
-		this.margin = { "top": 50, "left": 150 };
+		this.size = {
+			"width": this.isDesktopBrowser ? 994 : 768
+		};
+
+		this.rect = {
+			"width": this.isDesktopBrowser ? 150 : 100,
+			"height": 50
+		};
+
+		this.margin = {
+			"left": 150,
+			"top": 50
+		};
 
 		this.DOM = { "div": d3.select(dom) };
 	}
@@ -2085,7 +2119,7 @@ var Choropleth = (function() {
 
 	Choropleth.prototype.draw = function() {
 		var height = (this.adsiNames.length + 1) * this.rect.height + this.margin.top;
-		var width = 994;
+		var width = this.width;
 
 		var svg = this.DOM.div.append("svg")
 			.attr("width", width)
@@ -2185,19 +2219,19 @@ var Choropleth = (function() {
 	};
 
 	Choropleth.prototype.drawTitle = function(svg, name, orient, index) {
-		svg
+		var anchor;
+		if (orient === "top") {
+			anchor = "middle";
+		}
+		else {
+			anchor = "end";
+		}
+
+		var position = {};
+
+		var text = svg
 			.append("text")
-			.text(name)
-			.attr("text-anchor", function() {
-				var anchor;
-				if (orient === "top") {
-					anchor = "middle";
-				}
-				else {
-					anchor = "end";
-				}
-				return anchor;
-			})
+			.attr("text-anchor", anchor)
 			.attr("x", function() {
 				var pos = this.margin.left;
 
@@ -2207,6 +2241,8 @@ var Choropleth = (function() {
 				else {
 					pos += this.rect.width - 12;
 				}
+
+				position.x = pos;
 
 				return pos;
 			}.bind(this))
@@ -2220,8 +2256,30 @@ var Choropleth = (function() {
 					pos += 4;
 				}
 
+				position.y = pos;
+
 				return pos;
 			}.bind(this));
+
+		if (this.isDesktopBrowser) {
+			text.text(name);
+		}
+		else {
+			name = name.replace(" ", "\n");
+			var names = name.split("\n");
+
+			text
+				.append("tspan")
+				.attr("x", position.x)
+				.text(names[0])
+				.attr("dy", -10);
+
+			text
+				.append("tspan")
+				.text(names[1])
+				.attr("x", position.x)
+				.attr("dy", 20);
+		}
 	};
 
 	return Choropleth;
@@ -2234,14 +2292,15 @@ var Explorer = (function() {
 		return data.map(function(o) { return o[prop]; }).indexOf(val);
 	};
 
-	function Explorer(dom) {
+	function Explorer(dom, settings) {
+		settings = settings || {};
 		this.data = []; // will be filled on SPARQL query
 
 		this.fieldProgression = [ "tech_focuses", "tech_methods", "country", "activity_label" ];
 		this.fieldIndex = 0;
 
 		this.size = {
-			"width": 994,
+			"width": settings.isDesktopBrowser ? 994 : 740,
 			"height": 100
 		};
 
@@ -5778,6 +5837,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
 
 (function() {
   var showIntro = (document.location.hash !== '#nointro');
+  var browser = "desktop";
 
   function init() {
     var url = window.location.href;
@@ -5785,6 +5845,10 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     var urlIsVariableIO = (url.match(/variable\.io/) !== null);
     var urlIsOrganisation = (url.match(/\/organisations\//) !== null);
     var urlIsBeta = (url.match(/\/beta/) !== null);
+
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+      browser = ($(document).width() <= 480) ? "phone" : "tablet";
+    }
 
     if (urlIsOrganisation) {
       // get organisation id
@@ -5797,6 +5861,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
       if (document.location.pathname != '/' && document.location.pathname.indexOf('beta') == -1) {
         return;
       }
+
       var mainContainer = document.getElementById('main');
       mainContainer.removeChild(mainContainer.childNodes[0]);
       mainContainer.removeChild(mainContainer.childNodes[0]);
@@ -5804,28 +5869,36 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
       var vizContainer = $('#viz');
 
       initEvents();
+      initVizKey();
+      initPopup();
+      initTooltip();
 
-      initVisualizations(vizContainer);
       if (showIntro) {
         initIntroViz(vizContainer);
       }
+
+      initVisualizations(vizContainer);
     }
   }
 
   function initEvents() {
-    VizConfig.events = EventDispatcher.extend({});
+    if (browser !== "phone") {
+      VizConfig.events = EventDispatcher.extend({});
+    }
   }
 
   function initVisualizations(vizContainer) {
-    initMainViz(vizContainer);
-    initCaseStudies(vizContainer);
-    initEUCountries(vizContainer);
-    initChoropleth(vizContainer);
-    initExplorer(vizContainer);
-    initMainStats(vizContainer, { timeout: 4000 });
-    initVizKey();
-    initPopup();
-    initTooltip();
+    if (browser === "desktop") {
+      initMainViz(vizContainer);
+    }
+
+    if (browser !== "phone") {
+      initCaseStudies(vizContainer);
+      initEUCountries(vizContainer);
+      initChoropleth(vizContainer);
+      initExplorer(vizContainer);
+      initMainStats(vizContainer, { timeout: 4000 });
+    }
   }
 
   function initIntroViz(vizContainer, cb) {
@@ -5842,7 +5915,10 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
       introViz.fadeOut("slow");
     }
 
-    var intro = new Intro(introViz, onExplore);
+    var intro = new Intro(introViz, {
+      callback: onExplore,
+      isDesktopBrowser: (browser === "desktop")
+    });
   }
 
   function initTooltip() {
@@ -5869,8 +5945,8 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
 
     var carouselDiv = $('<div id="carousel"></div>');
     var carouselFilters = $('<div class="filters"></div>');
-    var carouselPrev = $('<div class="button button-prev">&lang;</div>');
-    var carouselNext = $('<div class="button button-next">&rang;</div>');
+    var carouselPrev = $('<div class="button button-prev"></div>');
+    var carouselNext = $('<div class="button button-next"></div>');
     var carouselWrap = $('<div class="carousel-wrapper"></div>');
     carouselDiv.append(carouselPrev);
     carouselDiv.append(carouselNext);
@@ -5883,6 +5959,9 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
       "wrapper": $("#carousel >.carousel-wrapper"),
       "buttonPrev": $("#carousel > .button-prev"),
       "buttonNext": $("#carousel > .button-next")
+    },
+    {
+      isDesktopBrowser: (browser === "desktop")
     });
   }
 
@@ -5890,7 +5969,9 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     var euCountriesTitle = $('<h1 id="countriesVizTitle">EU Countries with the most DSI Projects <a href="#">(Show all)</a></h1>');
     vizContainer.append(euCountriesTitle);
 
-    euCountriesTitle.children('a').click(function(e) {
+    var numEuCountries = browser === "desktop" ? 8 : 6;
+
+    euCountriesTitle.children('a').on("click touchstart", function(e) {
       e.preventDefault();
       e.stopPropagation();
 
@@ -5901,7 +5982,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
       }
       else {
         $('div.map').each(function(index) {
-          if (index >= 8) { $(this).hide(); }
+          if (index >= numEuCountries) { $(this).hide(); }
         });
         $(this).text("(Show all)");
       }
@@ -5910,7 +5991,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     var countriesViz = $('<div id="countriesViz"></div>');
     vizContainer.append(countriesViz);
 
-    var countries = new Countries("#countriesViz");
+    var countries = new Countries("#countriesViz", { isDesktopBrowser: (browser === "desktop") });
     countries.init();
   }
 
@@ -5921,9 +6002,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     var choroplethViz = $('<div id="choroplethViz"></div>');
     vizContainer.append(choroplethViz);
 
-    var choroplethColors = ["#f2f0f7", "#dadaeb", "#bcbddc", "#9e9ac8", "#756bb1", "#54278f"];
-
-    var choropleth = new Choropleth("#choroplethViz");
+    var choropleth = new Choropleth("#choroplethViz", { isDesktopBrowser: (browser === "desktop") });
     choropleth.init();
   }
 
@@ -5934,7 +6013,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     var explorerViz = $('<div id="explorerViz"></div>');
     vizContainer.append(explorerViz);
 
-    var explorer = new Explorer("#explorerViz");
+    var explorer = new Explorer("#explorerViz", { isDesktopBrowser: (browser === "desktop") });
     explorer.init();
   }
 

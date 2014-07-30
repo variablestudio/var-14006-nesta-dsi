@@ -5,7 +5,10 @@ var Countries = (function() {
 		return data.map(function(o) { return o[prop]; }).indexOf(val);
 	};
 
-	function Countries(div) {
+	function Countries(div, settings) {
+		settings = settings || {};
+		this.isDesktopBrowser = settings.isDesktopBrowser !== undefined ? settings.isDesktopBrowser : true;
+
 		this.ADSILabels = [];  // will be filled on SPARQL query
 		this.ADSIMaxCount = 0; // will be filled on SPARQL query
 
@@ -191,6 +194,8 @@ var Countries = (function() {
 	};
 
 	Countries.prototype.draw = function() {
+		var numCountries = this.isDesktopBrowser ? 8 : 6;
+
 		this.data.forEach(function(data, dataIndex) {
 			var div = this.DOM.div.append("div").attr("class", "map " + data.country_code);
 
@@ -206,7 +211,7 @@ var Countries = (function() {
 			var mapDiv = div.append("div").attr("class", "country");
 			this.drawMap(mapDiv, data);
 
-			if (dataIndex >= 8) { $(div[0]).hide(); }
+			if (dataIndex >= numCountries) { $(div[0]).hide(); }
 		}.bind(this));
 	};
 

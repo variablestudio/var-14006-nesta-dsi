@@ -7,11 +7,13 @@ var Carousel = (function() {
 	};
 
 	function Carousel(DOMElements, settings) {
+		settings = settings || {};
+
 		// create popup
 		var popupStr = [
 			"<div id=\"carousel-popup\">",
-				"<div class=\"button-prev\">&lang;</div>",
-				"<div class=\"button-next\">&rang;</div>",
+				"<div class=\"button button-prev\"></div>",
+				"<div class=\"button button-next\"></div>",
 				"<div class=\"title\"></div>",
 				"<div class=\"content-container\">",
 					"<div class=\"images\"></div>",
@@ -20,9 +22,16 @@ var Carousel = (function() {
 			"</div>"
 		].join("");
 
-		var popup = $(popupStr).hide().on("click", this.caseStudyHide.bind(this));
+		var popup = $(popupStr)
+			.hide()
+			.on("click", this.caseStudyHide.bind(this))
+			.on("touchstart", function(e) {
+				e.preventDefault();
+				e.stopPropagation();
+			});
+
 		$("body").append(popup);
-		$("body").on("click", this.caseStudyHide.bind(this));
+		$("body").on("click touchstart", this.caseStudyHide.bind(this));
 
 		this.DOM = {
 			"filters": DOMElements.filters,
@@ -42,7 +51,7 @@ var Carousel = (function() {
 		this.carousel = {
 			"data": [],
 			"parsedData": [],
-			"numItems": 3,
+			"numItems": settings.isDesktopBrowser ? 3 : 2,
 			"index": 0
 		};
 
@@ -51,8 +60,11 @@ var Carousel = (function() {
 			"prev": false
 		};
 
-		this.width = settings ? settings.width : 322 + 14; // 14px margin
-		var apiUrl = settings ? settings.url : "http://content.digitalsocial.eu/api/get_page/?slug=case-studies&children=true";
+		var margin = 14;
+		this.width = settings.width || 322 + margin;
+		var apiUrl = settings.url || "http://content.digitalsocial.eu/api/get_page/?slug=case-studies&children=true";
+
+		this.DOM.wrapper.width(this.width * this.carousel.numItems - margin);
 
 		// fetch data
 		$.getJSON(apiUrl, function(data) {
@@ -65,7 +77,7 @@ var Carousel = (function() {
 		}.bind(this));
 
 		// setup button events
-		this.DOM.buttonNext.on("click", function() {
+		this.DOM.buttonNext.on("click touchstart", function() {
 			// don't do anything if currently animatin
 			if (this.animating.next || this.animating.prev) { return; }
 
@@ -96,7 +108,7 @@ var Carousel = (function() {
 				}.bind(this));
 		}.bind(this));
 
-		this.DOM.buttonPrev.on("click", function() {
+		this.DOM.buttonPrev.on("click touchstart", function() {
 			// don't do anything if currently animatin
 			if (this.animating.next || this.animating.prev) { return; }
 
@@ -129,7 +141,7 @@ var Carousel = (function() {
 				}.bind(this));
 		}.bind(this));
 
-		this.DOM.popupButtonPrev.on("click", function(e) {
+		this.DOM.popupButtonPrev.on("click touchstart", function(e) {
 			e.preventDefault();
 			e.stopPropagation();
 
@@ -137,7 +149,7 @@ var Carousel = (function() {
 			this.updateImage();
 		}.bind(this));
 
-		this.DOM.popupButtonNext.on("click", function(e) {
+		this.DOM.popupButtonNext.on("click touchstart", function(e) {
 			e.preventDefault();
 			e.stopPropagation();
 
@@ -326,7 +338,7 @@ var Carousel = (function() {
 
 		// add event handler if item has data
 		if (data) {
-			carouselItem.on("click", function(e) {
+			carouselItem.on("click touchstart", function(e) {
 				e.preventDefault();
 				e.stopPropagation();
 
@@ -357,7 +369,7 @@ var Carousel = (function() {
 			}.bind(this));
 		}
 		else {
-			// add first three items to DOM
+			// add first numItems items to DOM
 			this.carousel.data.slice(0, this.carousel.numItems).forEach(function(object, index) {
 				this.DOM.wrapper.append(
 					this.buildItem(object).css({ "left": index * this.width + "px" })
@@ -458,10 +470,6 @@ var Carousel = (function() {
 
 	// display popup
 	Carousel.prototype.caseStudyShow = function(data) {
-		// hide buttons
-		this.DOM.buttonNext.hide();
-		this.DOM.buttonPrev.hide();
-
 		// disable page scroll
 		$("body").css({ overflow: "hidden" });
 
@@ -519,9 +527,6 @@ var Carousel = (function() {
 		$("body").css({ overflow: "scroll" }); // enable page scroll
 
 		this.DOM.popup.fadeOut();
-
-		this.DOM.buttonNext.show();
-		this.DOM.buttonPrev.show();
 	};
 
 	Carousel.prototype.updateImage = function() {
