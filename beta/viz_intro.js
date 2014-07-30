@@ -43,7 +43,12 @@ function Intro(introVizContainer, settings) {
   var column3 = $('<div class="introColumn"></div>');
   introVizContent.append(column3);
 
-  column1.append($('<p>' + dsiIntroText.join('<br/><br/>') + '</p>'));
+  var content1 = $('<p>' + dsiIntroText.join('<br/><br/>') + '</p>');
+  column1.append(content1);
+
+  var exploreBtn = $('<div class="exploreBtn">' + exploreBtnText + '</div>');
+  if (!isDesktopBrowser) { exploreBtn.addClass("disabled"); }
+  column1.append(exploreBtn);
 
   var content2 = $('<div class="introColumnContent"></div>');
   column2.append(content2);
@@ -52,15 +57,11 @@ function Intro(introVizContainer, settings) {
 
   content2.append($('<div id="introHex"></div>'));
 
-  var exploreBtn = $('<div class="exploreBtn">' + exploreBtnText + '</div>');
-  if (!isDesktopBrowser) { exploreBtn.addClass("disabled"); }
-  content2.append(exploreBtn);
-
   if (isDesktopBrowser && settings.callback) {
     exploreBtn.click(settings.callback);
   }
 
-  column3.append($('<p><a href="http://digitalsocial.eu/organisations/build/new_user"><img src="assets/WorldMap.png" width="322"/></a></p>'));
+  column3.append($('<p><img src="assets/map-shadow.png" width="322"/></p><a class="mapBtn" href="http://digitalsocial.eu/organisations/build/new_user">Get on the Map</a>'));
 
   var vizContainer = d3.select("#introHex");
   var chart = vizContainer

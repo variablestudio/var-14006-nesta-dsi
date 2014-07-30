@@ -55,7 +55,8 @@
   position: relative;
   color: white;
   font-family: 'Scene Std', sans-serif;
-  background: rgba(0, 0, 0, 0.7);
+  /* background: rgba(0, 0, 0, 0.7); */
+  background: url(assets/background-gradient.png) center repeat-y;
 }
 
 #introHex {
@@ -69,6 +70,7 @@
 }
 
 #introVizContent .introColumn {
+  position: relative;
   width: 322px;
   height: 100%;
   margin-left: 14px;
@@ -81,22 +83,36 @@
   -webkit-flex-direction: column; -ms-flex-direction: column; -webkit-flex-direction: column; flex-direction: column;
 }
 
-#introVizContent .introColumn .exploreBtn {
-  background: #00B993;
+#introVizContent .introColumn .exploreBtn,
+#introVizContent .introColumn .mapBtn {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  bottom: 40px;
+  display: block;
+  color: white;
+  text-decoration: none;
+  background: rgba(28, 175, 175, 0.7);
   font-size: 150%;
   text-align: center;
   box-sizing: border-box;
   padding: 0.5em;
   -webkit-transition: background 0.2s; -moz-transition: background 0.2s; transition: background 0.2s;
   cursor: pointer;
+  margin-top: 50px;
+}
+
+#introVizContent .introColumn .mapBtn {
+  margin-top: 10px;
 }
 
 #introVizContent .introColumn .exploreBtn.disabled {
   background: #808080;
 }
 
-#introVizContent .introColumn .exploreBtn:hover {
-  background: #00DBAE;
+#introVizContent .introColumn .exploreBtn:hover,
+#introVizContent .introColumn .mapBtn:hover {
+ background: rgba(28, 175, 175, 1);
 }
 
 #introVizContent .introColumn:first-child {
@@ -1094,6 +1110,17 @@
     margin: 0 auto;
     width: 100%;
     height: auto;
+  }
+
+  #introVizContent .introColumn .exploreBtn,
+  #introVizContent .introColumn .mapBtn {
+    margin-top: 40px;
+    position: relative;
+    bottom: 0;
+  }
+
+  #introVizContent .introColumn .mapBtn {
+    margin-bottom: 40px;
   }
 
   #introVizContent #introHex svg {
