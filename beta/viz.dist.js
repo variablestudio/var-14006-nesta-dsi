@@ -3280,15 +3280,20 @@ VizPopup.prototype.isOpen = function() {
 
 /*global $, d3, VizConfig */
 
-function VizKey(open, showMore) {
-  showMore = showMore !== undefined ? showMore : true;
+function VizKey(settings) {
+  settings = settings || {};
+
+  var shouldStartOpen = !!settings.open;
+  var shouldDisplayMoreFilters = !!settings.showMore;
+  var className = this.className = settings.className || "main";
+  var thumbTitle = className === "main" ? "More Filters" : "Hide Key";
 
   var updateFilters = this.updateFilters.bind(this);
   this.activeFilters = [];
 
-  var vizKeyContainer = this.vizKeyContainer = $('<div id="vizKeyContainer"></div>');
+  var vizKeyContainer = this.vizKeyContainer = $('<div id="vizKeyContainer" class="' + className + '"></div>');
   var sideBar = this.sideBar = $('<div id="vizKeySideBar"></div>');
-  var thumb = this.thumb = $('<div id="vizKeyThumb"><span>Open Filters</span></div>');
+  var thumb = this.thumb = $('<div id="vizKeyThumb"><span>' + thumbTitle + '</span></div>');
 
   vizKeyContainer.append(sideBar);
   vizKeyContainer.append(thumb);
@@ -3304,11 +3309,15 @@ function VizKey(open, showMore) {
   var rowLeft = $('<div class="row left"></div>');
   var rowRight = $('<div class="row right"></div>');
 
-  var sectionTitle = $('<div class="section"></div>');
-  sectionTitle.append($('<h3><img src="' + VizConfig.assetsPath + '/key-org-new.png' + '" height="40"/><br>' + organizationsTitle + '</h3>'));
-  sectionTitle.append($('<h3><img src="' + VizConfig.assetsPath + '/key-project-new.png' + '" height="14"/><br>' + projectsTitle + '</h3>'));
+  var orgSection = $('<div class="section organisations"></div>');
+  orgSection.append($('<h3><img src="' + VizConfig.assetsPath + '/key-org-new.png' + '" height="40"/><br>' + organizationsTitle + '</h3>'));
+  rowLeft.append(orgSection);
 
-  rowLeft.append(sectionTitle);
+  if (className !== "main") {
+    var projectSection = $('<div class="section projects"></div>');
+    projectSection.append($('<h3><img src="' + VizConfig.assetsPath + '/key-project-new.png' + '" height="14"/><br>' + projectsTitle + '</h3>'));
+    rowLeft.append(projectSection);
+  }
 
   [
     { "table": VizConfig.dsiAreas, "property": 'areaOfDigitalSocialInnovation', "title": dsiTitle, "parent": rowLeft },
@@ -3350,12 +3359,6 @@ function VizKey(open, showMore) {
     sidebarSection.parent.append(section);
   });
 
-  if (showMore) {
-    var moreButton = this.moreButton = $('<div class="section more"><h3>MORE FILTERS</h3></div>');
-    moreButton.on('click', function() { this.toggleMore(); }.bind(this));
-    rowLeft.append(moreButton);
-  }
-
   sideBar.append(rowLeft);
   sideBar.append(rowRight);
 
@@ -3365,16 +3368,32 @@ function VizKey(open, showMore) {
   };
 
   thumb.on('click', function() {
-    if (vizKeyContainer.hasClass('open')) { this.close(); }
-    else { this.open(); }
+    if (this.className === "main") {
+      this.toggleMore();
+    }
+    else {
+      if (vizKeyContainer.hasClass('open')) {
+        this.close();
+      }
+      else {
+        this.open();
+      }
+    }
   }.bind(this));
 
-  if (open) { this.open(); }
+  if (shouldStartOpen) {
+    this.open();
+  }
+  else {
+    this.close();
+  }
 }
 
 VizKey.prototype.open = function() {
+  var thumbTitle = this.className === "main" ? "More Filters" : "Hide Filters";
+
   this.vizKeyContainer.addClass('open');
-  this.thumb.children('span').text('Hide Filters');
+  this.thumb.children('span').text(thumbTitle);
   this.vizKeyContainer.animate({ left: 0 });
 };
 
@@ -3382,10 +3401,8 @@ VizKey.prototype.close = function() {
   this.vizKeyContainer.removeClass('open');
   this.thumb.children('span').text('Open Filters');
 
-  this.thumb.animate({ left: "137px" });
+  this.thumb.animate({ left: "-64px" });
   this.vizKeyContainer.animate({ left: "-220px" });
-
-  this.row.right.animate({ width: 0 }, { complete: function() { this.toggleMore({ close: true }) }.bind(this) });
 };
 
 VizKey.prototype.toggleMore = function(settings) {
@@ -3393,13 +3410,13 @@ VizKey.prototype.toggleMore = function(settings) {
 
   if (this.row.right.width() > 0 || shouldClose) {
     this.row.right.animate({ width: 0 });
-    this.thumb.animate({ left: "137px" });
-    this.moreButton.children("h3").text("MORE FILTERS");
+    this.thumb.animate({ left: "-17px" });
+    this.thumb.children("span").text("More Filters");
   }
   else {
     this.row.right.animate({ width: "220px"});
-    this.thumb.animate({ left: "357px" });
-    this.moreButton.children("h3").text("LESS FILTERS");
+    this.thumb.animate({ left: "203px" });
+    this.thumb.children("span").text("Less Filters");
   }
 };
 
@@ -5956,13 +5973,12 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     var introViz = $('<div id="introViz"></div>');
     vizContainer.append(introViz);
 
-    $("#vizKeyThumb").hide();
+    $("#vizKeyContainer").hide();
     $(".map-fullscreen").hide();
 
     function onExplore() {
-      $("#vizKeyThumb").fadeIn();
+      $("#vizKeyContainer").fadeIn();
       $(".map-fullscreen").fadeIn();
-      VizConfig.vizKey.open();
       introViz.fadeOut("slow");
     }
 
@@ -6084,8 +6100,11 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
   }
 
   function initVizKey() {
-    var openOnInit = !showIntro;
-    VizConfig.vizKey = new VizKey(openOnInit);
+    VizConfig.vizKey = new VizKey({
+      open: true,
+      showMore: true,
+      className: "main"
+    });
   }
 
   function initOrgStats(orgId) {
@@ -6095,9 +6114,11 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
       "collaborators": ".viz-3"
     };
 
-    var openVizKey = false;
-    var showMoreFilters = false;
-    var vizKey = new VizKey(openVizKey, showMoreFilters);
+    VizConfig.vizKey = new VizKey({
+      open: false,
+      showMore: false,
+      className: "organisations"
+    });
 
     var stats = new Stats(divs, orgId);
     stats.init();
