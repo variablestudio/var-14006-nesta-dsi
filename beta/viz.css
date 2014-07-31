@@ -432,9 +432,8 @@
 
 #carousel-popup {
   position: fixed;
-  width: 60%;
-  height: 60%;
-  max-height: 420px;
+  width: 990px;
+  height: 410px;
   left: 0;
   right: 0;
   top: 0;
@@ -468,7 +467,7 @@
 
   float: right;
   width: 32%;
-  height: 100%;
+  height: 84%;
   padding: 2%;
 
   overflow: scroll;
@@ -1072,6 +1071,12 @@
     margin-right: 20px;
   }
 
+	.tablet #carousel-popup {
+		position: fixed;
+		width: 792px;
+		height: 332px;
+	}
+
   .tablet #countriesViz .map {
     margin-right: 8px;
   }
@@ -1148,6 +1153,12 @@
   .tablet #introVizContent .introColumn:last-child p {
     margin-top: 10px;
   }
+
+	.tablet #carousel-popup {
+		position: fixed;
+		width: 632px;
+		height: 278px;
+	}
 }
 
 @media (max-width: 641px) {

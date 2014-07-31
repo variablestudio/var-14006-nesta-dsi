@@ -800,6 +800,7 @@ var Carousel = (function() {
 
 	function Carousel(DOMElements, settings) {
 		settings = settings || {};
+		this.isDesktopBrowser = settings.isDesktopBrowser;
 
 		// create popup
 		var popupStr = [
@@ -1265,6 +1266,11 @@ var Carousel = (function() {
 		// disable page scroll
 		$("body").css({ overflow: "hidden" });
 
+		if (this.isDesktopBrowser) {
+			this.DOM.buttonNext.hide();
+			this.DOM.buttonPrev.hide();
+		}
+
 		// get color from config
 		var color = VizConfig.dsiAreas.filter(function(dsi) {
 			return dsi.id === data.areaOfDigitalSocialInnovation[0];
@@ -1295,7 +1301,7 @@ var Carousel = (function() {
 		this.popup.images = data.popupImages;
 		this.popup.index = 0;
 
-		if (this.popup.images.length > 1) {
+		if (this.popup.images.length > 0) {
 			this.DOM.popupButtonNext.show();
 			this.DOM.popupButtonPrev.show();
 
@@ -1317,6 +1323,11 @@ var Carousel = (function() {
 
 	Carousel.prototype.caseStudyHide = function() {
 		$("body").css({ overflow: "scroll" }); // enable page scroll
+
+		if (this.isDesktopBrowser) {
+			this.DOM.buttonNext.show();
+			this.DOM.buttonPrev.show();
+		}
 
 		this.DOM.popup.fadeOut();
 	};
