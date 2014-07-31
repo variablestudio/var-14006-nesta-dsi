@@ -387,7 +387,7 @@ var Carousel = (function() {
 
 				if (data.attachments.length > 0) {
 					var bigImages = data.attachments.filter(function(img) {
-						return img.images.full.width > 110 && img.images.full.height > 125;
+						return img.images.full.width > 200 && img.images.full.height > 200;
 					});
 
 					if (bigImages.length > 0) {
