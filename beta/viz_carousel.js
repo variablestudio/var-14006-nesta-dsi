@@ -513,7 +513,12 @@ var Carousel = (function() {
 			this.DOM.popupButtonNext.hide();
 			this.DOM.popupButtonPrev.hide();
 
-			this.DOM.popup.find(".images").html("");
+			if (this.popup.images.length > 0) {
+				this.updateImage();
+			}
+			else {
+				this.DOM.popup.find(".images").html("");
+			}
 		}
 
 		// update popup elements
