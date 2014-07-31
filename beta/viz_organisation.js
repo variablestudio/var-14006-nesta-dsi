@@ -250,6 +250,10 @@ var Stats = (function() {
 	};
 
 	Stats.prototype.drawDSIAreas = function() {
+		var defaultData = VizConfig.dsiAreas.map(function(area) {
+			return { areaOfDSI: area.id, color: area.color, count: 0, projects: [] };
+		});
+
 		var hexData = this.data.reduce(function(memo, data) {
 			var url = data.activity_url.substr(data.activity_url.lastIndexOf("/") + 1);
 			url = "http://digitalsocial.eu/projects/" + url;
@@ -281,7 +285,7 @@ var Stats = (function() {
 			});
 
 			return memo;
-		}, []);
+		}, defaultData);
 
 		var width = 300;
 		var height = 300;
