@@ -17,9 +17,9 @@ var Countries = (function() {
 		// cache DOM elements
 		this.DOM = { "div": d3.select(div) };
 
-		this.GEO_ASSET = "assets/world-countries-hires.geo.json";
-		// this.GEO_ASSET = "assets/eu.geo.json";
-		// this.GEO_ASSET = "assets/all_countries.json";
+		this.GEO_ASSET = VizConfig.assetsPath + "/world-countries-hires.geo.json";
+		// this.GEO_ASSET = VizConfig.assetsPath + "/eu.geo.json";
+		// this.GEO_ASSET = VizConfig.assetsPath + "/all_countries.json";
 	}
 
 	// runs query, calls this.draw() when finished
@@ -130,8 +130,8 @@ var Countries = (function() {
 				}.bind(this));
 
 				// add geography to data, and callback when finished
-				if (this.GEO_ASSET === "assets/all_countries.json") {
-					d3.json("assets/all_countries.json", function(countries) {
+				if (this.GEO_ASSET.indexOf("all_countries.json") > -1) {
+					$.getJSON(this.GEO_ASSET, function(countries) {
 						data = data
 							.map(function(object) {
 								var index = indexOfProp(countries, "name", object.country);
@@ -159,8 +159,8 @@ var Countries = (function() {
 					}.bind(this));
 				}
 
-				else if (this.GEO_ASSET === "assets/eu.geo.json" || this.GEO_ASSET === "assets/world-countries-hires.geo.json") {
-					d3.json(this.GEO_ASSET, function(countries) {
+				else if (this.GEO_ASSET.indexOf("eu.geo.json") > -1 || this.GEO_ASSET.indexOf("world-countries-hires.geo.json") > -1) {
+					$.getJSON(this.GEO_ASSET, function(countries) {
 						countries.features.forEach(function(country) {
 							var name = country.properties.NAME;
 							var index = indexOfProp(data, "country", name);

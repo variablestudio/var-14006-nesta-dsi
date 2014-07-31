@@ -1,4 +1,4 @@
-/*global d3, $, fn, SPARQLDataSource */
+/*global d3, $, fn, SPARQLDataSource, VizConfig */
 
 function MainStats(dom, settings) {
 	this.domName = dom;
@@ -15,8 +15,8 @@ function MainStats(dom, settings) {
 			predicate: "ds:technologyMethod",
 			name: "Technology Method",
 			image: [
-				"assets/iconchart-techmethod-0.png",
-				"assets/iconchart-techmethod-1.png"
+				VizConfig.assetsPath + "/iconchart-techmethod-0.png",
+				VizConfig.assetsPath + "/iconchart-techmethod-1.png"
 			],
 			imageSize: { width: 12, height: 16 },
 			width: 124,
@@ -27,10 +27,10 @@ function MainStats(dom, settings) {
 			predicate: "ds:technologyFocus",
 			name: "Technology Focus",
 			image: {
-				"Open Knowledge": "assets/iconchart-triangle.png",
-				"Open Data": "assets/iconchart-circle.png",
-				"Open Networks": "assets/iconchart-star.png",
-				"Open Hardware": "assets/iconchart-rect.png"
+				"Open Knowledge": VizConfig.assetsPath + "/iconchart-triangle.png",
+				"Open Data": VizConfig.assetsPath + "/iconchart-circle.png",
+				"Open Networks": VizConfig.assetsPath + "/iconchart-star.png",
+				"Open Hardware": VizConfig.assetsPath + "/iconchart-rect.png"
 			},
 			imageSize: { width: 12, height: 12 },
 			width: 124,
@@ -40,7 +40,7 @@ function MainStats(dom, settings) {
 		{
 			predicate: "ds:organizationType",
 			name: "Organization Type",
-			image: "assets/iconchart-hex.png",
+			image: VizConfig.assetsPath + "/iconchart-hex.png",
 			imageSize: { width: 12, height: 13 },
 			width: 124,
 			margin: 4,
@@ -50,7 +50,7 @@ function MainStats(dom, settings) {
 		{
 			predicate: "ds:activityType",
 			name: "Project Type",
-			image: "assets/iconchart-hex-empty.png",
+			image: VizConfig.assetsPath + "/iconchart-hex-empty.png",
 			imageSize: { width: 14, height: 15 },
 			width: 124,
 			margin: 4,
@@ -61,7 +61,7 @@ function MainStats(dom, settings) {
 	// unfortunately cities need to be separate
 	this.statsCities = {
 		name: "Cities",
-		image: "assets/iconchart-city.png",
+		image: VizConfig.assetsPath + "/iconchart-city.png",
 		imageSize: { width: 11, height: 12 },
 		width: 124,
 		margin: 4

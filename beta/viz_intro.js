@@ -61,7 +61,7 @@ function Intro(introVizContainer, settings) {
     exploreBtn.click(settings.callback);
   }
 
-  column3.append($('<p><img src="assets/map-shadow.png" width="322"/></p><a class="mapBtn" href="http://digitalsocial.eu/organisations/build/new_user">Get on the Map</a>'));
+  column3.append($('<p><img src="' + VizConfig.assetsPath + '/map-shadow.png" width="322"/></p><a class="mapBtn" href="http://digitalsocial.eu/organisations/build/new_user">Get on the Map</a>'));
 
   var vizContainer = d3.select("#introHex");
   var chart = vizContainer

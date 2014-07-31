@@ -1369,9 +1369,9 @@ var Countries = (function() {
 		// cache DOM elements
 		this.DOM = { "div": d3.select(div) };
 
-		this.GEO_ASSET = "assets/world-countries-hires.geo.json";
-		// this.GEO_ASSET = "assets/eu.geo.json";
-		// this.GEO_ASSET = "assets/all_countries.json";
+		this.GEO_ASSET = VizConfig.assetsPath + "/world-countries-hires.geo.json";
+		// this.GEO_ASSET = VizConfig.assetsPath + "/eu.geo.json";
+		// this.GEO_ASSET = VizConfig.assetsPath + "/all_countries.json";
 	}
 
 	// runs query, calls this.draw() when finished
@@ -1482,8 +1482,8 @@ var Countries = (function() {
 				}.bind(this));
 
 				// add geography to data, and callback when finished
-				if (this.GEO_ASSET === "assets/all_countries.json") {
-					d3.json("assets/all_countries.json", function(countries) {
+				if (this.GEO_ASSET.indexOf("all_countries.json") > -1) {
+					$.getJSON(this.GEO_ASSET, function(countries) {
 						data = data
 							.map(function(object) {
 								var index = indexOfProp(countries, "name", object.country);
@@ -1511,8 +1511,8 @@ var Countries = (function() {
 					}.bind(this));
 				}
 
-				else if (this.GEO_ASSET === "assets/eu.geo.json" || this.GEO_ASSET === "assets/world-countries-hires.geo.json") {
-					d3.json(this.GEO_ASSET, function(countries) {
+				else if (this.GEO_ASSET.indexOf("eu.geo.json") > -1 || this.GEO_ASSET.indexOf("world-countries-hires.geo.json") > -1) {
+					$.getJSON(this.GEO_ASSET, function(countries) {
 						countries.features.forEach(function(country) {
 							var name = country.properties.NAME;
 							var index = indexOfProp(data, "country", name);
@@ -1742,7 +1742,7 @@ function Intro(introVizContainer, settings) {
     exploreBtn.click(settings.callback);
   }
 
-  column3.append($('<p><img src="assets/map-shadow.png" width="322"/></p><a class="mapBtn" href="http://digitalsocial.eu/organisations/build/new_user">Get on the Map</a>'));
+  column3.append($('<p><img src="' + VizConfig.assetsPath + '/map-shadow.png" width="322"/></p><a class="mapBtn" href="http://digitalsocial.eu/organisations/build/new_user">Get on the Map</a>'));
 
   var vizContainer = d3.select("#introHex");
   var chart = vizContainer
@@ -2508,7 +2508,7 @@ var Explorer = (function() {
 	return Explorer;
 }());
 
-/*global d3, $, fn, SPARQLDataSource */
+/*global d3, $, fn, SPARQLDataSource, VizConfig */
 
 function MainStats(dom, settings) {
 	this.domName = dom;
@@ -2525,8 +2525,8 @@ function MainStats(dom, settings) {
 			predicate: "ds:technologyMethod",
 			name: "Technology Method",
 			image: [
-				"assets/iconchart-techmethod-0.png",
-				"assets/iconchart-techmethod-1.png"
+				VizConfig.assetsPath + "/iconchart-techmethod-0.png",
+				VizConfig.assetsPath + "/iconchart-techmethod-1.png"
 			],
 			imageSize: { width: 12, height: 16 },
 			width: 124,
@@ -2537,10 +2537,10 @@ function MainStats(dom, settings) {
 			predicate: "ds:technologyFocus",
 			name: "Technology Focus",
 			image: {
-				"Open Knowledge": "assets/iconchart-triangle.png",
-				"Open Data": "assets/iconchart-circle.png",
-				"Open Networks": "assets/iconchart-star.png",
-				"Open Hardware": "assets/iconchart-rect.png"
+				"Open Knowledge": VizConfig.assetsPath + "/iconchart-triangle.png",
+				"Open Data": VizConfig.assetsPath + "/iconchart-circle.png",
+				"Open Networks": VizConfig.assetsPath + "/iconchart-star.png",
+				"Open Hardware": VizConfig.assetsPath + "/iconchart-rect.png"
 			},
 			imageSize: { width: 12, height: 12 },
 			width: 124,
@@ -2550,7 +2550,7 @@ function MainStats(dom, settings) {
 		{
 			predicate: "ds:organizationType",
 			name: "Organization Type",
-			image: "assets/iconchart-hex.png",
+			image: VizConfig.assetsPath + "/iconchart-hex.png",
 			imageSize: { width: 12, height: 13 },
 			width: 124,
 			margin: 4,
@@ -2560,7 +2560,7 @@ function MainStats(dom, settings) {
 		{
 			predicate: "ds:activityType",
 			name: "Project Type",
-			image: "assets/iconchart-hex-empty.png",
+			image: VizConfig.assetsPath + "/iconchart-hex-empty.png",
 			imageSize: { width: 14, height: 15 },
 			width: 124,
 			margin: 4,
@@ -2571,7 +2571,7 @@ function MainStats(dom, settings) {
 	// unfortunately cities need to be separate
 	this.statsCities = {
 		name: "Cities",
-		image: "assets/iconchart-city.png",
+		image: VizConfig.assetsPath + "/iconchart-city.png",
 		imageSize: { width: 11, height: 12 },
 		width: 124,
 		margin: 4
@@ -4190,7 +4190,7 @@ var MainMap = (function() {
     groupTransform
       .select('image')
       .transition()
-      .attr('xlink:href', 'assets/drop-icon.png')
+      .attr('xlink:href', VizConfig.assetsPath + '/drop-icon.png')
       .attr('width', function(d) { return 257 / d.iconScale; })
       .attr('height', function(d) { return 308 / d.iconScale; })
       .attr('x', function(d) { return -(257 / d.iconScale) / 2; })
@@ -5734,7 +5734,8 @@ var Stats = (function() {
 var VizConfig = {};
 
 if (window.location.href.match(/\/organisations\//) !== null || window.location.href.match(/\/digitalsocial\//) !== null) {
-  VizConfig.assetsPath = "http://variable.io/p/nestadsi/beta/assets";
+  // VizConfig.assetsPath = "http://variable.io/p/nestadsi/beta/assets";
+  VizConfig.assetsPath = "http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets";
 }
 else {
   VizConfig.assetsPath = 'assets';
@@ -5882,6 +5883,9 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
       }
 
       initVisualizations(vizContainer);
+
+      // FIXME: temporary solution, assets paths should be changed directly in css
+      updateCSSAssetPaths();
     }
   }
 
@@ -6057,6 +6061,18 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
 
     initPopup();
     initTooltip();
+  }
+
+  function updateCSSAssetPaths() {
+    $("*").filter(function() {
+      var background = $(this).css("background-image");
+      if (background.indexOf("assets") > -1) {
+        var asset = background.split("assets")[1].replace(")", "");
+        var newAsset = VizConfig.assetsPath + asset;
+
+        $(this).css("background-image", "url(" + newAsset + ")");
+      }
+    });
   }
 
   window.addEventListener('DOMContentLoaded', init);

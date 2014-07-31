@@ -56,7 +56,9 @@
   color: white;
   font-family: 'Scene Std', sans-serif;
   /* background: rgba(0, 0, 0, 0.7); */
-  background: url(assets/background-gradient.png) center repeat-y;
+  background-image: url(assets/background-gradient.png);
+  background-position: center;
+  background-repeat: repeat-y;
 }
 
 #introHex {

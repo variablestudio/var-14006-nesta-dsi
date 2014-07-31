@@ -803,7 +803,7 @@ var MainMap = (function() {
     groupTransform
       .select('image')
       .transition()
-      .attr('xlink:href', 'assets/drop-icon.png')
+      .attr('xlink:href', VizConfig.assetsPath + '/drop-icon.png')
       .attr('width', function(d) { return 257 / d.iconScale; })
       .attr('height', function(d) { return 308 / d.iconScale; })
       .attr('x', function(d) { return -(257 / d.iconScale) / 2; })

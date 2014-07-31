@@ -41,6 +41,9 @@
       }
 
       initVisualizations(vizContainer);
+
+      // FIXME: temporary solution, assets paths should be changed directly in css
+      updateCSSAssetPaths();
     }
   }
 
@@ -216,6 +219,18 @@
 
     initPopup();
     initTooltip();
+  }
+
+  function updateCSSAssetPaths() {
+    $("*").filter(function() {
+      var background = $(this).css("background-image");
+      if (background.indexOf("assets") > -1) {
+        var asset = background.split("assets")[1].replace(")", "");
+        var newAsset = VizConfig.assetsPath + asset;
+
+        $(this).css("background-image", "url(" + newAsset + ")");
+      }
+    });
   }
 
   window.addEventListener('DOMContentLoaded', init);
