@@ -11,6 +11,7 @@
 
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
       browser = ($(document).width() <= 480) ? "phone" : "tablet";
+      $("body").addClass(browser);
     }
 
     if (urlIsOrganisation) {
