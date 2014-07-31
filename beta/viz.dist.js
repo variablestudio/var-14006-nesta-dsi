@@ -1680,6 +1680,51 @@ var Countries = (function() {
 }());
 
 function Intro(introVizContainer, settings) {
+  this.runOrgQuery().then(function(results) {
+    var orgCount = results.length;
+
+    this.runActivityQuery().then(function(results) {
+      var activityCount = results.length;
+
+      this.draw(introVizContainer, settings, orgCount, activityCount);
+    }.bind(this));
+  }.bind(this));
+}
+
+Intro.prototype.runOrgQuery = function() {
+  var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
+  var ds = new SPARQLDataSource(SPARQL_URL);
+
+  return ds.query()
+    .prefix('o:', '<http://www.w3.org/ns/org#>')
+    .prefix('rdfs:', '<http://www.w3.org/2000/01/rdf-schema#>')
+    .prefix('rdf:', '<http://www.w3.org/1999/02/22-rdf-syntax-ns#>')
+    .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
+    .select('?org_label')
+    .where('?org', 'a', 'o:Organization')
+    .where('?org', 'rdfs:label', '?org_label')
+    .execute();
+};
+
+Intro.prototype.runActivityQuery = function() {
+  var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
+  var ds = new SPARQLDataSource(SPARQL_URL);
+
+  return ds.query()
+    .prefix('o:', '<http://www.w3.org/ns/org#>')
+    .prefix('rdfs:', '<http://www.w3.org/2000/01/rdf-schema#>')
+    .prefix('rdf:', '<http://www.w3.org/1999/02/22-rdf-syntax-ns#>')
+    .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
+    .select('?activity_label')
+    .where('?org', 'a', 'o:Organization')
+    .where('?activity_membership', 'ds:organization', '?org')
+    .where('?activity_membership', 'a', 'ds:ActivityMembership')
+    .where('?activity_membership', 'ds:activity', '?activity')
+    .where('?activity', 'rdfs:label', '?activity_label')
+    .execute();
+};
+
+Intro.prototype.draw = function(introVizContainer, settings, numOrganizations, numProjects) {
   settings = settings || {};
   var isDesktopBrowser = settings.isDesktopBrowser !== undefined ? settings.isDesktopBrowser : true;
 
@@ -1693,9 +1738,6 @@ function Intro(introVizContainer, settings) {
   var titleText = 'Learn about Digital Social Innovation';
   var exploreBtnText = isDesktopBrowser ? 'Explore the map' : 'Explore the map on desktop browser';
 
-  var numOrganizations = 516;
-  var numProjects = 319;
-
   var dsiIntroText = [
     'We are setting up a network of organisations that use the Internet for the social good.',
     'Explore <strong>NUM_ORG</strong> organisations with <strong>NUM_PROJECTS</strong> collaborative research and innovation projects.',
@@ -1703,7 +1745,7 @@ function Intro(introVizContainer, settings) {
   ];
 
   var contentWidth = 994;
-  if (settings.isDesktopBrowser) {
+  if (isDesktopBrowser) {
     introVizContainer.addClass("desktop");
     introVizContainer.css('height', h);
   }
@@ -1755,7 +1797,7 @@ function Intro(introVizContainer, settings) {
     .radius(50)
 
   chart.draw(VizConfig.dsiAreas);
-}
+};
 
 d3.chart("IntroHex", {
   initialize: function() {
@@ -5853,6 +5895,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
 
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
       browser = ($(document).width() <= 480) ? "phone" : "tablet";
+      $("body").addClass(browser);
     }
 
     if (urlIsOrganisation) {

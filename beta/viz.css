@@ -958,44 +958,57 @@
 }
 
 @media (min-width: 642px) and (max-width: 1025px) {
-  #introVizContent .introColumn h1 {
+  .tablet #introVizContent .introColumn h1 {
     min-width: 0;
   }
 
-  #introVizContent .introColumn,
-  #introVizContent .introColumn:first-child {
+  .tablet #introVizContent .introColumn,
+  .tablet #introVizContent .introColumn:first-child {
     width: 32%;
     margin-left: 1%;
     padding-top: 20px;
     padding-bottom: 20px;
   }
 
-  #introVizContent .introColumn:first-child p {
-    margin-top: 60px;
+  .tablet #introVizContent .introColumn:first-child p {
+    margin-top: 20px;
+    margin-bottom: 70px;
   }
 
-  #introVizContent .introColumn:last-child p {
+  .tablet #introVizContent .introColumn:last-child p {
     margin-top: 120px;
+    margin-bottom: 40px;
   }
 
-  #viz h1,
-  #introVizContent,
-  #carousel,
-  #carousel .filters,
-  #countriesViz,
-  #mainStatsViz {
+  .tablet #introVizContent .introColumn .exploreBtn,
+  .tablet #introVizContent .introColumn .mapBtn {
+    margin-top: 40px;
+    bottom: 0;
+  }
+
+  .tablet #viz h1,
+  .tablet #introVizContent,
+  .tablet #carousel,
+  .tablet #carousel .filters,
+  .tablet #countriesViz,
+  .tablet #mainStatsViz {
     width: 90%;
     min-width: 768px;
   }
 
-  #countriesViz,
-  #mainStatsViz {
+  .tablet #introVizContent {
+    padding-bottom: 10px;
+    overflow: auto;
+  }
+
+  .tablet #countriesViz,
+  .tablet #mainStatsViz {
     width: 720px;
     margin: 0 auto;
     min-width: 0;
   }
 
-  #viz h1 {
+  .tablet #viz h1 {
     margin-top: 2em;
     margin-bottom: 1.5em;
     margin-left: 10px;
@@ -1004,35 +1017,35 @@
     clear: both;
   }
 
-  #carousel .button-prev {
+  .tablet #carousel .button-prev {
     margin-left: 20px;
   }
 
-  #carousel .button-next {
+  .tablet #carousel .button-next {
     margin-right: 20px;
   }
 
-  #countriesViz .map {
+  .tablet #countriesViz .map {
     margin-right: 8px;
   }
 
-  #countriesViz .map:nth-child(8n+0) {
+  .tablet #countriesViz .map:nth-child(8n+0) {
     margin-right: 8px;
   }
 
-  #countriesViz .map:nth-child(8n+9) {
+  .tablet #countriesViz .map:nth-child(8n+9) {
     clear: none;
   }
 
-  #countriesViz .map:nth-child(6n+0) {
+  .tablet #countriesViz .map:nth-child(6n+0) {
     margin-right: 0;
   }
 
-  #countriesViz .map:nth-child(6n+7) {
+  .tablet #countriesViz .map:nth-child(6n+7) {
     clear: left;
   }
 
-  #choroplethViz svg {
+  .tablet #choroplethViz svg {
     width: 720px;
     display: block;
     margin: 0 auto;
@@ -1040,35 +1053,35 @@
 }
 
 @media (min-width: 642px) and (max-width: 961px) {
-  #header .nav-bar a {
+  .tablet #header .nav-bar a {
     display: block;
     margin-bottom: 30px;
     margin-left: 20px;
   }
 
-  #header .nav-bar ul.links {
+  .tablet #header .nav-bar ul.links {
     float: none;
     display: block;
     margin: 0 auto;
     width: 700px;
   }
 
-  #header .nav-bar ul.links li {
+  .tablet #header .nav-bar ul.links li {
     margin-left: 4px;
   }
 
-  #header .nav-bar .search {
+  .tablet #header .nav-bar .search {
     right: 40px;
     top: 132px;
     width: 700px;
   }
 
-  #introVizContent .introColumn h1 {
+  .tablet #introVizContent .introColumn h1 {
     min-width: 0;
   }
 
-  #introVizContent .introColumn,
-  #introVizContent .introColumn:first-child {
+  .tablet #introVizContent .introColumn,
+  .tablet #introVizContent .introColumn:first-child {
     float: none;
     display: block;
     margin: 0 auto;
@@ -1076,37 +1089,37 @@
     height: auto;
   }
 
-  #introVizContent #introHex svg {
+  .tablet #introVizContent #introHex svg {
     display: block;
     margin: 0 auto;
   }
 
-  #introVizContent .introColumn > p {
+  .tablet #introVizContent .introColumn > p {
     text-align: center;
   }
 
-  #introVizContent .introColumn:last-child p {
+  .tablet #introVizContent .introColumn:last-child p {
     margin-top: 10px;
   }
 }
 
 @media (max-width: 641px) {
-  #header .nav-bar .links,
-  #header .nav-bar .search {
+  .phone #header .nav-bar .links,
+  .phone #header .nav-bar .search {
     display: none;
   }
 
-  #introVizContent {
+  .phone #introVizContent {
     width: 100%;
   }
 
-  #introVizContent .introColumn h1 {
+  .phone #introVizContent .introColumn h1 {
     min-width: 0;
     width: 80%;
   }
 
-  #introVizContent .introColumn,
-  #introVizContent .introColumn:first-child {
+  .phone #introVizContent .introColumn,
+  .phone #introVizContent .introColumn:first-child {
     float: none;
     display: block;
     margin: 0 auto;
@@ -1114,27 +1127,27 @@
     height: auto;
   }
 
-  #introVizContent .introColumn .exploreBtn,
-  #introVizContent .introColumn .mapBtn {
+  .phone #introVizContent .introColumn .exploreBtn,
+  .phone #introVizContent .introColumn .mapBtn {
     margin-top: 40px;
     position: relative;
     bottom: 0;
   }
 
-  #introVizContent .introColumn .mapBtn {
+  .phone #introVizContent .introColumn .mapBtn {
     margin-bottom: 40px;
   }
 
-  #introVizContent #introHex svg {
+  .phone #introVizContent #introHex svg {
     display: block;
     margin: 0 auto;
   }
 
-  #introVizContent .introColumn > p {
+  .phone #introVizContent .introColumn > p {
     text-align: center;
   }
 
-  #introVizContent .introColumn p {
+  .phone #introVizContent .introColumn p {
     margin-top: 20px;
     margin-top: 30px;
   }
