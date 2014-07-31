@@ -6070,6 +6070,8 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
         var asset = background.split("assets")[1].replace(")", "");
         var newAsset = VizConfig.assetsPath + asset;
 
+        // console.log("updating asset path: " + background + " -> " + newAsset);
+
         $(this).css("background-image", "url(" + newAsset + ")");
       }
     });
