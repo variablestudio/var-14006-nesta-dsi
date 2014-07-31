@@ -514,6 +514,7 @@ d3.chart("BigHex", {
 
     this.layer("labels", this.base.append("g"), {
       dataBind: function(data) {
+				console.log(data);
         return this.selectAll(".label").data(data);
       },
 
@@ -5099,8 +5100,6 @@ var Stats = (function() {
 			return memo > object.count ? memo : object.count;
 		}, -Infinity);
 
-		console.log(groupedData);
-
 		var width = 228 * 2 + 60;
 		var height = 300;
 		var size = 90;
@@ -5809,21 +5808,21 @@ VizConfig.text = {
 };
 
 VizConfig.dsiAreas = [
-  { title: 'Funding acceleration<br/> and incubation', id: 'funding-acceleration-and-incubation', color: '#FDE302', icon: VizConfig.assetsPath + '/triangle-funding-acceleration-and-incubation.png', label: 'Funding Acceleration and Incubation', labelMultiline: 'Funding\nAcceleration\nand Incubation' },
-  { title: 'Collaborative economy', id: 'collaborative-economy', color: '#A6CE39', icon: VizConfig.assetsPath + '/triangle-collaborative-economy.png', label: 'Collaborative Economy', labelMultiline: 'Collaborative\nEconomy' },
-  { title: 'Open democracy', id: 'open-democracy', color: '#F173AC', icon: VizConfig.assetsPath + '/triangle-open-democracy.png', label: 'Open Democracy', labelMultiline: 'Open\nDemocracy' },
+  { title: 'Open access', id: 'open-access', color: '#7BAFDE', icon: VizConfig.assetsPath + '/triangle-open-access.png', label: 'Open Access', labelMultiline: 'Open\nAccess' },
   { title: 'Awareness networks', id: 'awareness-networks', color: '#ED1A3B', icon: VizConfig.assetsPath + '/triangle-awareness-networks.png', label: 'Awareness Networks', labelMultiline: 'Awareness\nNetworks' },
+  { title: 'Collaborative economy', id: 'collaborative-economy', color: '#A6CE39', icon: VizConfig.assetsPath + '/triangle-collaborative-economy.png', label: 'Collaborative Economy', labelMultiline: 'Collaborative\nEconomy' },
   { title: 'New ways of making', id: 'new-ways-of-making', color: '#F58220', icon: VizConfig.assetsPath + '/triangle-new-ways-of-making.png', label: 'New Ways of Making', labelMultiline: 'New Ways\nof Making' },
-  { title: 'Open access', id: 'open-access', color: '#7BAFDE', icon: VizConfig.assetsPath + '/triangle-open-access.png', label: 'Open Access', labelMultiline: 'Open\nAccess' }
+  { title: 'Open democracy', id: 'open-democracy', color: '#F173AC', icon: VizConfig.assetsPath + '/triangle-open-democracy.png', label: 'Open Democracy', labelMultiline: 'Open\nDemocracy' },
+  { title: 'Funding acceleration<br/> and incubation', id: 'funding-acceleration-and-incubation', color: '#FDE302', icon: VizConfig.assetsPath + '/triangle-funding-acceleration-and-incubation.png', label: 'Funding Acceleration and Incubation', labelMultiline: 'Funding\nAcceleration\nand Incubation' }
 ];
 
 VizConfig.dsiAreasById = {
-  'funding-acceleration-and-incubation': VizConfig.dsiAreas[0],
-  'collaborative-economy': VizConfig.dsiAreas[1],
-  'open-democracy': VizConfig.dsiAreas[2],
-  'awareness-networks': VizConfig.dsiAreas[3],
-  'new-ways-of-making': VizConfig.dsiAreas[4],
-  'open-access': VizConfig.dsiAreas[5]
+  'funding-acceleration-and-incubation': VizConfig.dsiAreas[5],
+  'collaborative-economy': VizConfig.dsiAreas[2],
+  'open-democracy': VizConfig.dsiAreas[4],
+  'awareness-networks': VizConfig.dsiAreas[1],
+  'new-ways-of-making': VizConfig.dsiAreas[3],
+  'open-access': VizConfig.dsiAreas[0]
 };
 
 VizConfig.dsiAreasById['funding-acceleration-and-incubation'].info = 'A range of incubators, accelerators, impact investment schemes have been set up by public and private funders to support digital social innovation projects. They do this through a combination of seed funding as well as non-financial support such access to co-working spaces and  business support and mentoring';
@@ -5834,12 +5833,12 @@ VizConfig.dsiAreasById['new-ways-of-making'].info = 'An ecosystem of makers is r
 VizConfig.dsiAreasById['open-access'].info = 'The Open Access Ecosystem approach has the potential to empower citizens and increase participation, while preserving privacy-aware and decentralised infrastructures. It includes projects that facilitate the diffusion of knowledge systems in the Public Domain, open standards, open licensing, knowledge commons and digital rights.';
 
 VizConfig.dsiAreasByLabel = {
-  'Funding Acceleration and Incubation': VizConfig.dsiAreas[0],
-  'Collaborative Economy': VizConfig.dsiAreas[1],
-  'Open Democracy': VizConfig.dsiAreas[2],
-  'Awareness Networks': VizConfig.dsiAreas[3],
-  'New Ways of Making': VizConfig.dsiAreas[4],
-  'Open Access': VizConfig.dsiAreas[5]
+  'Funding Acceleration and Incubation': VizConfig.dsiAreas[5],
+  'Collaborative Economy': VizConfig.dsiAreas[2],
+  'Open Democracy': VizConfig.dsiAreas[4],
+  'Awareness Networks': VizConfig.dsiAreas[1],
+  'New Ways of Making': VizConfig.dsiAreas[3],
+  'Open Access': VizConfig.dsiAreas[0]
 };
 
 VizConfig.technologyFocuses = [

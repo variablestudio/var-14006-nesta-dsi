@@ -329,8 +329,6 @@ var Stats = (function() {
 			return memo > object.count ? memo : object.count;
 		}, -Infinity);
 
-		console.log(groupedData);
-
 		var width = 228 * 2 + 60;
 		var height = 300;
 		var size = 90;

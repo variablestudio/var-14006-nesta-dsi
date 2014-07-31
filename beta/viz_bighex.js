@@ -143,6 +143,7 @@ d3.chart("BigHex", {
 
     this.layer("labels", this.base.append("g"), {
       dataBind: function(data) {
+				console.log(data);
         return this.selectAll(".label").data(data);
       },
 
