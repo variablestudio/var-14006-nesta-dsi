@@ -514,6 +514,7 @@ d3.chart("BigHex", {
 
     this.layer("labels", this.base.append("g"), {
       dataBind: function(data) {
+				console.log(data);
         return this.selectAll(".label").data(data);
       },
 
@@ -799,6 +800,7 @@ var Carousel = (function() {
 
 	function Carousel(DOMElements, settings) {
 		settings = settings || {};
+		this.isDesktopBrowser = settings.isDesktopBrowser;
 
 		// create popup
 		var popupStr = [
@@ -1264,6 +1266,11 @@ var Carousel = (function() {
 		// disable page scroll
 		$("body").css({ overflow: "hidden" });
 
+		if (this.isDesktopBrowser) {
+			this.DOM.buttonNext.hide();
+			this.DOM.buttonPrev.hide();
+		}
+
 		// get color from config
 		var color = VizConfig.dsiAreas.filter(function(dsi) {
 			return dsi.id === data.areaOfDigitalSocialInnovation[0];
@@ -1294,7 +1301,7 @@ var Carousel = (function() {
 		this.popup.images = data.popupImages;
 		this.popup.index = 0;
 
-		if (this.popup.images.length > 1) {
+		if (this.popup.images.length > 0) {
 			this.DOM.popupButtonNext.show();
 			this.DOM.popupButtonPrev.show();
 
@@ -1316,6 +1323,11 @@ var Carousel = (function() {
 
 	Carousel.prototype.caseStudyHide = function() {
 		$("body").css({ overflow: "scroll" }); // enable page scroll
+
+		if (this.isDesktopBrowser) {
+			this.DOM.buttonNext.show();
+			this.DOM.buttonPrev.show();
+		}
 
 		this.DOM.popup.fadeOut();
 	};
@@ -3280,15 +3292,20 @@ VizPopup.prototype.isOpen = function() {
 
 /*global $, d3, VizConfig */
 
-function VizKey(open, showMore) {
-  showMore = showMore !== undefined ? showMore : true;
+function VizKey(settings) {
+  settings = settings || {};
+
+  var shouldStartOpen = !!settings.open;
+  var shouldDisplayMoreFilters = !!settings.showMore;
+  var className = this.className = settings.className || "main";
+  var thumbTitle = className === "main" ? "More Filters" : "Hide Key";
 
   var updateFilters = this.updateFilters.bind(this);
   this.activeFilters = [];
 
-  var vizKeyContainer = this.vizKeyContainer = $('<div id="vizKeyContainer"></div>');
+  var vizKeyContainer = this.vizKeyContainer = $('<div id="vizKeyContainer" class="' + className + '"></div>');
   var sideBar = this.sideBar = $('<div id="vizKeySideBar"></div>');
-  var thumb = this.thumb = $('<div id="vizKeyThumb"><span>Open Filters</span></div>');
+  var thumb = this.thumb = $('<div id="vizKeyThumb"><span>' + thumbTitle + '</span></div>');
 
   vizKeyContainer.append(sideBar);
   vizKeyContainer.append(thumb);
@@ -3304,11 +3321,15 @@ function VizKey(open, showMore) {
   var rowLeft = $('<div class="row left"></div>');
   var rowRight = $('<div class="row right"></div>');
 
-  var sectionTitle = $('<div class="section"></div>');
-  sectionTitle.append($('<h3><img src="' + VizConfig.assetsPath + '/key-org-new.png' + '" height="40"/><br>' + organizationsTitle + '</h3>'));
-  sectionTitle.append($('<h3><img src="' + VizConfig.assetsPath + '/key-project-new.png' + '" height="14"/><br>' + projectsTitle + '</h3>'));
+  var orgSection = $('<div class="section organisations"></div>');
+  orgSection.append($('<h3><img src="' + VizConfig.assetsPath + '/key-org-new.png' + '" height="40"/><br>' + organizationsTitle + '</h3>'));
+  rowLeft.append(orgSection);
 
-  rowLeft.append(sectionTitle);
+  if (className !== "main") {
+    var projectSection = $('<div class="section projects"></div>');
+    projectSection.append($('<h3><img src="' + VizConfig.assetsPath + '/key-project-new.png' + '" height="14"/><br>' + projectsTitle + '</h3>'));
+    rowLeft.append(projectSection);
+  }
 
   [
     { "table": VizConfig.dsiAreas, "property": 'areaOfDigitalSocialInnovation', "title": dsiTitle, "parent": rowLeft },
@@ -3350,12 +3371,6 @@ function VizKey(open, showMore) {
     sidebarSection.parent.append(section);
   });
 
-  if (showMore) {
-    var moreButton = this.moreButton = $('<div class="section more"><h3>MORE FILTERS</h3></div>');
-    moreButton.on('click', function() { this.toggleMore(); }.bind(this));
-    rowLeft.append(moreButton);
-  }
-
   sideBar.append(rowLeft);
   sideBar.append(rowRight);
 
@@ -3365,16 +3380,32 @@ function VizKey(open, showMore) {
   };
 
   thumb.on('click', function() {
-    if (vizKeyContainer.hasClass('open')) { this.close(); }
-    else { this.open(); }
+    if (this.className === "main") {
+      this.toggleMore();
+    }
+    else {
+      if (vizKeyContainer.hasClass('open')) {
+        this.close();
+      }
+      else {
+        this.open();
+      }
+    }
   }.bind(this));
 
-  if (open) { this.open(); }
+  if (shouldStartOpen) {
+    this.open();
+  }
+  else {
+    this.close();
+  }
 }
 
 VizKey.prototype.open = function() {
+  var thumbTitle = this.className === "main" ? "More Filters" : "Hide Filters";
+
   this.vizKeyContainer.addClass('open');
-  this.thumb.children('span').text('Hide Filters');
+  this.thumb.children('span').text(thumbTitle);
   this.vizKeyContainer.animate({ left: 0 });
 };
 
@@ -3382,10 +3413,8 @@ VizKey.prototype.close = function() {
   this.vizKeyContainer.removeClass('open');
   this.thumb.children('span').text('Open Filters');
 
-  this.thumb.animate({ left: "137px" });
+  this.thumb.animate({ left: "-64px" });
   this.vizKeyContainer.animate({ left: "-220px" });
-
-  this.row.right.animate({ width: 0 }, { complete: function() { this.toggleMore({ close: true }) }.bind(this) });
 };
 
 VizKey.prototype.toggleMore = function(settings) {
@@ -3393,13 +3422,13 @@ VizKey.prototype.toggleMore = function(settings) {
 
   if (this.row.right.width() > 0 || shouldClose) {
     this.row.right.animate({ width: 0 });
-    this.thumb.animate({ left: "137px" });
-    this.moreButton.children("h3").text("MORE FILTERS");
+    this.thumb.animate({ left: "-17px" });
+    this.thumb.children("span").text("More Filters");
   }
   else {
     this.row.right.animate({ width: "220px"});
-    this.thumb.animate({ left: "357px" });
-    this.moreButton.children("h3").text("LESS FILTERS");
+    this.thumb.animate({ left: "203px" });
+    this.thumb.children("span").text("Less Filters");
   }
 };
 
@@ -4004,8 +4033,8 @@ var MainMap = (function() {
     var finishedClustering = false;
 
     var currentZoom = zoom;
-    var clusterByCountry = 5 < currentZoom && currentZoom < 7;
-    var clusterByDistance = (currentZoom <= 5) || (7 <= currentZoom && currentZoom < 15);
+    var clusterByCountry = 3 < currentZoom && currentZoom < 7;
+    var clusterByDistance = (currentZoom <= 3) || (7 <= currentZoom && currentZoom < 15);
 
     var calcDist = function(a, b) {
       var xd = (b.x - a.x);
@@ -5003,6 +5032,10 @@ var Stats = (function() {
 	};
 
 	Stats.prototype.drawDSIAreas = function() {
+		var defaultData = VizConfig.dsiAreas.map(function(area) {
+			return { areaOfDSI: area.id, color: area.color, count: 0, projects: [] };
+		});
+
 		var hexData = this.data.reduce(function(memo, data) {
 			var url = data.activity_url.substr(data.activity_url.lastIndexOf("/") + 1);
 			url = "http://digitalsocial.eu/projects/" + url;
@@ -5034,7 +5067,7 @@ var Stats = (function() {
 			});
 
 			return memo;
-		}, []);
+		}, defaultData);
 
 		var width = 300;
 		var height = 300;
@@ -5077,8 +5110,6 @@ var Stats = (function() {
 		var maxCount = groupedData.reduce(function(memo, object) {
 			return memo > object.count ? memo : object.count;
 		}, -Infinity);
-
-		console.log(groupedData);
 
 		var width = 228 * 2 + 60;
 		var height = 300;
@@ -5788,21 +5819,21 @@ VizConfig.text = {
 };
 
 VizConfig.dsiAreas = [
-  { title: 'Funding acceleration<br/> and incubation', id: 'funding-acceleration-and-incubation', color: '#FDE302', icon: VizConfig.assetsPath + '/triangle-funding-acceleration-and-incubation.png', label: 'Funding Acceleration and Incubation', labelMultiline: 'Funding\nAcceleration\nand Incubation' },
-  { title: 'Collaborative economy', id: 'collaborative-economy', color: '#A6CE39', icon: VizConfig.assetsPath + '/triangle-collaborative-economy.png', label: 'Collaborative Economy', labelMultiline: 'Collaborative\nEconomy' },
-  { title: 'Open democracy', id: 'open-democracy', color: '#F173AC', icon: VizConfig.assetsPath + '/triangle-open-democracy.png', label: 'Open Democracy', labelMultiline: 'Open\nDemocracy' },
+  { title: 'Open access', id: 'open-access', color: '#7BAFDE', icon: VizConfig.assetsPath + '/triangle-open-access.png', label: 'Open Access', labelMultiline: 'Open\nAccess' },
   { title: 'Awareness networks', id: 'awareness-networks', color: '#ED1A3B', icon: VizConfig.assetsPath + '/triangle-awareness-networks.png', label: 'Awareness Networks', labelMultiline: 'Awareness\nNetworks' },
+  { title: 'Collaborative economy', id: 'collaborative-economy', color: '#A6CE39', icon: VizConfig.assetsPath + '/triangle-collaborative-economy.png', label: 'Collaborative Economy', labelMultiline: 'Collaborative\nEconomy' },
   { title: 'New ways of making', id: 'new-ways-of-making', color: '#F58220', icon: VizConfig.assetsPath + '/triangle-new-ways-of-making.png', label: 'New Ways of Making', labelMultiline: 'New Ways\nof Making' },
-  { title: 'Open access', id: 'open-access', color: '#7BAFDE', icon: VizConfig.assetsPath + '/triangle-open-access.png', label: 'Open Access', labelMultiline: 'Open\nAccess' }
+  { title: 'Open democracy', id: 'open-democracy', color: '#F173AC', icon: VizConfig.assetsPath + '/triangle-open-democracy.png', label: 'Open Democracy', labelMultiline: 'Open\nDemocracy' },
+  { title: 'Funding acceleration<br/> and incubation', id: 'funding-acceleration-and-incubation', color: '#FDE302', icon: VizConfig.assetsPath + '/triangle-funding-acceleration-and-incubation.png', label: 'Funding Acceleration and Incubation', labelMultiline: 'Funding\nAcceleration\nand Incubation' }
 ];
 
 VizConfig.dsiAreasById = {
-  'funding-acceleration-and-incubation': VizConfig.dsiAreas[0],
-  'collaborative-economy': VizConfig.dsiAreas[1],
-  'open-democracy': VizConfig.dsiAreas[2],
-  'awareness-networks': VizConfig.dsiAreas[3],
-  'new-ways-of-making': VizConfig.dsiAreas[4],
-  'open-access': VizConfig.dsiAreas[5]
+  'funding-acceleration-and-incubation': VizConfig.dsiAreas[5],
+  'collaborative-economy': VizConfig.dsiAreas[2],
+  'open-democracy': VizConfig.dsiAreas[4],
+  'awareness-networks': VizConfig.dsiAreas[1],
+  'new-ways-of-making': VizConfig.dsiAreas[3],
+  'open-access': VizConfig.dsiAreas[0]
 };
 
 VizConfig.dsiAreasById['funding-acceleration-and-incubation'].info = 'A range of incubators, accelerators, impact investment schemes have been set up by public and private funders to support digital social innovation projects. They do this through a combination of seed funding as well as non-financial support such access to co-working spaces and  business support and mentoring';
@@ -5813,12 +5844,12 @@ VizConfig.dsiAreasById['new-ways-of-making'].info = 'An ecosystem of makers is r
 VizConfig.dsiAreasById['open-access'].info = 'The Open Access Ecosystem approach has the potential to empower citizens and increase participation, while preserving privacy-aware and decentralised infrastructures. It includes projects that facilitate the diffusion of knowledge systems in the Public Domain, open standards, open licensing, knowledge commons and digital rights.';
 
 VizConfig.dsiAreasByLabel = {
-  'Funding Acceleration and Incubation': VizConfig.dsiAreas[0],
-  'Collaborative Economy': VizConfig.dsiAreas[1],
-  'Open Democracy': VizConfig.dsiAreas[2],
-  'Awareness Networks': VizConfig.dsiAreas[3],
-  'New Ways of Making': VizConfig.dsiAreas[4],
-  'Open Access': VizConfig.dsiAreas[5]
+  'Funding Acceleration and Incubation': VizConfig.dsiAreas[5],
+  'Collaborative Economy': VizConfig.dsiAreas[2],
+  'Open Democracy': VizConfig.dsiAreas[4],
+  'Awareness Networks': VizConfig.dsiAreas[1],
+  'New Ways of Making': VizConfig.dsiAreas[3],
+  'Open Access': VizConfig.dsiAreas[0]
 };
 
 VizConfig.technologyFocuses = [
@@ -5956,13 +5987,12 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     var introViz = $('<div id="introViz"></div>');
     vizContainer.append(introViz);
 
-    $("#vizKeyThumb").hide();
+    $("#vizKeyContainer").hide();
     $(".map-fullscreen").hide();
 
     function onExplore() {
-      $("#vizKeyThumb").fadeIn();
+      $("#vizKeyContainer").fadeIn();
       $(".map-fullscreen").fadeIn();
-      VizConfig.vizKey.open();
       introViz.fadeOut("slow");
     }
 
@@ -6084,8 +6114,11 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
   }
 
   function initVizKey() {
-    var openOnInit = !showIntro;
-    VizConfig.vizKey = new VizKey(openOnInit);
+    VizConfig.vizKey = new VizKey({
+      open: true,
+      showMore: true,
+      className: "main"
+    });
   }
 
   function initOrgStats(orgId) {
@@ -6095,9 +6128,11 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
       "collaborators": ".viz-3"
     };
 
-    var openVizKey = false;
-    var showMoreFilters = false;
-    var vizKey = new VizKey(openVizKey, showMoreFilters);
+    VizConfig.vizKey = new VizKey({
+      open: false,
+      showMore: false,
+      className: "organisations"
+    });
 
     var stats = new Stats(divs, orgId);
     stats.init();

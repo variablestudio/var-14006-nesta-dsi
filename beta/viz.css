@@ -432,9 +432,8 @@
 
 #carousel-popup {
   position: fixed;
-  width: 60%;
-  height: 60%;
-  max-height: 420px;
+  width: 990px;
+  height: 410px;
   left: 0;
   right: 0;
   top: 0;
@@ -468,7 +467,7 @@
 
   float: right;
   width: 32%;
-  height: 100%;
+  height: 84%;
   padding: 2%;
 
   overflow: scroll;
@@ -686,6 +685,10 @@
   margin-bottom: 0;
 }
 
+#vizKeyContainer.organisations h3 {
+  color: black;
+}
+
 #vizKeyContainer h3 img {
   vertical-align: middle;
   margin-bottom: 0.5em;
@@ -699,14 +702,33 @@
   float: none;
 }
 
+#vizKeyContainer.organisations a {
+  color: black;
+}
+
 #vizKeySideBar .row {
   width: 220px;
   float: left;
   overflow: hidden;
 }
 
+.organisations #vizKeySideBar .row {
+  width: 224px;
+}
+
 #vizKeySideBar .row.right {
   width: 0;
+}
+
+#vizKeySideBar .section.organisations,
+#vizKeySideBar .section.projects {
+  text-align: center;
+}
+
+#vizKeySideBar .section.organisations img,
+#vizKeySideBar .section.projects img {
+  padding-top: 12px;
+  padding-bottom: 10px;
 }
 
 #vizKeySideBar .section {
@@ -714,6 +736,14 @@
   padding-bottom: 10px;
   background: black;
   width: 220px;
+}
+
+.organisations #vizKeySideBar .section {
+  background: white;
+  color: black;
+  border: 1px solid black;
+  width: 218px;
+  padding-bottom: 8px;
 }
 
 #vizKeySideBar .section.more {
@@ -742,6 +772,10 @@
   color: #FFF;
   text-decoration: none;
   cursor: pointer;
+}
+
+#vizKeyContainer.organisations a:hover {
+  color: #BBB;
 }
 
 #vizKeyContainer a.filterLink {
@@ -810,20 +844,32 @@
 }
 
 #vizKeyThumb {
-  background: #00B993;
+  background: black;
   color: white;
   transform: rotate(-90deg); -webkit-transform: rotate(-90deg); -moz-transform: rotate(-90deg); -ms-transform: rotate(-90deg);
   position: absolute;
-  top: 85px;
-  /* left: 357px; */
-  left: 137px;
-  width: 197px;
   cursor: pointer;
+}
+
+.main #vizKeyThumb  {
+  top: 240px;
+  left: -17px;
+  width: 505px;
+}
+
+.organisations #vizKeyThumb  {
+  top: 286px;
+  left: -62px;
+  width: 599px;
+
+  background: white;
+  color: black;
+  border: 1px solid black;
 }
 
 #vizKeyThumb span {
   display: block;
-  padding: 0.5em 0.5em;
+  padding: 0.5em 1.5em;
   font-size: 14px;
 }
 
@@ -1025,6 +1071,12 @@
     margin-right: 20px;
   }
 
+	.tablet #carousel-popup {
+		position: fixed;
+		width: 792px;
+		height: 332px;
+	}
+
   .tablet #countriesViz .map {
     margin-right: 8px;
   }
@@ -1101,6 +1153,12 @@
   .tablet #introVizContent .introColumn:last-child p {
     margin-top: 10px;
   }
+
+	.tablet #carousel-popup {
+		position: fixed;
+		width: 632px;
+		height: 278px;
+	}
 }
 
 @media (max-width: 641px) {

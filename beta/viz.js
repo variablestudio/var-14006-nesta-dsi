@@ -72,13 +72,12 @@
     var introViz = $('<div id="introViz"></div>');
     vizContainer.append(introViz);
 
-    $("#vizKeyThumb").hide();
+    $("#vizKeyContainer").hide();
     $(".map-fullscreen").hide();
 
     function onExplore() {
-      $("#vizKeyThumb").fadeIn();
+      $("#vizKeyContainer").fadeIn();
       $(".map-fullscreen").fadeIn();
-      VizConfig.vizKey.open();
       introViz.fadeOut("slow");
     }
 
@@ -200,8 +199,11 @@
   }
 
   function initVizKey() {
-    var openOnInit = !showIntro;
-    VizConfig.vizKey = new VizKey(openOnInit);
+    VizConfig.vizKey = new VizKey({
+      open: true,
+      showMore: true,
+      className: "main"
+    });
   }
 
   function initOrgStats(orgId) {
@@ -211,9 +213,11 @@
       "collaborators": ".viz-3"
     };
 
-    var openVizKey = false;
-    var showMoreFilters = false;
-    var vizKey = new VizKey(openVizKey, showMoreFilters);
+    VizConfig.vizKey = new VizKey({
+      open: false,
+      showMore: false,
+      className: "organisations"
+    });
 
     var stats = new Stats(divs, orgId);
     stats.init();
