@@ -13,8 +13,8 @@ var Carousel = (function() {
 		// create popup
 		var popupStr = [
 			"<div id=\"carousel-popup\">",
-				"<div class=\"button button-prev\"></div>",
-				"<div class=\"button button-next\"></div>",
+				"<div class=\"arrowbutton button-prev\"></div>",
+				"<div class=\"arrowbutton button-next\"></div>",
 				"<div class=\"title\"></div>",
 				"<div class=\"content-container\">",
 					"<div class=\"images\"></div>",
