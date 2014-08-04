@@ -1,4 +1,4 @@
-/*global d3, $, fn, SPARQLDataSource, VizConfig */
+	/*global d3, $, fn, SPARQLDataSource, VizConfig */
 
 function MainStats(dom, settings) {
 	this.domName = dom;
@@ -15,10 +15,9 @@ function MainStats(dom, settings) {
 			predicate: "ds:technologyMethod",
 			name: "Technology Method",
 			image: [
-				VizConfig.assetsPath + "/iconchart-techmethod-0.png",
-				VizConfig.assetsPath + "/iconchart-techmethod-1.png"
+				VizConfig.assetsPath + "/iconchart-techmethod.png",
 			],
-			imageSize: { width: 12, height: 16 },
+			imageSize: { width: 85/4, height: 69/4 },
 			width: 124,
 			margin: 4
 		},
@@ -32,7 +31,7 @@ function MainStats(dom, settings) {
 				"Open Networks": VizConfig.assetsPath + "/iconchart-star.png",
 				"Open Hardware": VizConfig.assetsPath + "/iconchart-rect.png"
 			},
-			imageSize: { width: 12, height: 12 },
+			imageSize: { width: 55/4, height: 55/4 },
 			width: 124,
 			margin: 4
 		},
@@ -41,7 +40,7 @@ function MainStats(dom, settings) {
 			predicate: "ds:organizationType",
 			name: "Organization Type",
 			image: VizConfig.assetsPath + "/iconchart-hex.png",
-			imageSize: { width: 12, height: 13 },
+			imageSize: { width: 51/4, height: 61/4 },
 			width: 124,
 			margin: 4,
 			layout: "hex"
@@ -51,7 +50,7 @@ function MainStats(dom, settings) {
 			predicate: "ds:activityType",
 			name: "Project Type",
 			image: VizConfig.assetsPath + "/iconchart-hex-empty.png",
-			imageSize: { width: 14, height: 15 },
+			imageSize: { width: 55/4, height: 65/4 },
 			width: 124,
 			margin: 4,
 			layout: "hex"
@@ -62,7 +61,7 @@ function MainStats(dom, settings) {
 	this.statsCities = {
 		name: "Cities",
 		image: VizConfig.assetsPath + "/iconchart-city.png",
-		imageSize: { width: 11, height: 12 },
+		imageSize: { width: 50/4, height: 50/4 },
 		width: 124,
 		margin: 4
 	};
@@ -86,6 +85,8 @@ MainStats.prototype.getPredicate = function(predicate) {
 };
 
 MainStats.prototype.getCities = function() {
+	var deferred = Q.defer();
+
 	var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
 	var ds = new SPARQLDataSource(SPARQL_URL);
 
@@ -118,18 +119,30 @@ MainStats.prototype.getCities = function() {
 			}, []);
 
 			this.drawSection(this.statsCities, data);
+
+			deferred.resolve();
 		}.bind(this));
+
+	return deferred.promise;
 };
 
 MainStats.prototype.init = function() {
-	this.stats.forEach(function(stat) {
-		this.getPredicate(stat.predicate).then(function(data) {
-			this.drawSection(stat, data);
-		}.bind(this));
-	}.bind(this));
+	var statsToDo = this.stats.map(function(s) { return s; });
+
+	var loadNext = function() {
+		if (statsToDo.length > 0) {
+			var stat = statsToDo.shift();
+			this.getPredicate(stat.predicate).then(function(data) {
+				this.drawSection(stat, data);
+				setTimeout(loadNext, 1);
+			}.bind(this));
+		}
+	}.bind(this);
 
 	// unfortunately cities need to be separate...
-	this.getCities();
+	this.getCities().then(function() {
+		loadNext();
+	}.bind(this));
 };
 
 MainStats.prototype.drawSection = function(section, data) {
