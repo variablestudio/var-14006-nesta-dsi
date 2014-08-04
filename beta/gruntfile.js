@@ -12,24 +12,23 @@ module.exports = function(grunt) {
           "../js/SPARQL.js",
           "../js/fn.js",
           '../js/EventDispatcher.js',
-          'viz_bighex.js',
-          'viz_iconchart.js',
+          'viz_bighex.js', //big hex component for map and org page
+          'viz_iconchart.js', //icon chart component for stats
           'viz_leaflet_addons.js',
-          'viz_carousel.js',
-          'viz_countries.js',
-          'viz_intro.js',
-          'viz_introhex.js',
-          'viz_choropleth.js',
-          'viz_explorer.js',
-          'viz_stats.js',
+          'viz_carousel.js', //case studies
+          'viz_countries.js', //eu countries
+          'viz_intro.js', //intro splash screen
+          'viz_introhex.js', //small hex in the middle of the splash intro screen
+          'viz_choropleth.js', //technology focus and dsi are matrix
+          'viz_stats.js', //values stats
           'data/new_schema_list_min.js',
-          'viz_tooltip.js',
-          'viz_popup.js',
-          'viz_key.js',
-          'viz_main_map.js',
-          "viz_organisation.js",
+          'viz_tooltip.js', //tooltip code
+          'viz_popup.js', //popup code
+          'viz_key.js', //key filters sidebar
+          'viz_main_map.js', //main map with connections
+          "viz_organisation.js", //organisation page visualizations
           'viz_config.js',
-          "viz.js"
+          "viz.js" //main
         ],
         dest: "viz.dist.js"
       }
