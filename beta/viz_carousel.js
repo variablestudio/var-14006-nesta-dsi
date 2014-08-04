@@ -161,6 +161,8 @@ var Carousel = (function() {
 		// build carousel with preloading gif on launch
 		this.buildCarousel({ "preloading": true });
 
+		this.updateFiltersText();
+
 		// act on filter change
 		VizConfig.events.addEventListener("filter", function() {
 			var showByDefault = false;
@@ -509,7 +511,12 @@ var Carousel = (function() {
 		this.popup.images = data.popupImages;
 		this.popup.index = 0;
 
-		if (this.popup.images.length > 0) {
+		if (this.popup.images.length == 1) {
+			this.DOM.popupButtonNext.hide();
+			this.DOM.popupButtonPrev.hide();
+			this.updateImage();
+		}
+		else if (this.popup.images.length > 0) {
 			this.DOM.popupButtonNext.show();
 			this.DOM.popupButtonPrev.show();
 
@@ -562,14 +569,14 @@ var Carousel = (function() {
 			organisationType: VizConfig.organisationTypeById
 		};
 
-		var text = "";
+		var text = "&nbsp;";
 		if (filters.length > 0) {
 			text = filters.map(function(filter) {
 				return datasourceByProperty[filter.property][filter.id].title.replace('<br/>', '');
 			}).join(', ');
 		}
 
-		this.DOM.filters.text(text);
+		this.DOM.filters.html(text);
 	};
 
 	return Carousel;
