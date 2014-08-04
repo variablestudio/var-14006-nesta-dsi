@@ -9,6 +9,7 @@
     var urlIsOrganisation = (url.match(/\/organisations\//) !== null && url.match(/\/organisations\/build\//) == null);
 
     var urlIsBeta = (url.match(/\/beta/) !== null);
+    var urlIsLive = url == "http://digitalsocial.eu/";
 
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
       browser = ($(document).width() <= 480) ? "phone" : "tablet";
@@ -22,11 +23,7 @@
       // draw organisation stats
       initOrgStats(orgId);
     }
-    else if (urlIsLocalhost || urlIsVariableIO || urlIsBeta) {
-      if (document.location.pathname != '/' && document.location.pathname.indexOf('beta') == -1) {
-        return;
-      }
-
+    else if (urlIsLocalhost || urlIsVariableIO || urlIsBeta || urlIsLive) {
       var mainContainer = document.getElementById('main');
 
       var vizContainer = $('#viz');
