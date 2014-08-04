@@ -219,15 +219,15 @@
 
 /*---------------------------------- main map -------------------------------------*/
 
-#map {
+#mainmap {
   width: 100%;
 }
 
-#map .leaflet-fullscreen-button {
+#mainmap .leaflet-fullscreen-button {
   background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/leaflet-fullscreen.png);
 }
 
-#map .leaflet-center-button {
+#mainmap .leaflet-center-button {
   background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/leaflet-center.png);
 }
 
@@ -317,14 +317,14 @@
   color: #808080;
 }
 
-#carousel .button,
+#carousel .arrowbutton,
 #carousel-popup .button {
   cursor: pointer;
   width: 14px;
   height: 26px;
 }
 
-#carousel .button {
+#carousel .arrowbutton {
   margin-top: 76px;
 }
 

@@ -86,10 +86,10 @@ var MainMap = (function() {
     // add map
     this.DOM.map = d3.select(this.mainVizContainer)
       .append('div')
-      .attr('id', 'map');
+      .attr('id', 'mainmap');
 
     // for some strange reason can't set this width d3.style()
-    $('#map').css({ 'height': this.h });
+    $('#mainmap').css({ 'height': this.h });
 
     var mapOverlayHtml = [
       "<div id=\"map-overlay\">",
@@ -144,7 +144,7 @@ var MainMap = (function() {
     this.showWorldMap(center, scale);
 
     // add svg elements
-    this.DOM.svg = d3.select("#map").select("svg");
+    this.DOM.svg = d3.select("#mainmap").select("svg");
     this.DOM.g   = this.DOM.svg.append("g").attr("class", "viz");
     this.DOM.networkGroup     = this.DOM.g.append("g").attr("class", "network");
     this.DOM.orgGroup         = this.DOM.g.append("g").attr("class", "orgs");
@@ -160,7 +160,7 @@ var MainMap = (function() {
     var streetLayer = new L.TileLayer(this.layers.street, { maxZoom: 16, minZoom: 2 });
 
     this.map = {
-      leaflet: L.map('map', {
+      leaflet: L.map('mainmap', {
         center: new L.LatLng(center[0], center[1]),
         zoom: scale,
         inertia: false,
@@ -214,7 +214,7 @@ var MainMap = (function() {
     $(this.mainVizContainer).append(
       $("<div class=\"map-fullscreen\">Expand Map</div>").on("click", function() {
         if (this.map.fullscreen) {
-          $('#map').css({ 'position': 'relative', 'height': this.h });
+          $('#mainmap').css({ 'position': 'relative', 'height': this.h });
           $('#map-overlay').css({ 'position': 'relative', 'height': this.h, 'margin-top': -this.h });
           $('.map-fullscreen').text("Expand Map");
         }
@@ -222,7 +222,7 @@ var MainMap = (function() {
           var topMargin = 146;
           var size = window.innerHeight - topMargin;
 
-          $('#map').css({ 'height': size });
+          $('#mainmap').css({ 'height': size });
           $('#map-overlay').css({ 'height': size, 'margin-top': -size });
           $('.map-fullscreen').text("Collapse Map");
         }
@@ -1130,7 +1130,7 @@ var MainMap = (function() {
         return popupContent;
       }).join("");
 
-      var windowOffset = $("#map").offset();
+      var windowOffset = $("#mainmap").offset();
       var viewBox = this.DOM.svg.attr("viewBox").split(" ").map(Number);
 
       var dx = windowOffset.left + this.defaultViewBox[0] - viewBox[0];
