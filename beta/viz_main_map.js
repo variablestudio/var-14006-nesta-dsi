@@ -71,7 +71,6 @@ var MainMap = (function() {
         this.getProjectsInfo(collaborations).then(function() {
           this.showOrganisations(this.map.leaflet.getZoom());
           this.showClusterNetwork(this.map.leaflet.getZoom());
-          this.hijackSearch();
 
           // hide preloader once everything is loaded
           this.preloader.fadeOut('slow');

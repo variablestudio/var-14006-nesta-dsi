@@ -81,6 +81,7 @@
       $("#vizKeyContainer").fadeIn();
       $(".map-fullscreen").fadeIn();
       introViz.fadeOut("slow");
+      VizConfig.mainViz.hijackSearch();
     }
 
     var intro = new Intro(introViz, {
@@ -101,7 +102,7 @@
     var mainViz = $('<div id="mainViz"></div>');
     vizContainer.append(mainViz);
 
-    new MainMap("#mainViz");
+    VizConfig.mainViz = new MainMap("#mainViz");
   }
 
   function initCaseStudies(vizContainer) {
