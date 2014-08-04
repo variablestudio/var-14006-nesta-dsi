@@ -63,7 +63,6 @@
       VizConfig.events.addEventListener('organisations', function() {
         initCaseStudies(vizContainer);
         VizConfig.events.addEventListener('casestudies', function() {
-          initExplorer(vizContainer);
           initEUCountries(vizContainer);
           initChoropleth(vizContainer);
           initMainStats(vizContainer, { timeout: 0 });
@@ -174,17 +173,6 @@
 
     var choropleth = new Choropleth("#choroplethViz", { isDesktopBrowser: (browser === "desktop") });
     choropleth.init();
-  }
-
-  function initExplorer(vizContainer) {
-    var explorerTitle = $('<h1>Technology focus areas and methods</h1>');
-    vizContainer.append(explorerTitle);
-
-    var explorerViz = $('<div id="explorerViz"></div>');
-    vizContainer.append(explorerViz);
-
-    var explorer = new Explorer("#explorerViz", { isDesktopBrowser: (browser === "desktop") });
-    explorer.init();
   }
 
   function initMainStats(vizContainer, settings) {
