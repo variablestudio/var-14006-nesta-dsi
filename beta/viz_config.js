@@ -1,6 +1,6 @@
 var VizConfig = {};
 
-if (window.location.href.match(/\/organisations\//) !== null || window.location.href.match(/\/digitalsocial\//) !== null) {
+if (window.location.href.match(/\/organisations\//) !== null || window.location.href.match(/digitalsocial/) !== null) {
   // VizConfig.assetsPath = "http://variable.io/p/nestadsi/beta/assets";
   VizConfig.assetsPath = "http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets";
 }
