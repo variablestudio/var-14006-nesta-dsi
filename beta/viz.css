@@ -445,6 +445,10 @@
   z-index: 2001;
 }
 
+#header .nav-bar .search {
+  z-index: 2002;
+}
+
 #carousel-popup .title {
   text-align: center;
   padding-top: 18px;
