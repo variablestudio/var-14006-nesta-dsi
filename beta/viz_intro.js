@@ -1,11 +1,36 @@
 function Intro(introVizContainer, settings) {
+  this.draw(introVizContainer, settings, 0, 0);
+
+  var introText = $('#introText').html().split('?');
+
+  function pad3(s) {
+    s = '' + s;
+    if (s.length == 0) return '&nbsp;&nbsp;&nbsp;';
+    if (s.length == 1) return '&nbsp;&nbsp;' + s;
+    if (s.length == 2) return '&nbsp;' + s;
+    else return s;
+  }
+
+  function updateText(orgCount, activityCount) {
+    var str = introText[0] + pad3(orgCount) + introText[1] + pad3(activityCount) + introText[2];
+    $('#introText').html(str);
+  }
+
+  updateText(0, 0);
+
+  var orgs = 0;
+  var activities = 0;
+  var updateInterval = setInterval(function() {
+    updateText(orgs++, activities++);
+  }, 50);
+
+
   this.runOrgQuery().then(function(results) {
     var orgCount = results.length;
-
     this.runActivityQuery().then(function(results) {
       var activityCount = results.length;
-
-      this.draw(introVizContainer, settings, orgCount, activityCount);
+      clearInterval(updateInterval);
+      updateText(orgCount, activityCount)
     }.bind(this));
   }.bind(this));
 }
@@ -43,7 +68,7 @@ Intro.prototype.runActivityQuery = function() {
     .execute();
 };
 
-Intro.prototype.draw = function(introVizContainer, settings, numOrganizations, numProjects) {
+Intro.prototype.draw = function(introVizContainer, settings) {
   settings = settings || {};
   var isDesktopBrowser = settings.isDesktopBrowser !== undefined ? settings.isDesktopBrowser : true;
 
@@ -59,7 +84,7 @@ Intro.prototype.draw = function(introVizContainer, settings, numOrganizations, n
 
   var dsiIntroText = [
     'We are setting up a network of organisations that use the Internet for the social good.',
-    'Explore <strong>NUM_ORG</strong> organisations with <strong>NUM_PROJECTS</strong> collaborative research and innovation projects.',
+    'Explore <strong>?</strong> organisations with <strong>?</strong> collaborative research and innovation projects.',
     '<em>"Digital Social Innovation is a type of collaborative innovation in which innovators, users and communities co-create knowledge and solutions for a wide range of social needs exploiting the network effect of the Internet."</em>'
   ];
 
@@ -68,10 +93,6 @@ Intro.prototype.draw = function(introVizContainer, settings, numOrganizations, n
     introVizContainer.addClass("desktop");
     introVizContainer.css('height', h);
   }
-
-  dsiIntroText = dsiIntroText.map(function(line) {
-    return line.replace('NUM_ORG', numOrganizations).replace('NUM_PROJECTS', numProjects);
-  });
 
   var introVizContent = $('<div id="introVizContent"></div>');
   introVizContainer.append(introVizContent);
@@ -85,7 +106,7 @@ Intro.prototype.draw = function(introVizContainer, settings, numOrganizations, n
   var column3 = $('<div class="introColumn"></div>');
   introVizContent.append(column3);
 
-  var content1 = $('<p>' + dsiIntroText.join('<br/><br/>') + '</p>');
+  var content1 = $('<p id="introText">' + dsiIntroText.join('<br/><br/>') + '</p>');
   column1.append(content1);
 
   var exploreBtn = $('<div class="exploreBtn">' + exploreBtnText + '</div>');
@@ -117,3 +138,4 @@ Intro.prototype.draw = function(introVizContainer, settings, numOrganizations, n
 
   chart.draw(VizConfig.dsiAreas);
 };
+
