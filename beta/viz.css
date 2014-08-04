@@ -56,7 +56,7 @@
   color: white;
   font-family: 'Scene Std', sans-serif;
   /* background: rgba(0, 0, 0, 0.7); */
-  background-image: url(assets/background-gradient.png);
+  background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/background-gradient.png);
   background-position: center;
   background-repeat: repeat-y;
 }
@@ -224,11 +224,11 @@
 }
 
 #map .leaflet-fullscreen-button {
-  background-image: url(assets/leaflet-fullscreen.png);
+  background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/leaflet-fullscreen.png);
 }
 
 #map .leaflet-center-button {
-  background-image: url(assets/leaflet-center.png);
+  background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/leaflet-center.png);
 }
 
 #map-overlay {
@@ -279,10 +279,10 @@
   height: 12px;
 }
 
-#map-overlay .tech-areas .open-data { background-image: url(assets/open-data.png); }
-#map-overlay .tech-areas .open-hardware { background-image: url(assets/open-hardware.png); }
-#map-overlay .tech-areas .open-knowledge { background-image: url(assets/open-knowledge.png); }
-#map-overlay .tech-areas .open-networks { background-image: url(assets/open-networks.png); }
+#map-overlay .tech-areas .open-data { background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/open-data.png); }
+#map-overlay .tech-areas .open-hardware { background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/open-hardware.png); }
+#map-overlay .tech-areas .open-knowledge { background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/open-knowledge.png); }
+#map-overlay .tech-areas .open-networks { background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/open-networks.png); }
 
 .map-fullscreen {
   float: right;
@@ -332,14 +332,14 @@
 #carousel-popup .button-prev {
   float: left;
   margin-left: -40px;
-  background-image: url(assets/larrow.png);
+  background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/larrow.png);
 }
 
 #carousel .button-next,
 #carousel-popup .button-next {
   float: right;
   margin-right: -40px;
-  background-image: url(assets/rarrow.png);
+  background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/rarrow.png);
 }
 
 #carousel .carousel-wrapper {
@@ -807,12 +807,12 @@
   background-size: 10px 10px;
 }
 
-#vizKeyContainer a.filterLink.funding-acceleration-and-incubation { background-image: url(assets/triangle-funding-acceleration-and-incubation.png)}
-#vizKeyContainer a.filterLink.collaborative-economy { background-image: url(assets/triangle-collaborative-economy.png)}
-#vizKeyContainer a.filterLink.open-democracy { background-image: url(assets/triangle-open-democracy.png)}
-#vizKeyContainer a.filterLink.awareness-networks { background-image: url(assets/triangle-awareness-networks.png)}
-#vizKeyContainer a.filterLink.new-ways-of-making { background-image: url(assets/triangle-new-ways-of-making.png)}
-#vizKeyContainer a.filterLink.open-access { background-image: url(assets/triangle-open-access.png)}
+#vizKeyContainer a.filterLink.funding-acceleration-and-incubation { background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/triangle-funding-acceleration-and-incubation.png)}
+#vizKeyContainer a.filterLink.collaborative-economy { background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/triangle-collaborative-economy.png)}
+#vizKeyContainer a.filterLink.open-democracy { background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/triangle-open-democracy.png)}
+#vizKeyContainer a.filterLink.awareness-networks { background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/triangle-awareness-networks.png)}
+#vizKeyContainer a.filterLink.new-ways-of-making { background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/triangle-new-ways-of-making.png)}
+#vizKeyContainer a.filterLink.open-access { background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/triangle-open-access.png)}
 
 #vizKeyContainer a.filterLink.funding-acceleration-and-incubation.active { background-color: #FDE302; }
 #vizKeyContainer a.filterLink.collaborative-economy.active { background-color: #A6CE39; }
@@ -821,15 +821,15 @@
 #vizKeyContainer a.filterLink.new-ways-of-making.active { background-color: #F58220; }
 #vizKeyContainer a.filterLink.open-access.active { background-color: #7BAFDE; }
 
-#vizKeyContainer a.filterLink.open-hardware { background-image: url(assets/tech-open-hardware-off.png)}
-#vizKeyContainer a.filterLink.open-networks { background-image: url(assets/tech-open-network-off.png)}
-#vizKeyContainer a.filterLink.open-knowledge { background-image: url(assets/tech-open-knowledge-off.png)}
-#vizKeyContainer a.filterLink.open-data { background-image: url(assets/tech-open-data-off.png)}
+#vizKeyContainer a.filterLink.open-hardware { background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/tech-open-hardware-off.png)}
+#vizKeyContainer a.filterLink.open-networks { background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/tech-open-network-off.png)}
+#vizKeyContainer a.filterLink.open-knowledge { background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/tech-open-knowledge-off.png)}
+#vizKeyContainer a.filterLink.open-data { background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/tech-open-data-off.png)}
 
-#vizKeyContainer a.filterLink.open-hardware.active { background-image: url(assets/tech-open-hardware.png)}
-#vizKeyContainer a.filterLink.open-networks.active { background-image: url(assets/tech-open-network.png)}
-#vizKeyContainer a.filterLink.open-knowledge.active { background-image: url(assets/tech-open-knowledge.png)}
-#vizKeyContainer a.filterLink.open-data.active { background-image: url(assets/tech-open-data.png)}
+#vizKeyContainer a.filterLink.open-hardware.active { background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/tech-open-hardware.png)}
+#vizKeyContainer a.filterLink.open-networks.active { background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/tech-open-network.png)}
+#vizKeyContainer a.filterLink.open-knowledge.active { background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/tech-open-knowledge.png)}
+#vizKeyContainer a.filterLink.open-data.active { background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/tech-open-data.png)}
 
 #vizKeyContainer a.filterLink.funding-acceleration-and-incubation.active,
 #vizKeyContainer a.filterLink.collaborative-economy.active,
@@ -837,7 +837,7 @@
 #vizKeyContainer a.filterLink.awareness-networks.active,
 #vizKeyContainer a.filterLink.new-ways-of-making.active,
 #vizKeyContainer a.filterLink.open-access.active {
-  background-image: url(assets/triangle-white.png)
+  background-image: url(http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets/triangle-white.png)
 }
 
 #vizKeyContainer a.filterLink.open-hardware.active,
