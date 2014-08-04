@@ -56,6 +56,7 @@ var MainMap = (function() {
     }.bind(this));
 
     this.getOrganisations().then(function(organisations) {
+      VizConfig.events.fire('organisations');
       // save organisations
       this.organisations = organisations;
       this.organisationsById = organisations.reduce(function(memo, org) {

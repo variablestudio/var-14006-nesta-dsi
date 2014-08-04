@@ -60,11 +60,15 @@
     }
 
     if (browser !== "phone") {
-      initCaseStudies(vizContainer);
-      initEUCountries(vizContainer);
-      initChoropleth(vizContainer);
-      initExplorer(vizContainer);
-      initMainStats(vizContainer, { timeout: 4000 });
+      VizConfig.events.addEventListener('organisations', function() {
+        initCaseStudies(vizContainer);
+        VizConfig.events.addEventListener('casestudies', function() {
+          initExplorer(vizContainer);
+          initEUCountries(vizContainer);
+          initChoropleth(vizContainer);
+          initMainStats(vizContainer, { timeout: 0 });
+        });
+      });
     }
   }
 
