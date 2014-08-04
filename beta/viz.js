@@ -27,8 +27,6 @@
       }
 
       var mainContainer = document.getElementById('main');
-      mainContainer.removeChild(mainContainer.childNodes[0]);
-      mainContainer.removeChild(mainContainer.childNodes[0]);
 
       var vizContainer = $('#viz');
 
@@ -38,7 +36,7 @@
       initTooltip();
 
       if (showIntro) {
-        initIntroViz(vizContainer);
+        //initIntroViz(vizContainer);
       }
 
       initVisualizations(vizContainer);
