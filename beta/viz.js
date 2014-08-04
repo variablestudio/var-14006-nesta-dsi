@@ -6,7 +6,8 @@
     var url = window.location.href;
     var urlIsLocalhost = (url.match(/localhost/) !== null);
     var urlIsVariableIO = (url.match(/variable\.io/) !== null);
-    var urlIsOrganisation = (url.match(/\/organisations\//) !== null);
+    var urlIsOrganisation = (url.match(/\/organisations\//) !== null && url.match(/\/organisations\/build\//) == null);
+
     var urlIsBeta = (url.match(/\/beta/) !== null);
 
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
@@ -112,8 +113,8 @@
 
     var carouselDiv = $('<div id="carousel"></div>');
     var carouselFilters = $('<div class="filters"></div>');
-    var carouselPrev = $('<div class="button button-prev"></div>');
-    var carouselNext = $('<div class="button button-next"></div>');
+    var carouselPrev = $('<div class="arrowbutton button-prev"></div>');
+    var carouselNext = $('<div class="arrowbutton button-next"></div>');
     var carouselWrap = $('<div class="carousel-wrapper"></div>');
     carouselDiv.append(carouselPrev);
     carouselDiv.append(carouselNext);
