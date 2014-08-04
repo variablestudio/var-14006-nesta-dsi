@@ -318,7 +318,7 @@
 }
 
 #carousel .arrowbutton,
-#carousel-popup .button {
+#carousel-popup .arrowbutton {
   cursor: pointer;
   width: 14px;
   height: 26px;
