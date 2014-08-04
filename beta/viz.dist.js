@@ -805,8 +805,8 @@ var Carousel = (function() {
 		// create popup
 		var popupStr = [
 			"<div id=\"carousel-popup\">",
-				"<div class=\"button button-prev\"></div>",
-				"<div class=\"button button-next\"></div>",
+				"<div class=\"arrowbutton button-prev\"></div>",
+				"<div class=\"arrowbutton button-next\"></div>",
 				"<div class=\"title\"></div>",
 				"<div class=\"content-container\">",
 					"<div class=\"images\"></div>",
@@ -952,6 +952,8 @@ var Carousel = (function() {
 
 		// build carousel with preloading gif on launch
 		this.buildCarousel({ "preloading": true });
+
+		this.updateFiltersText();
 
 		// act on filter change
 		VizConfig.events.addEventListener("filter", function() {
@@ -1180,7 +1182,7 @@ var Carousel = (function() {
 
 				if (data.attachments.length > 0) {
 					var bigImages = data.attachments.filter(function(img) {
-						return img.images.full.width > 110 && img.images.full.height > 125;
+						return img.images.full.width > 200 && img.images.full.height > 200;
 					});
 
 					if (bigImages.length > 0) {
@@ -1301,7 +1303,12 @@ var Carousel = (function() {
 		this.popup.images = data.popupImages;
 		this.popup.index = 0;
 
-		if (this.popup.images.length > 0) {
+		if (this.popup.images.length == 1) {
+			this.DOM.popupButtonNext.hide();
+			this.DOM.popupButtonPrev.hide();
+			this.updateImage();
+		}
+		else if (this.popup.images.length > 0) {
 			this.DOM.popupButtonNext.show();
 			this.DOM.popupButtonPrev.show();
 
@@ -1311,7 +1318,12 @@ var Carousel = (function() {
 			this.DOM.popupButtonNext.hide();
 			this.DOM.popupButtonPrev.hide();
 
-			this.DOM.popup.find(".images").html("");
+			if (this.popup.images.length > 0) {
+				this.updateImage();
+			}
+			else {
+				this.DOM.popup.find(".images").html("");
+			}
 		}
 
 		// update popup elements
@@ -1349,14 +1361,14 @@ var Carousel = (function() {
 			organisationType: VizConfig.organisationTypeById
 		};
 
-		var text = "";
+		var text = "&nbsp;";
 		if (filters.length > 0) {
 			text = filters.map(function(filter) {
 				return datasourceByProperty[filter.property][filter.id].title.replace('<br/>', '');
 			}).join(', ');
 		}
 
-		this.DOM.filters.text(text);
+		this.DOM.filters.html(text);
 	};
 
 	return Carousel;
@@ -1692,13 +1704,38 @@ var Countries = (function() {
 }());
 
 function Intro(introVizContainer, settings) {
+  this.draw(introVizContainer, settings, 0, 0);
+
+  var introText = $('#introText').html().split('?');
+
+  function pad3(s) {
+    s = '' + s;
+    if (s.length == 0) return '&nbsp;&nbsp;&nbsp;';
+    if (s.length == 1) return '&nbsp;&nbsp;' + s;
+    if (s.length == 2) return '&nbsp;' + s;
+    else return s;
+  }
+
+  function updateText(orgCount, activityCount) {
+    var str = introText[0] + pad3(orgCount) + introText[1] + pad3(activityCount) + introText[2];
+    $('#introText').html(str);
+  }
+
+  updateText(0, 0);
+
+  var orgs = 0;
+  var activities = 0;
+  var updateInterval = setInterval(function() {
+    updateText(orgs++, activities++);
+  }, 50);
+
+
   this.runOrgQuery().then(function(results) {
     var orgCount = results.length;
-
     this.runActivityQuery().then(function(results) {
       var activityCount = results.length;
-
-      this.draw(introVizContainer, settings, orgCount, activityCount);
+      clearInterval(updateInterval);
+      updateText(orgCount, activityCount)
     }.bind(this));
   }.bind(this));
 }
@@ -1736,7 +1773,7 @@ Intro.prototype.runActivityQuery = function() {
     .execute();
 };
 
-Intro.prototype.draw = function(introVizContainer, settings, numOrganizations, numProjects) {
+Intro.prototype.draw = function(introVizContainer, settings) {
   settings = settings || {};
   var isDesktopBrowser = settings.isDesktopBrowser !== undefined ? settings.isDesktopBrowser : true;
 
@@ -1752,7 +1789,7 @@ Intro.prototype.draw = function(introVizContainer, settings, numOrganizations, n
 
   var dsiIntroText = [
     'We are setting up a network of organisations that use the Internet for the social good.',
-    'Explore <strong>NUM_ORG</strong> organisations with <strong>NUM_PROJECTS</strong> collaborative research and innovation projects.',
+    'Explore <strong>?</strong> organisations with <strong>?</strong> collaborative research and innovation projects.',
     '<em>"Digital Social Innovation is a type of collaborative innovation in which innovators, users and communities co-create knowledge and solutions for a wide range of social needs exploiting the network effect of the Internet."</em>'
   ];
 
@@ -1761,10 +1798,6 @@ Intro.prototype.draw = function(introVizContainer, settings, numOrganizations, n
     introVizContainer.addClass("desktop");
     introVizContainer.css('height', h);
   }
-
-  dsiIntroText = dsiIntroText.map(function(line) {
-    return line.replace('NUM_ORG', numOrganizations).replace('NUM_PROJECTS', numProjects);
-  });
 
   var introVizContent = $('<div id="introVizContent"></div>');
   introVizContainer.append(introVizContent);
@@ -1778,7 +1811,7 @@ Intro.prototype.draw = function(introVizContainer, settings, numOrganizations, n
   var column3 = $('<div class="introColumn"></div>');
   introVizContent.append(column3);
 
-  var content1 = $('<p>' + dsiIntroText.join('<br/><br/>') + '</p>');
+  var content1 = $('<p id="introText">' + dsiIntroText.join('<br/><br/>') + '</p>');
   column1.append(content1);
 
   var exploreBtn = $('<div class="exploreBtn">' + exploreBtnText + '</div>');
@@ -1810,6 +1843,7 @@ Intro.prototype.draw = function(introVizContainer, settings, numOrganizations, n
 
   chart.draw(VizConfig.dsiAreas);
 };
+
 
 d3.chart("IntroHex", {
   initialize: function() {
@@ -2340,229 +2374,7 @@ var Choropleth = (function() {
 	return Choropleth;
 }());
 
-/*global VizConfig, SPARQLDataSource, d3 */
-
-var Explorer = (function() {
-	var indexOfProp = function(data, prop, val) {
-		return data.map(function(o) { return o[prop]; }).indexOf(val);
-	};
-
-	function Explorer(dom, settings) {
-		settings = settings || {};
-		this.data = []; // will be filled on SPARQL query
-
-		this.fieldProgression = [ "tech_focuses", "tech_methods", "country", "activity_label" ];
-		this.fieldIndex = 0;
-
-		this.size = {
-			"width": settings.isDesktopBrowser ? 994 : 740,
-			"height": 100
-		};
-
-		this.DOM = { "div": d3.select(dom) };
-	}
-
-	Explorer.prototype.init = function() {
-		var SPARQL_URL = "http://data.digitalsocial.eu/sparql.json?utf8=✓&query=";
-		var ds = new SPARQLDataSource(SPARQL_URL);
-
-		ds.query()
-			.prefix("o:", "<http://www.w3.org/ns/org#>")
-			.prefix("rdfs:", "<http://www.w3.org/2000/01/rdf-schema#>")
-			.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
-			.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
-			.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
-			.select("?label ?country ?activity_label ?tech_method ?tech_focus")
-			.where("?org", "a", "o:Organization")
-			.where("?am", "a", "ds:ActivityMembership")
-			.where("?am", "ds:organization", "?org")
-			.where("?am", "ds:activity", "?activity")
-			.where("?activity", "rdfs:label", "?activity_label")
-			.where("?activity", "ds:technologyMethod", "?tm")
-			.where("?activity", "ds:technologyFocus", "?tf")
-			.where("?tm", "rdfs:label", "?tech_method")
-			.where("?tf", "rdfs:label", "?tech_focus")
-			.where("?org", "rdfs:label", "?label")
-			.where("?org", "o:hasPrimarySite", "?org_site")
-			.where("?org_site", "o:siteAddress", "?org_address")
-			.where("?org_address", "vcard:country-name", "?country")
-			.execute()
-			.then(function(results) {
-				this.data = results
-					.map(function(object) {
-						var newObject = {};
-						var key;
-
-						for (key in object) {
-							if (object.hasOwnProperty(key)) {
-								newObject[key] = object[key].value;
-							}
-						}
-
-						return newObject;
-					})
-					.reduce(function(memo, object) {
-						var activityIndex = indexOfProp(memo, "activity_label", object.activity_label);
-
-						if (activityIndex < 0) {
-							memo.push({
-								"activity_label": object.activity_label,
-								"country": object.country,
-								"city": object.city,
-								"tech_methods": [ object.tech_method ],
-								"tech_focuses": [ object.tech_focus ]
-							});
-						}
-						else {
-							var memoObject = memo[activityIndex];
-
-							if (memoObject.tech_methods.indexOf(object.tech_method) < 0) {
-								memoObject.tech_methods.push(object.tech_method);
-							}
-
-							if (memoObject.tech_focuses.indexOf(object.tech_focus) < 0) {
-								memoObject.tech_focuses.push(object.tech_focus);
-							}
-
-							memo[activityIndex] = memoObject;
-						}
-
-						return memo;
-					}, []);
-
-			// draw on finished query
-			this.draw(this.data);
-		}.bind(this));
-	};
-
-	Explorer.prototype.groupByField = function(data, field) {
-		var updateMemo = function(memo, value, object) {
-			if (memo[value] !== undefined) {
-				memo[value].push(object);
-			}
-			else {
-				memo[value] = [ object ];
-			}
-		};
-
-		return data.reduce(function(memo, object) {
-			if (object[field] !== undefined) {
-
-				if (object[field] instanceof Array) {
-
-					object[field].forEach(function(value) {
-						updateMemo(memo, value, object);
-					});
-
-				}
-				else {
-					updateMemo(memo, object[field], object);
-				}
-			}
-
-			return memo;
-		}, {});
-	};
-
-	Explorer.prototype.draw = function(data) {
-		data = this.groupByField(data, this.fieldProgression[this.fieldIndex]);
-		// console.log(data, this.fieldProgression[this.fieldIndex]);
-
-		var svg = this.DOM.div.append("svg")
-			.attr("width", this.size.width)
-			.attr("height", this.size.height)
-			.attr("class", "depth-" + this.fieldIndex);
-
-		var totalNum = 0;
-		var key;
-		for (key in data) {
-			if (data.hasOwnProperty(key)) {
-				totalNum += data[key].length;
-			}
-		}
-
-		var scale = d3.scale.linear()
-			.domain([0, totalNum])
-			.range([0, this.size.width]);
-
-		var color = d3.scale.category20c();
-
-		var currentSum = 0;
-		var index = 0;
-		var localData;
-
-		var drawNextBar = function(name, depth) {
-			depth += 1;
-
-			// clear previous depths
-			if (depth <= this.fieldIndex) {
-				for (index = depth; index <= this.fieldIndex; index++) {
-					this.DOM.div.selectAll(".depth-" + index).remove();
-				}
-			}
-
-			// update field index
-			this.fieldIndex = depth;
-
-			// draw next depth
-			if (this.fieldIndex < this.fieldProgression.length) {
-				this.draw(data[name]);
-			}
-		};
-
-		for (key in data) {
-			if (data.hasOwnProperty(key)) {
-				localData = data[key];
-
-				this.drawBar(svg, currentSum, localData.length, index, scale, color, key, this.fieldIndex, drawNextBar.bind(this));
-
-				currentSum += data[key].length;
-				index++;
-			}
-		}
-	};
-
-	Explorer.prototype.drawBar = function(svg, currentSum, count, index, scale, color, title, depth, callback) {
-		var text = null;
-		var fillColor = color(index);
-
-		svg.append("rect")
-			.attr("class", "grouping")
-			.attr("x", function() {
-				return scale(currentSum);
-			})
-			.attr("y", 0)
-			.attr("width", function() {
-				return scale(count);
-			})
-			.attr("height", this.size.height)
-			.attr("fill", fillColor)
-			.on("click", function() {
-				text.style("fill", "#333");
-
-				callback(title, depth);
-			}.bind(this))
-			.on("mouseover", function() {
-				VizConfig.tooltip.show();
-				VizConfig.tooltip.html(title + " : " + count + "<br><span>click to expand</span>", "#FFF", fillColor);
-			})
-			.on("mouseout", function() {
-				VizConfig.tooltip.hide();
-			});
-
-		text = svg.append("text")
-			.attr("x", function() {
-				return scale(currentSum) + 20;
-			})
-			.attr("y", 40)
-			.attr("class", "title")
-			.text(title);
-	};
-
-	return Explorer;
-}());
-
-/*global d3, $, fn, SPARQLDataSource, VizConfig */
+	/*global d3, $, fn, SPARQLDataSource, VizConfig */
 
 function MainStats(dom, settings) {
 	this.domName = dom;
@@ -2579,10 +2391,9 @@ function MainStats(dom, settings) {
 			predicate: "ds:technologyMethod",
 			name: "Technology Method",
 			image: [
-				VizConfig.assetsPath + "/iconchart-techmethod-0.png",
-				VizConfig.assetsPath + "/iconchart-techmethod-1.png"
+				VizConfig.assetsPath + "/iconchart-techmethod.png",
 			],
-			imageSize: { width: 12, height: 16 },
+			imageSize: { width: 85/4, height: 69/4 },
 			width: 124,
 			margin: 4
 		},
@@ -2596,7 +2407,7 @@ function MainStats(dom, settings) {
 				"Open Networks": VizConfig.assetsPath + "/iconchart-star.png",
 				"Open Hardware": VizConfig.assetsPath + "/iconchart-rect.png"
 			},
-			imageSize: { width: 12, height: 12 },
+			imageSize: { width: 55/4, height: 55/4 },
 			width: 124,
 			margin: 4
 		},
@@ -2605,7 +2416,7 @@ function MainStats(dom, settings) {
 			predicate: "ds:organizationType",
 			name: "Organization Type",
 			image: VizConfig.assetsPath + "/iconchart-hex.png",
-			imageSize: { width: 12, height: 13 },
+			imageSize: { width: 51/4, height: 61/4 },
 			width: 124,
 			margin: 4,
 			layout: "hex"
@@ -2615,7 +2426,7 @@ function MainStats(dom, settings) {
 			predicate: "ds:activityType",
 			name: "Project Type",
 			image: VizConfig.assetsPath + "/iconchart-hex-empty.png",
-			imageSize: { width: 14, height: 15 },
+			imageSize: { width: 55/4, height: 65/4 },
 			width: 124,
 			margin: 4,
 			layout: "hex"
@@ -2626,7 +2437,7 @@ function MainStats(dom, settings) {
 	this.statsCities = {
 		name: "Cities",
 		image: VizConfig.assetsPath + "/iconchart-city.png",
-		imageSize: { width: 11, height: 12 },
+		imageSize: { width: 50/4, height: 50/4 },
 		width: 124,
 		margin: 4
 	};
@@ -2650,6 +2461,8 @@ MainStats.prototype.getPredicate = function(predicate) {
 };
 
 MainStats.prototype.getCities = function() {
+	var deferred = Q.defer();
+
 	var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
 	var ds = new SPARQLDataSource(SPARQL_URL);
 
@@ -2682,18 +2495,30 @@ MainStats.prototype.getCities = function() {
 			}, []);
 
 			this.drawSection(this.statsCities, data);
+
+			deferred.resolve();
 		}.bind(this));
+
+	return deferred.promise;
 };
 
 MainStats.prototype.init = function() {
-	this.stats.forEach(function(stat) {
-		this.getPredicate(stat.predicate).then(function(data) {
-			this.drawSection(stat, data);
-		}.bind(this));
-	}.bind(this));
+	var statsToDo = this.stats.map(function(s) { return s; });
+
+	var loadNext = function() {
+		if (statsToDo.length > 0) {
+			var stat = statsToDo.shift();
+			this.getPredicate(stat.predicate).then(function(data) {
+				this.drawSection(stat, data);
+				setTimeout(loadNext, 1);
+			}.bind(this));
+		}
+	}.bind(this);
 
 	// unfortunately cities need to be separate...
-	this.getCities();
+	this.getCities().then(function() {
+		loadNext();
+	}.bind(this));
 };
 
 MainStats.prototype.drawSection = function(section, data) {
@@ -3514,6 +3339,7 @@ var MainMap = (function() {
     }.bind(this));
 
     this.getOrganisations().then(function(organisations) {
+      VizConfig.events.fire('organisations');
       // save organisations
       this.organisations = organisations;
       this.organisationsById = organisations.reduce(function(memo, org) {
@@ -3528,7 +3354,6 @@ var MainMap = (function() {
         this.getProjectsInfo(collaborations).then(function() {
           this.showOrganisations(this.map.leaflet.getZoom());
           this.showClusterNetwork(this.map.leaflet.getZoom());
-          this.hijackSearch();
 
           // hide preloader once everything is loaded
           this.preloader.fadeOut('slow');
@@ -3543,10 +3368,10 @@ var MainMap = (function() {
     // add map
     this.DOM.map = d3.select(this.mainVizContainer)
       .append('div')
-      .attr('id', 'map');
+      .attr('id', 'mainmap');
 
     // for some strange reason can't set this width d3.style()
-    $('#map').css({ 'height': this.h });
+    $('#mainmap').css({ 'height': this.h });
 
     var mapOverlayHtml = [
       "<div id=\"map-overlay\">",
@@ -3601,7 +3426,7 @@ var MainMap = (function() {
     this.showWorldMap(center, scale);
 
     // add svg elements
-    this.DOM.svg = d3.select("#map").select("svg");
+    this.DOM.svg = d3.select("#mainmap").select("svg");
     this.DOM.g   = this.DOM.svg.append("g").attr("class", "viz");
     this.DOM.networkGroup     = this.DOM.g.append("g").attr("class", "network");
     this.DOM.orgGroup         = this.DOM.g.append("g").attr("class", "orgs");
@@ -3617,7 +3442,7 @@ var MainMap = (function() {
     var streetLayer = new L.TileLayer(this.layers.street, { maxZoom: 16, minZoom: 2 });
 
     this.map = {
-      leaflet: L.map('map', {
+      leaflet: L.map('mainmap', {
         center: new L.LatLng(center[0], center[1]),
         zoom: scale,
         inertia: false,
@@ -3671,7 +3496,7 @@ var MainMap = (function() {
     $(this.mainVizContainer).append(
       $("<div class=\"map-fullscreen\">Expand Map</div>").on("click", function() {
         if (this.map.fullscreen) {
-          $('#map').css({ 'position': 'relative', 'height': this.h });
+          $('#mainmap').css({ 'position': 'relative', 'height': this.h });
           $('#map-overlay').css({ 'position': 'relative', 'height': this.h, 'margin-top': -this.h });
           $('.map-fullscreen').text("Expand Map");
         }
@@ -3679,7 +3504,7 @@ var MainMap = (function() {
           var topMargin = 146;
           var size = window.innerHeight - topMargin;
 
-          $('#map').css({ 'height': size });
+          $('#mainmap').css({ 'height': size });
           $('#map-overlay').css({ 'height': size, 'margin-top': -size });
           $('.map-fullscreen').text("Collapse Map");
         }
@@ -4587,7 +4412,7 @@ var MainMap = (function() {
         return popupContent;
       }).join("");
 
-      var windowOffset = $("#map").offset();
+      var windowOffset = $("#mainmap").offset();
       var viewBox = this.DOM.svg.attr("viewBox").split(" ").map(Number);
 
       var dx = windowOffset.left + this.defaultViewBox[0] - viewBox[0];
@@ -5806,7 +5631,7 @@ var Stats = (function() {
 
 var VizConfig = {};
 
-if (window.location.href.match(/\/organisations\//) !== null || window.location.href.match(/\/digitalsocial\//) !== null) {
+if (window.location.href.match(/\/organisations\//) !== null || window.location.href.match(/digitalsocial/) !== null) {
   // VizConfig.assetsPath = "http://variable.io/p/nestadsi/beta/assets";
   VizConfig.assetsPath = "http://content.digitalsocial.eu/wp-content/themes/digitalsocial/assets";
 }
@@ -5921,8 +5746,10 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     var url = window.location.href;
     var urlIsLocalhost = (url.match(/localhost/) !== null);
     var urlIsVariableIO = (url.match(/variable\.io/) !== null);
-    var urlIsOrganisation = (url.match(/\/organisations\//) !== null);
+    var urlIsOrganisation = (url.match(/\/organisations\//) !== null && url.match(/\/organisations\/build\//) == null);
+
     var urlIsBeta = (url.match(/\/beta/) !== null);
+    var urlIsLive = url == "http://digitalsocial.eu/";
 
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
       browser = ($(document).width() <= 480) ? "phone" : "tablet";
@@ -5936,14 +5763,8 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
       // draw organisation stats
       initOrgStats(orgId);
     }
-    else if (urlIsLocalhost || urlIsVariableIO || urlIsBeta) {
-      if (document.location.pathname != '/' && document.location.pathname.indexOf('beta') == -1) {
-        return;
-      }
-
+    else if (urlIsLocalhost || urlIsVariableIO || urlIsBeta || urlIsLive) {
       var mainContainer = document.getElementById('main');
-      mainContainer.removeChild(mainContainer.childNodes[0]);
-      mainContainer.removeChild(mainContainer.childNodes[0]);
 
       var vizContainer = $('#viz');
 
@@ -5959,7 +5780,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
       initVisualizations(vizContainer);
 
       // FIXME: temporary solution, assets paths should be changed directly in css
-      updateCSSAssetPaths();
+      //updateCSSAssetPaths();
     }
   }
 
@@ -5975,11 +5796,14 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     }
 
     if (browser !== "phone") {
-      initCaseStudies(vizContainer);
-      initEUCountries(vizContainer);
-      initChoropleth(vizContainer);
-      initExplorer(vizContainer);
-      initMainStats(vizContainer, { timeout: 4000 });
+      VizConfig.events.addEventListener('organisations', function() {
+        initCaseStudies(vizContainer);
+        VizConfig.events.addEventListener('casestudies', function() {
+          initEUCountries(vizContainer);
+          initChoropleth(vizContainer);
+          initMainStats(vizContainer, { timeout: 0 });
+        });
+      });
     }
   }
 
@@ -5994,6 +5818,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
       $("#vizKeyContainer").fadeIn();
       $(".map-fullscreen").fadeIn();
       introViz.fadeOut("slow");
+      VizConfig.mainViz.hijackSearch();
     }
 
     var intro = new Intro(introViz, {
@@ -6014,7 +5839,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     var mainViz = $('<div id="mainViz"></div>');
     vizContainer.append(mainViz);
 
-    new MainMap("#mainViz");
+    VizConfig.mainViz = new MainMap("#mainViz");
   }
 
   function initCaseStudies(vizContainer) {
@@ -6026,8 +5851,8 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
 
     var carouselDiv = $('<div id="carousel"></div>');
     var carouselFilters = $('<div class="filters"></div>');
-    var carouselPrev = $('<div class="button button-prev"></div>');
-    var carouselNext = $('<div class="button button-next"></div>');
+    var carouselPrev = $('<div class="arrowbutton button-prev"></div>');
+    var carouselNext = $('<div class="arrowbutton button-next"></div>');
     var carouselWrap = $('<div class="carousel-wrapper"></div>');
     carouselDiv.append(carouselPrev);
     carouselDiv.append(carouselNext);
@@ -6085,17 +5910,6 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
 
     var choropleth = new Choropleth("#choroplethViz", { isDesktopBrowser: (browser === "desktop") });
     choropleth.init();
-  }
-
-  function initExplorer(vizContainer) {
-    var explorerTitle = $('<h1>Technology focus areas and methods</h1>');
-    vizContainer.append(explorerTitle);
-
-    var explorerViz = $('<div id="explorerViz"></div>');
-    vizContainer.append(explorerViz);
-
-    var explorer = new Explorer("#explorerViz", { isDesktopBrowser: (browser === "desktop") });
-    explorer.init();
   }
 
   function initMainStats(vizContainer, settings) {
