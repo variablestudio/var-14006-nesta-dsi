@@ -345,12 +345,7 @@ var Carousel = (function() {
 				e.preventDefault();
 				e.stopPropagation();
 
-				if (this.DOM.popup.is(":visible")) {
-					this.caseStudyHide();
-				}
-				else {
-					this.caseStudyShow(data);
-				}
+				this.caseStudyShow(data);
 			}.bind(this));
 		}
 
@@ -511,9 +506,10 @@ var Carousel = (function() {
 		this.popup.images = data.popupImages;
 		this.popup.index = 0;
 
-		if (this.popup.images.length == 1) {
+		if (this.popup.images.length === 1) {
 			this.DOM.popupButtonNext.hide();
 			this.DOM.popupButtonPrev.hide();
+
 			this.updateImage();
 		}
 		else if (this.popup.images.length > 0) {
