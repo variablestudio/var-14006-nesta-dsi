@@ -2375,7 +2375,7 @@ var Choropleth = (function() {
 	return Choropleth;
 }());
 
-	/*global d3, $, fn, SPARQLDataSource, VizConfig */
+	/*global d3, $, fn, Q, SPARQLDataSource, VizConfig */
 
 function MainStats(dom, settings) {
 	this.domName = dom;
@@ -2391,9 +2391,7 @@ function MainStats(dom, settings) {
 		{
 			predicate: "ds:technologyMethod",
 			name: "Technology Method",
-			image: [
-				VizConfig.assetsPath + "/iconchart-techmethod.png",
-			],
+			image: VizConfig.assetsPath + "/iconchart-techmethod.png",
 			imageSize: { width: 85/4, height: 69/4 },
 			width: 124,
 			margin: 4
@@ -2432,6 +2430,15 @@ function MainStats(dom, settings) {
 			margin: 4,
 			layout: "hex"
 		},
+
+		{
+			predicate: "ds:areaOfSociety",
+			name: "Areas of Society",
+			image: VizConfig.assetsPath + "/iconchart-asterix.png",
+			imageSize: { width: 56/4, height: 56/4 },
+			width: 124,
+			margin: 4
+		}
 	];
 
 	// unfortunately cities need to be separate
