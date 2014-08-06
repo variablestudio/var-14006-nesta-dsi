@@ -254,7 +254,8 @@
 #map-overlay .more {
   font-size: 90%;
   color: black;
-  margin-top: 10px;
+  margin-top: 50px;
+  display: block;
 }
 
 #map-overlay .close {
@@ -269,7 +270,7 @@
 
 #map-overlay .tech-areas {
   height: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 50px;
 }
 
 #map-overlay .tech-areas > div {
@@ -1098,11 +1099,11 @@
     margin-right: 20px;
   }
 
-	.tablet #carousel-popup {
-		position: fixed;
-		width: 792px;
-		height: 332px;
-	}
+  .tablet #carousel-popup {
+    position: fixed;
+    width: 792px;
+    height: 332px;
+  }
 
   .tablet #countriesViz .map {
     margin-right: 8px;
@@ -1181,11 +1182,11 @@
     margin-top: 10px;
   }
 
-	.tablet #carousel-popup {
-		position: fixed;
-		width: 632px;
-		height: 278px;
-	}
+  .tablet #carousel-popup {
+    position: fixed;
+    width: 632px;
+    height: 278px;
+  }
 }
 
 @media (max-width: 641px) {
