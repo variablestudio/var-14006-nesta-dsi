@@ -204,7 +204,7 @@ var Choropleth = (function() {
 				VizConfig.tooltip.html(html);
 				VizConfig.tooltip.show();
 			})
-			.on("mouseout", function(d) {
+			.on("mouseout", function() {
 				VizConfig.tooltip.hide();
 			})
 			.on("click", function(d) {
@@ -222,7 +222,7 @@ var Choropleth = (function() {
 					}).join("");
 
 					VizConfig.popup.html(popupContent);
-					VizConfig.popup.open(rectOffset.x, rectOffset.y, windowOffset.left, windowOffset.top);
+					VizConfig.popup.open(rectOffset.x, rectOffset.y, windowOffset.left, windowOffset.top, { closeOnClick: true });
 				}
 			}.bind(this));
 

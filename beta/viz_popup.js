@@ -7,24 +7,20 @@ function VizPopup() {
   this.content.text('');
 }
 
-VizPopup.prototype.open = function(x, y, dx, dy, zoom) {
-  var scale = zoom ? zoom.scale() : 1;
-  var translate = zoom ? zoom.translate() : [ 0, 0 ];
+VizPopup.prototype.open = function(x, y, dx, dy, settings) {
+  settings = settings || {};
+  var closeOnClick = !!settings.closeOnClick;
 
   setTimeout(function() {
-    var nx = x * scale + dx + translate[0];
-    var ny = y * scale + dy + translate[1];
+    var nx = x + dx;
+    var ny = y + dy;
     this.setPosition(nx, ny);
     this.vizPopup.fadeIn();
-  }.bind(this), 10);
 
-  if (zoom) {
-    zoom.on('zoom.popup', function() {
-      var nx = x * zoom.scale() + dx + zoom.translate()[0];
-      var ny = y * zoom.scale() + dy + zoom.translate()[1];
-      this.setPosition(nx, ny);
-    }.bind(this));
-  }
+    if (closeOnClick) {
+      this.vizPopup.one("click", function() { this.close(); }.bind(this));
+    }
+  }.bind(this), 10);
 }
 
 VizPopup.prototype.close = function() {
