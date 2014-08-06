@@ -583,6 +583,10 @@ label {
 	font-size: 14px;
 }
 
+#page.funding-and-support .item .item-content p {
+	height: 6.65em;
+}
+
 #page.funding-and-support .item .item-content h4 {
 	margin-top: 0;
 }
@@ -603,10 +607,12 @@ label {
 
 #page.research .items {
 	padding: 20px;
+	box-sizing: border-box;
+
 }
 
-#page.research .items:nth-child(2n) {
-	background-color: #F2F2F2;
+.description + .items {
+	margin-top: 40px;
 }
 
 #page.research .item {
@@ -694,19 +700,129 @@ label {
 	text-decoration: none;
 	color: #333;
 	text-align: right;
-	margin-bottom: 8px;
+	font-size:0; /* remove white space around search icon */
+}
+
+.nav-bar .search form {
+	padding-right: 42px;
 }
 
 .nav-bar .search #q {
 	border: 2px solid #eee;
 	outline: 0;
-	width: 678px;
+	width: 590px;
 	margin: 0;
 	font-size: 14px;
 	font-family: "Scene Std Medium",sans-serif;
 	padding: 12px;
+
 }
 
+.footer {
+	clear: both;
+	background: #111;
+
+	font-family: 'Scene Std Medium', sans-serif;
+	font-size: 14px;
+}
+
+.footer .container {
+	width: 994px;
+}
+
+.footer .logos {
+	text-align: center;
+	padding: 48px 0;
+}
+
+.footer .logos a:first-child,
+.footer .logos a:last-child {
+	padding-left: 0;
+}
+
+.footer .logos a {
+	vertical-align: middle;
+	padding: 12px 22px;
+	display: inline-block;
+}
+
+.footer .contact {
+	padding: 12px 0 48px;
+	text-align: center;
+}
+
+.footer .contact a {
+	margin: 0 12px;
+}
+
+.footer .credits:after {
+	clear: both
+}
+
+.footer .credits:before, .footer .credits:after {
+	content: '\0020';
+	display: block;
+	overflow: hidden;
+	visibility: hidden;
+	width: 0;
+	height: 0
+}
+
+.footer .credits {
+	border-top: 2px solid rgba(255,255,255,0.25);
+	padding: 24px 0;
+	font-size: 14px;
+	color: #fff;
+	zoom: 1;
+}
+
+.footer .credits .copy {
+	float: left;
+}
+
+.footer .credits .cc {
+	vertical-align: middle;
+	display: inline-block;
+	height: 24px;
+	width: 24px;
+	margin-right: 2px;
+}
+
+.footer .credits a {
+	text-decoration: none;
+	color: #fff;
+}
+
+.footer .credits .links {
+	float: right;
+	line-height: 32px
+}
+
+.footer .credits .links a {
+	margin-left: 12px
+}
+
+.footer .credits .cc {
+	vertical-align: middle;
+	display: inline-block;
+	height: 24px;
+	width: 24px;
+	margin-right: 2px
+}
+
+.footer .credits .cc img {
+	height: 24px;
+	width: 24px
+}
+
+.footer .contact {
+	padding: 12px 0 48px;
+	text-align: center
+}
+
+.footer .contact a {
+	margin: 0 12px
+}
 
 @media only screen and (min-width:768px) and (max-width:959px) {
 	.right {
