@@ -100,7 +100,7 @@ VizConfig.organisationTypeById = {
   "government-and-public-sector": VizConfig.organisationType[4]
 };
 
-VizConfig.initialMapHeight = Math.max(420, Math.min(window.innerHeight - 360, 500));
+VizConfig.initialMapHeight = Math.max(500, Math.min(window.innerHeight - 360, 500));
 
 VizConfig.technologyFocusesById['open-hardware'].info = 'New ways of making and using open hard­ware solutions and moving towards and Open Source Internet of Things';
 VizConfig.technologyFocusesById['open-networks'].info = 'Innovative combinations of network solutions and infrastructures, e.g. sensor net­works, free interoperable network services, open Wifi, bottom-up-broadband, distribut­ed social networks, p2p infrastructures';
