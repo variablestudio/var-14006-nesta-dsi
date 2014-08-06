@@ -112,8 +112,8 @@
   background: #808080;
 }
 
-#introVizContent .introColumn .exploreBtn:hover,
-#introVizContent .introColumn .mapBtn:hover {
+.desktop #introVizContent .introColumn .exploreBtn:hover,
+.desktop #introVizContent .introColumn .mapBtn:hover {
  background: rgba(28, 175, 175, 1);
 }
 
