@@ -5751,6 +5751,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     var urlIsLocalhost = (url.match(/localhost/) !== null);
     var urlIsVariableIO = (url.match(/variable\.io/) !== null);
     var urlIsOrganisation = (url.match(/\/organisations\//) !== null && url.match(/\/organisations\/build\//) == null);
+    var urlIsSearch = (url.match(/\/organisations-and-projects/) !== null);
 
     var urlIsBeta = (url.match(/\/beta/) !== null);
     var urlIsLive = url == "http://digitalsocial.eu/";
@@ -5785,6 +5786,9 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
 
       // FIXME: temporary solution, assets paths should be changed directly in css
       //updateCSSAssetPaths();
+    }
+    else if (urlIsSearch) {
+      initVizKeyForOrg();
     }
   }
 
@@ -5939,6 +5943,14 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     });
   }
 
+  function initVizKeyForOrg() {
+    VizConfig.vizKey = new VizKey({
+      open: false,
+      showMore: false,
+      className: "organisations"
+    });
+  }
+
   function initOrgStats(orgId) {
     var divs = {
       "dsi": ".viz-1",
@@ -5946,11 +5958,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
       "collaborators": ".viz-3"
     };
 
-    VizConfig.vizKey = new VizKey({
-      open: false,
-      showMore: false,
-      className: "organisations"
-    });
+    initVizKeyForOrg();
 
     var stats = new Stats(divs, orgId);
     stats.init();
