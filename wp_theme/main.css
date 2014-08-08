@@ -700,7 +700,9 @@ label {
 	text-decoration: none;
 	color: #333;
 	text-align: right;
-	font-size:0; /* remove white space around search icon */
+	height: 40px;
+	line-height: 44px;
+	font-size: 28px;
 }
 
 .nav-bar .search form {
