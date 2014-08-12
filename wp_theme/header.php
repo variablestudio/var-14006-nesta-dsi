@@ -4,6 +4,10 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 	<meta charset="UTF-8">
 	<title>Digital Social Innovation | <?php wp_title('| ',true,'right'); ?></title>
+	<style type="text/css">
+		@font-face {font-family: 'Scene Std Bold';src: url('http://digitalsocial.eu/webfonts/2B4DC2_0_0.eot');src: url('http://digitalsocial.eu/webfonts/2B4DC2_0_0.eot?#iefix') format('embedded-opentype'),url('http://digitalsocial.eu/webfonts/2B4DC2_0_0.woff') format('woff'),url('http://digitalsocial.eu/webfonts/2B4DC2_0_0.ttf') format('truetype');}
+		@font-face {font-family: 'Scene Std Medium';src: url('http://digitalsocial.eu/webfonts/2B4DC2_1_0.eot');src: url('http://digitalsocial.eu/webfonts/2B4DC2_1_0.eot?#iefix') format('embedded-opentype'),url('http://digitalsocial.eu/webfonts/2B4DC2_1_0.woff') format('woff'),url('http://digitalsocial.eu/webfonts/2B4DC2_1_0.ttf') format('truetype');}
+	</style>
 	<link rel="stylesheet" href="<?php bloginfo('template_directory'); ?>/style.css" type="text/css" media="screen" />
 	<meta content="authenticity_token" name="csrf-param" />
 	<meta content="8gevuJo88cmM/FmKPVwxf2hxWsgx18PkQiRPWPGP9ic=" name="csrf-token" />
