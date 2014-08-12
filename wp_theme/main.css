@@ -749,6 +749,10 @@ label {
 	padding: 48px 0;
 }
 
+.footer .logos+.logos {
+	padding-top: 0;
+}
+
 .footer .logos a:first-child,
 .footer .logos a:last-child {
 	padding-left: 0;
@@ -758,6 +762,7 @@ label {
 	vertical-align: middle;
 	padding: 12px 22px;
 	display: inline-block;
+	width: 140px;
 }
 
 .footer .contact {
