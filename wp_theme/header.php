@@ -31,7 +31,7 @@
 <div class='container'>
 
 <div class='nav-bar'>
-<a href='http://digitalsocial.eu/'><img alt="Dsi-logo-small" src="http://digitalsocial.eu/assets/logo/white/dsi-logo-small-7835211e734a29b273bb4c52b64deded.png" /></a>
+<a href='http://digitalsocial.eu/'><img alt="Dsi-logo-small" src="http://digitalsocial.eu/assets/logo/white/dsi-8c1449cf94fe315a853fd9a5d99eaf45.png" /></a>
 
 <?php wp_nav_menu( array( 'theme_location' => 'first-menu', 'container' => '', 'items_wrap' => '<ul class="header-links">%3$s</ul>' ) ); ?>
 
