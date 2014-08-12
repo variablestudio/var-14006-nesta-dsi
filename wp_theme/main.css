@@ -695,6 +695,10 @@ label {
 	color: #999;
 }
 
+.nav-bar {
+	font-family: "Scene Std Medium",sans-serif;
+}
+
 .nav-bar .search a {
 	display: block;
 	text-decoration: none;

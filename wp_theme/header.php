@@ -42,7 +42,7 @@
 <i class='icon-search' style='font-size: 20px;'></i>
 </a>
 <form action='http://digitalsocial.eu/organisations-and-projects' method='get'>
-<input id="q" name="q" placeholder="Type your search term and press Enter..." style="display: none;" type="text" />
+<input id="q" name="q" placeholder="Search Organisation or Project" style="display: none;" type="text" />
 </form>
 </div>
 

@@ -38,7 +38,7 @@ function MainStats(dom, settings) {
 			predicate: "ds:organizationType",
 			name: "Organization Type",
 			image: VizConfig.assetsPath + "/iconchart-hex.png",
-			imageSize: { width: 51/4, height: 61/4 },
+			imageSize: { width: 58/4, height: 66/4 },
 			width: 124,
 			margin: 4,
 			layout: "hex"

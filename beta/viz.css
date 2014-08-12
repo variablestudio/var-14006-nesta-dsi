@@ -9,6 +9,7 @@
 .nav-bar .search > a {
   width: 20px;
   float: right;
+  text-align: right;
 }
 
 /*---------------------------------- viz -------------------------------------*/
@@ -684,6 +685,10 @@
   color: #9B9B9B;
 }
 
+#mainStatsViz div.section-organizationType div.name {
+  height: 66px;
+}
+
 /*---------------------------------- key ----------------------------------------*/
 
 #vizKeyContainer {
@@ -766,12 +771,20 @@
   width: 220px;
 }
 
+#vizKeySideBar .section:first-child {
+  margin-top: 0;
+}
+
 .organisations #vizKeySideBar .section {
   background: white;
   color: black;
   border: 1px solid black;
   width: 218px;
   padding-bottom: 8px;
+}
+
+.organisations #vizKeySideBar .section:last-child {
+  padding-bottom: 9px;
 }
 
 #vizKeySideBar .section.more {
@@ -880,15 +893,15 @@
 }
 
 .main #vizKeyThumb  {
-  top: 240px;
-  left: -17px;
-  width: 505px;
+  top: 239px;
+  left: -18px;
+  width: 506px;
 }
 
 .organisations #vizKeyThumb  {
   top: 286px;
   left: -62px;
-  width: 599px;
+  width: 600px;
 
   background: white;
   color: black;

@@ -6,7 +6,7 @@ function VizKey(settings) {
   var shouldStartOpen = !!settings.open;
   var shouldDisplayMoreFilters = !!settings.showMore;
   var className = this.className = settings.className || "main";
-  var thumbTitle = className === "main" ? "More Filters" : "Hide Key";
+  var thumbTitle = className === "main" ? "More Filters" : "Close Key";
 
   var updateFilters = this.updateFilters.bind(this);
   this.activeFilters = [];
@@ -110,7 +110,7 @@ function VizKey(settings) {
 }
 
 VizKey.prototype.open = function() {
-  var thumbTitle = this.className === "main" ? "More Filters" : "Hide Filters";
+  var thumbTitle = this.className === "main" ? "More Filters" : "Close Key";
 
   this.vizKeyContainer.addClass('open');
   this.thumb.children('span').text(thumbTitle);
@@ -119,7 +119,7 @@ VizKey.prototype.open = function() {
 
 VizKey.prototype.close = function() {
   this.vizKeyContainer.removeClass('open');
-  this.thumb.children('span').text('Open Filters');
+  this.thumb.children('span').text('Open Key');
 
   this.thumb.animate({ left: "-64px" });
   this.vizKeyContainer.animate({ left: "-220px" });
