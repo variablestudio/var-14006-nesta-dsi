@@ -25,8 +25,8 @@
 <div id='header'>
 <div id='header-content'>
 <div id='user-info'>
-<a class='current-user' href="/users/sign_in">Log in</a>
-|
+<a class='current-user' href="/users/sign_in">Log in</a> 
+| 
 <a href="/organisations/build/new_user">Register your organisation</a>
 </div>
 </div>
@@ -35,9 +35,10 @@
 <div class='container'>
 
 <div class='nav-bar'>
-<a href='http://digitalsocial.eu/'><img alt="Dsi-logo-small" src="http://digitalsocial.eu/assets/logo/white/dsi-8c1449cf94fe315a853fd9a5d99eaf45.png" /></a>
 
 <?php wp_nav_menu( array( 'theme_location' => 'first-menu', 'container' => '', 'items_wrap' => '<ul class="header-links">%3$s</ul>' ) ); ?>
+
+<a href='http://digitalsocial.eu/'><img alt="Dsi-logo-small" src="http://digitalsocial.eu/assets/logo/white/dsi-8c1449cf94fe315a853fd9a5d99eaf45.png" /></a>
 
 <div class='search'>
 

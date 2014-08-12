@@ -1382,7 +1382,7 @@
 	position:relative;
 	margin:0 auto;
 	padding:0;
-	width:960px
+	width:994px
 }
 .container:after
 {
@@ -1539,22 +1539,24 @@
 }
 #user-info
 {
-	width: 940px;
+	width: 994px;
 	margin: 0 auto;
 	text-align: right;
-	color: #fff;
 	font-family: "Scene Std Medium", sans-serif;
 	font-size: 13px;
-	color: rgba(255,255,255,0.35);
+	color: #999;
 }
 
 #user-info a
 {
 	text-align: right;
-	margin: 0 auto;
-
+	margin: 0 6px;
 	text-decoration: none;
 	color: rgba(255,255,65,0.9);
+}
+
+#user-info a:last-child {
+	margin-right:0
 }
 
 	@media only screen and (max-width:767px)
@@ -5723,8 +5725,9 @@
 {
 	/* float:left */
 	position: absolute;
-	top: 70px;
+	top: 69px;
 	right: 0;
+	width: 710px;
 }
 	@media only screen and (max-width:959px)
 {
@@ -5734,6 +5737,7 @@
 }
 
 }
+
 .nav-bar .search form .input input
 {
 	width: 260px;
@@ -5759,7 +5763,6 @@
 }
 .nav-bar>a
 {
-	padding:9px 36px 3px 9px;
 	display:inline-block;
 }
 .nav-bar ul.header-links

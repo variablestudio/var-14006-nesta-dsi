@@ -703,10 +703,17 @@ label {
 	display: block;
 	text-decoration: none;
 	color: #333;
-	text-align: right;
+	text-align: center;
 	height: 40px;
+	width: 40px;
+	margin-top: 0em;
 	line-height: 44px;
 	font-size: 28px;
+	float: right;
+}
+
+.nav-bar .search a i {
+	margin-right: 0;
 }
 
 .nav-bar .search form {
@@ -716,11 +723,12 @@ label {
 .nav-bar .search #q {
 	border: 2px solid #eee;
 	outline: 0;
-	width: 590px;
+	width: 644px;
 	margin: 0;
 	font-size: 14px;
 	font-family: "Scene Std Medium",sans-serif;
 	padding: 12px;
+	margin-top: 40px;
 
 }
 
