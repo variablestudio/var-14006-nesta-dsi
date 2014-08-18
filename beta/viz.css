@@ -496,12 +496,15 @@
 
 #carousel-popup .images {
   float: left;
-  width: 60%;
+  width: 594px;
+  height: 335px;
   margin: 2%;
+  position: relative;
 }
 
 #carousel-popup .images img {
-  width: 100%;
+  width: 594px;
+  height: 335px;
 }
 
 #carousel-popup .button-next,
@@ -542,6 +545,44 @@
 #carousel-popup .content::-webkit-scrollbar-track { 
     background-color: #fff; 
     border-radius: 8px; 
+}
+
+#carousel-popup .images-ui {
+  position: absolute;
+  right: 0;
+  bottom: 3px;
+  overflow: auto;
+}
+
+#carousel-popup .images-ui-counter,
+#carousel-popup .images-ui-next,
+#carousel-popup .images-ui-prev {
+  width: 30px;
+  height: 30px;
+  background: rgba(100, 100, 100, 0.5);
+  float: left;
+  box-sizing: border-box;
+  font-size: 12px;
+  padding: 0.8em 0.1em;
+  text-align: center;
+  color: white;
+  cursor: pointer;
+}
+
+#carousel-popup .images-ui-counter:hover ,
+#carousel-popup .images-ui-next:hover ,
+#carousel-popup .images-ui-prev:hover  {
+  background: rgba(150, 150, 150, 0.5);
+}
+
+#carousel-popup .images-ui-next {
+  padding: 0.4em 0.5em;
+  font-size: 16px;
+}
+
+#carousel-popup .images-ui-prev {
+  padding: 0.4em 0.5em;
+  font-size: 16px;
 }
 
 /*---------------------------------- eu countries -------------------------------------*/
