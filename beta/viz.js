@@ -76,7 +76,6 @@
     vizContainer.append(introViz);
 
     $("#vizKeyContainer").hide();
-    $(".map-fullscreen").hide();
 
     function onExplore() {
       $("#vizKeyContainer").fadeIn();

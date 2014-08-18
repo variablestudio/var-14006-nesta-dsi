@@ -231,6 +231,8 @@ var MainMap = (function() {
       }.bind(this))
     );
 
+    $(".map-fullscreen").hide();
+
     // map redraws including zoom
     this.map.leaflet.on("zoomstart", function() {
       VizConfig.popup.close();
