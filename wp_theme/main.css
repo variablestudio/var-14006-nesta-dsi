@@ -625,6 +625,10 @@ label {
 	font-size: 14px;
 }
 
+#page.research .item:nth-child(3n+2) {
+	clear: left;
+}
+
 #page.research .item p > a:not(:first-child) {
 	text-decoration: underline;
 }
