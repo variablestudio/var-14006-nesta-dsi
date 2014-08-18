@@ -808,8 +808,14 @@ var Carousel = (function() {
 				"<div class=\"arrowbutton button-next\"></div>",
 				"<div class=\"title\"></div>",
 				"<div class=\"content-container\">",
-					"<div class=\"images\"></div>",
-					"<div class=\"content\"></div>",
+					"<div class=\"images\">",
+						"<div class=\"images-ui\">",
+							"<div class=\"images-ui-counter\">1/10</div>",
+							"<div class=\"images-ui-prev\">≺</div>",
+							"<div class=\"images-ui-next\">≻</div>",
+						"</div>",
+					"</div>",
+					"<div class=\"content\">Type of Organisation: Grassroots communities Aim: Health and wellbeing, Energy and environment, Participation and democracyTechnology Trends: Open Networks, Open Hardware, Open Data, Ope</div>",
 				"</div>",
 			"</div>"
 		].join("");
@@ -832,7 +838,10 @@ var Carousel = (function() {
 			"buttonPrev": DOMElements.buttonPrev,
 			"popup": popup,
 			"popupButtonPrev": popup.find(".button-prev"),
-			"popupButtonNext": popup.find(".button-next")
+			"popupButtonNext": popup.find(".button-next"),
+			"popupSmallButtonPrev": popup.find(".images-ui-prev"),
+			"popupSmallButtonNext": popup.find(".images-ui-next"),
+			"popupSmallCounter": popup.find(".images-ui-counter")
 		};
 
 		this.popup = {
@@ -942,6 +951,22 @@ var Carousel = (function() {
 		}.bind(this));
 
 		this.DOM.popupButtonNext.on("click touchstart", function(e) {
+			e.preventDefault();
+			e.stopPropagation();
+
+			this.popup.index = (this.popup.index + 1) % this.popup.images.length;
+			this.updateImage();
+		}.bind(this));
+
+		this.DOM.popupSmallButtonPrev.on("click touchstart", function(e) {
+			e.preventDefault();
+			e.stopPropagation();
+
+			this.popup.index = (this.popup.index - 1) < 0 ? (this.popup.images.length - 1) : (this.popup.index - 1);
+			this.updateImage();
+		}.bind(this));
+
+		this.DOM.popupSmallButtonNext.on("click touchstart", function(e) {
 			e.preventDefault();
 			e.stopPropagation();
 
@@ -1169,7 +1194,7 @@ var Carousel = (function() {
 
 	// prepare data from WP API
 	Carousel.prototype.parseData = function(data) {
-		return data.page.children
+		var result = data.page.children
 			.map(function(data) {
 				var coverImage = null;
 				var logoImage = null;
@@ -1243,6 +1268,8 @@ var Carousel = (function() {
 			})
 			// TODO: temporarily skip case studies with missing images
 			.filter(function(caseStudy) {
+				if (!caseStudy.coverImage) { console.log('ERROR ', caseStudy.name, ' is missing COVER'); ; }
+				if (!caseStudy.logoImage) { console.log('ERROR ', caseStudy.name, ' is missing LOGO'); }
 				return caseStudy.coverImage && caseStudy.logoImage;
 			})
 			.sort(function(a, b) {
@@ -1255,6 +1282,8 @@ var Carousel = (function() {
 
 				return returnVal;
 			});
+
+			return result
 	};
 
 	// display popup
@@ -1300,18 +1329,27 @@ var Carousel = (function() {
 		if (this.popup.images.length === 1) {
 			this.DOM.popupButtonNext.hide();
 			this.DOM.popupButtonPrev.hide();
+			this.DOM.popupSmallButtonNext.hide();
+			this.DOM.popupSmallButtonPrev.hide();
+			this.DOM.popupSmallCounter.hide();
 
 			this.updateImage();
 		}
 		else if (this.popup.images.length > 0) {
 			this.DOM.popupButtonNext.show();
 			this.DOM.popupButtonPrev.show();
+			this.DOM.popupSmallButtonNext.show();
+			this.DOM.popupSmallButtonPrev.show();
+			this.DOM.popupSmallCounter.show();
 
 			this.updateImage();
 		}
 		else {
 			this.DOM.popupButtonNext.hide();
 			this.DOM.popupButtonPrev.hide();
+			this.DOM.popupSmallButtonNext.hide();
+			this.DOM.popupSmallButtonPrev.hide();
+			this.DOM.popupSmallCounter.hide();
 
 			if (this.popup.images.length > 0) {
 				this.updateImage();
@@ -1341,9 +1379,12 @@ var Carousel = (function() {
 
 	Carousel.prototype.updateImage = function() {
 		var imageIndex = this.popup.index;
-		var img = "<img src=\"" + this.popup.images[imageIndex].url + "\"/>";
+		var img = $("<img src=\"" + this.popup.images[imageIndex].url + "\"/>");
 
-		this.DOM.popup.find(".images").html(img);
+		this.DOM.popup.find(".images").find('img').remove();
+		this.DOM.popup.find(".images").append(img);
+
+		this.DOM.popupSmallCounter.text((this.popup.index+1) + '/' + (this.popup.images.length));
 	};
 
 	Carousel.prototype.updateFiltersText = function() {
@@ -3517,6 +3558,8 @@ var MainMap = (function() {
         this.map.fullscreen = !this.map.fullscreen;
       }.bind(this))
     );
+
+    $(".map-fullscreen").hide();
 
     // map redraws including zoom
     this.map.leaflet.on("zoomstart", function() {
@@ -5820,7 +5863,6 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     vizContainer.append(introViz);
 
     $("#vizKeyContainer").hide();
-    $(".map-fullscreen").hide();
 
     function onExplore() {
       $("#vizKeyContainer").fadeIn();
