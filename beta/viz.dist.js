@@ -5867,6 +5867,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     function onExplore() {
       $("#vizKeyContainer").fadeIn();
       $(".map-fullscreen").fadeIn();
+      $(".leaflet-control-container").show();
       introViz.fadeOut("slow");
       VizConfig.mainViz.hijackSearch();
     }
@@ -5890,6 +5891,10 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     vizContainer.append(mainViz);
 
     VizConfig.mainViz = new MainMap("#mainViz");
+
+    if (showIntro) {
+      $(".leaflet-control-container").hide();
+    }
   }
 
   function initCaseStudies(vizContainer) {

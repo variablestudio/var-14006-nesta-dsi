@@ -80,6 +80,7 @@
     function onExplore() {
       $("#vizKeyContainer").fadeIn();
       $(".map-fullscreen").fadeIn();
+      $(".leaflet-control-container").show();
       introViz.fadeOut("slow");
       VizConfig.mainViz.hijackSearch();
     }
@@ -103,6 +104,10 @@
     vizContainer.append(mainViz);
 
     VizConfig.mainViz = new MainMap("#mainViz");
+
+    if (showIntro) {
+      $(".leaflet-control-container").hide();
+    }
   }
 
   function initCaseStudies(vizContainer) {
