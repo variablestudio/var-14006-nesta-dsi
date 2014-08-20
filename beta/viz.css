@@ -550,7 +550,6 @@
 #carousel-popup .images-ui {
   position: absolute;
   right: 0;
-  bottom: 3px;
   overflow: auto;
 }
 
