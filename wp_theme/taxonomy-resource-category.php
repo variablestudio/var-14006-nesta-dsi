@@ -60,7 +60,7 @@
 		<?php
 			if (have_posts()) {
 				$categories = array(
-					"research-results" => "Resarch Results",
+					"research-results" => "Research Results",
 					"factsheet-and-postcard" => "Factsheet and postcard",
 					"presentations" => "Presentations"
 				);
