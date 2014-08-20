@@ -5922,7 +5922,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
   }
 
   function initEUCountries(vizContainer) {
-    var euCountriesTitle = $('<h1 id="countriesVizTitle">EU Countries with the most DSI Projects <a href="#">(Show all)</a></h1>');
+    var euCountriesTitle = $('<h1 id="countriesVizTitle">Countries with the most DSI Projects <a href="#">(Show all)</a></h1>');
     vizContainer.append(euCountriesTitle);
 
     var numEuCountries = browser === "desktop" ? 8 : 6;
