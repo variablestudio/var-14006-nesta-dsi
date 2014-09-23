@@ -1785,9 +1785,14 @@ Intro.prototype.runOrgQuery = function() {
     .prefix('rdfs:', '<http://www.w3.org/2000/01/rdf-schema#>')
     .prefix('rdf:', '<http://www.w3.org/1999/02/22-rdf-syntax-ns#>')
     .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
-    .select('?org_label')
+    .select('DISTINCT ?org_label')
     .where('?org', 'a', 'o:Organization')
+    .where('?org', 'ds:organizationType', '?org_type')
     .where('?org', 'rdfs:label', '?org_label')
+    .where('?activity_membership', 'ds:organization', '?org')
+    .where('?activity_membership', 'a', 'ds:ActivityMembership')
+    .where('?activity_membership', 'ds:activity', '?activity')
+    .where('?activity', 'rdfs:label', '?activity_label')
     .execute();
 };
 
