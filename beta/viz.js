@@ -23,10 +23,11 @@
 
       // draw organisation stats
       initOrgStats(orgId);
+      initOrgListIcons("org");
     }
     else if (urlIsOrganisationList) {
       initVizKeyForOrg();
-      initOrgListIcons();
+      initOrgListIcons("list");
     }
     else if (urlIsLocalhost || urlIsVariableIO || urlIsBeta || urlIsLive) {
       var mainContainer = document.getElementById('main');
@@ -228,10 +229,17 @@
     initTooltip();
   }
 
-  function initOrgListIcons() {
-    var div = "#search .container";
-    var orgList = new OrganisationsList(div);
+  function initOrgListIcons(type) {
+    var div;
 
+    if (type === "list") {
+      div = "#search .container";
+    }
+    else {
+      div = ".associations .container";
+    }
+
+    var orgList = new OrganisationsList(type, div);
     orgList.init();
   };
 

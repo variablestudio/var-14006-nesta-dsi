@@ -27,6 +27,7 @@ module.exports = function(grunt) {
           'viz_key.js', //key filters sidebar
           'viz_main_map.js', //main map with connections
           "viz_organisation.js", //organisation page visualizations
+          "viz_org_list.js", // organisations and projects list data-driven icons
           'viz_config.js',
           "viz.js" //main
         ],

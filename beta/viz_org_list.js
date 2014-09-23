@@ -21,13 +21,23 @@ var OrganisationsList = (function() {
     }, []);
   };
 
-  function OrganisationsList(div) {
+  function OrganisationsList(type, div) {
     div = $(div);
 
-    this.DOM = {
-      projects: div.find(".proj.result"),
-      orgs: div.find(".org.result")
-    };
+    this.type = type || "list"; // list - /organisations-and-projects/, org - /organisations/
+
+    if (type === "list") {
+      this.DOM = {
+        projects: div.find(".proj.result"),
+        orgs: div.find(".org.result")
+      };
+    }
+    else {
+      this.DOM = {
+        projects: div.find(".left-column li"),
+        orgs: div.find(".right-column li")
+      }
+    }
   }
 
   OrganisationsList.prototype.init = function() {
@@ -38,18 +48,19 @@ var OrganisationsList = (function() {
   OrganisationsList.prototype.processOrgs = function() {
     this.DOM.orgs.each(function(i, el) {
       var $el = $(el);
+      var a = $el.find("a").first();
 
-      var url = $el.find("a").attr("href");
+      var url = a.attr("href");
       var orgId = url.split("/")[2];
 
       this.getOrgData(orgId, function(data) {
-        $el.find("a").prepend("<svg>");
+        a.prepend("<svg>");
 
         var svg = d3.select($el.find("svg")[0])
           .style("vertical-align", "middle")
           .attr("width", 43)
           .attr("height", 44);
-        $el.find("img").remove();
+        $el.find("img").first().remove();
 
         var node = svg.selectAll(".org")
           .data([ data ])
@@ -160,17 +171,19 @@ var OrganisationsList = (function() {
     this.DOM.projects.each(function(i, el) {
       var $el = $(el);
 
-      var url = $el.find("a").attr("href");
+      var a = $el.find("a").first();
+
+      var url = a.attr("href");
       var projId = url.split("/")[2];
 
       this.getProjectData(projId, function(data) {
-        $el.find("a").prepend("<svg>");
+        a.prepend("<svg>");
 
         var svg = d3.select($el.find("svg")[0])
           .style("vertical-align", "middle")
           .attr("width", 43)
           .attr("height", 44);
-        $el.find("img").remove();
+        $el.find("img").first().remove();
 
         var node = svg.selectAll(".org")
           .data([ data ])
