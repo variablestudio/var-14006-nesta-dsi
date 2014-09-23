@@ -6140,11 +6140,11 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
       initPopup();
       initTooltip();
 
+      initVisualizations(vizContainer);
+
       if (showIntro) {
         initIntroViz(vizContainer);
       }
-
-      initVisualizations(vizContainer);
 
       // FIXME: temporary solution, assets paths should be changed directly in css
       //updateCSSAssetPaths();
