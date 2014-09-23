@@ -7,7 +7,7 @@
     var urlIsLocalhost = (url.match(/localhost/) !== null);
     var urlIsVariableIO = (url.match(/variable\.io/) !== null);
     var urlIsOrganisation = (url.match(/\/organisations\//) !== null && url.match(/\/organisations\/build\//) == null);
-    var urlIsSearch = (url.match(/\/organisations-and-projects/) !== null);
+    var urlIsOrganisationList = (url.match(/\/organisations-and-projects/) !== null);
 
     var urlIsBeta = (url.match(/\/beta/) !== null);
     var urlIsLive = url == "http://digitalsocial.eu/";
@@ -23,6 +23,10 @@
 
       // draw organisation stats
       initOrgStats(orgId);
+    }
+    else if (urlIsOrganisationList) {
+      initVizKeyForOrg();
+      initOrgListIcons();
     }
     else if (urlIsLocalhost || urlIsVariableIO || urlIsBeta || urlIsLive) {
       var mainContainer = document.getElementById('main');
@@ -42,9 +46,6 @@
 
       // FIXME: temporary solution, assets paths should be changed directly in css
       //updateCSSAssetPaths();
-    }
-    else if (urlIsSearch) {
-      initVizKeyForOrg();
     }
   }
 
@@ -226,6 +227,13 @@
     initPopup();
     initTooltip();
   }
+
+  function initOrgListIcons() {
+    var div = "#search .container";
+    var orgList = new OrganisationsList(div);
+
+    orgList.init();
+  };
 
   function updateCSSAssetPaths() {
     $("*").filter(function() {
