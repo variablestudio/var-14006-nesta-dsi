@@ -1446,7 +1446,7 @@ var Countries = (function() {
 			.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
 			.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
 			.prefix("reach:", "<http://data.digitalsocial.eu/def/ontology/reach/>")
-			.select("?label ?country ?adsi_label ?funds_invested")
+			.select("?label ?country ?adsi_label")
 			.where("?org", "a", "o:Organization")
 			.where("?am", "a", "ds:ActivityMembership")
 			.where("?am", "ds:organization", "?org")
@@ -1457,9 +1457,6 @@ var Countries = (function() {
 			.where("?org", "o:hasPrimarySite", "?org_site")
 			.where("?org_site", "o:siteAddress", "?org_address")
 			.where("?org_address", "vcard:country-name", "?country")
-			.where("?rv", "a", "ds:ReachValue")
-			.where("?rv", "ds:activityForReach", "?activity")
-			.where("?rv", "reach:fundsInvested", "?funds_invested", { optional: true })
 			.execute()
 			.then(function(results) {
 				// easier key acces
@@ -1467,14 +1464,7 @@ var Countries = (function() {
 					var newObject = {};
 					var key;
 					for (key in object) {
-						if (object.hasOwnProperty(key)) {
-							if (key === "lat" || key === "long" || key === "funds_invested") {
-								newObject[key] = +object[key].value;
-							}
-							else {
-								newObject[key] = object[key].value;
-							}
-						}
+						if (object.hasOwnProperty(key)) { newObject[key] = object[key].value; }
 					}
 
 					return newObject;
@@ -1687,16 +1677,6 @@ var Countries = (function() {
 		div.append("div")
 			.attr("class", "count")
 			.text(data.projects_count);
-	};
-
-	Countries.prototype.drawFunds = function(div, data) {
-		div.append("div")
-			.attr("class", "title")
-			.text("GRANTS");
-
-		div.append("div")
-			.attr("class", "count")
-			.text("\u00A3"+ (data.funds_invested / 1000000) + "m");
 	};
 
 	Countries.prototype.drawCountryName = function(div, data) {
@@ -5673,7 +5653,7 @@ var Stats = (function() {
 	return Stats;
 }());
 
-/*global fn, $, d3, SPARQLDataSource, VizConfig */
+/*global window, fn, $, d3, SPARQLDataSource, VizConfig */
 
 var OrganisationsList = (function() {
   var indexOfProp = function(data, prop, val) {
@@ -5707,17 +5687,19 @@ var OrganisationsList = (function() {
         orgs: div.find(".org.result")
       };
     }
-    else {
+    else if (type === "org") {
       this.DOM = {
         projects: div.find(".left-column li"),
         orgs: div.find(".right-column li")
-      }
+      };
     }
   }
 
   OrganisationsList.prototype.init = function() {
     this.processOrgs();
     this.processProjects();
+
+    if (this.type === "org") { this.updateOrgIcon(); }
   };
 
   OrganisationsList.prototype.processOrgs = function() {
@@ -5776,10 +5758,10 @@ var OrganisationsList = (function() {
       }.bind(this));
   };
 
-  OrganisationsList.prototype.makeHex = function(nodes) {
-    var r = 19;
-    var x = 19;
-    var y = 21;
+  OrganisationsList.prototype.makeHex = function(nodes, x, y, r) {
+    r = r || 19;
+    x = x || 19;
+    y = y || 21;
 
     function hexBite(x, y, r, i) {
       var a = i/6 * Math.PI * 2 + Math.PI/6;
@@ -5978,6 +5960,33 @@ var OrganisationsList = (function() {
     });
   };
 
+  OrganisationsList.prototype.updateOrgIcon = function() {
+    var divTitle = $(".container .title");
+    var orgId = window.location.href.split("/").pop().replace(/\.html$/, "");
+
+    this.getOrgData(orgId, function(data) {
+      divTitle.prepend("<svg>");
+
+      var svg = d3.select(divTitle.find("svg")[0])
+        .attr("width", 76)
+        .attr("height", 98);
+
+      divTitle.find("img").remove();
+
+      var node = svg.selectAll(".org")
+        .data([ data ])
+        .enter()
+        .append("g")
+        .attr("class", "org");
+
+      var x = 38;
+      var y = 44;
+      var r = 41;
+
+      this.makeHex(node, x, y, r);
+    }.bind(this));
+  };
+
   return OrganisationsList;
 }());
 
@@ -6137,7 +6146,6 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
       if (showIntro) {
         initIntroViz(vizContainer);
       }
-
       // FIXME: temporary solution, assets paths should be changed directly in css
       //updateCSSAssetPaths();
     }

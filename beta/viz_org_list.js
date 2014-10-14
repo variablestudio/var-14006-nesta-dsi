@@ -1,4 +1,4 @@
-/*global fn, $, d3, SPARQLDataSource, VizConfig */
+/*global window, fn, $, d3, SPARQLDataSource, VizConfig */
 
 var OrganisationsList = (function() {
   var indexOfProp = function(data, prop, val) {
@@ -32,17 +32,19 @@ var OrganisationsList = (function() {
         orgs: div.find(".org.result")
       };
     }
-    else {
+    else if (type === "org") {
       this.DOM = {
         projects: div.find(".left-column li"),
         orgs: div.find(".right-column li")
-      }
+      };
     }
   }
 
   OrganisationsList.prototype.init = function() {
     this.processOrgs();
     this.processProjects();
+
+    if (this.type === "org") { this.updateOrgIcon(); }
   };
 
   OrganisationsList.prototype.processOrgs = function() {
@@ -101,10 +103,10 @@ var OrganisationsList = (function() {
       }.bind(this));
   };
 
-  OrganisationsList.prototype.makeHex = function(nodes) {
-    var r = 19;
-    var x = 19;
-    var y = 21;
+  OrganisationsList.prototype.makeHex = function(nodes, x, y, r) {
+    r = r || 19;
+    x = x || 19;
+    y = y || 21;
 
     function hexBite(x, y, r, i) {
       var a = i/6 * Math.PI * 2 + Math.PI/6;
@@ -301,6 +303,33 @@ var OrganisationsList = (function() {
         })
         .attr("fill", VizConfig.dsiAreas[i].color);
     });
+  };
+
+  OrganisationsList.prototype.updateOrgIcon = function() {
+    var divTitle = $(".container .title");
+    var orgId = window.location.href.split("/").pop().replace(/\.html$/, "");
+
+    this.getOrgData(orgId, function(data) {
+      divTitle.prepend("<svg>");
+
+      var svg = d3.select(divTitle.find("svg")[0])
+        .attr("width", 76)
+        .attr("height", 98);
+
+      divTitle.find("img").remove();
+
+      var node = svg.selectAll(".org")
+        .data([ data ])
+        .enter()
+        .append("g")
+        .attr("class", "org");
+
+      var x = 38;
+      var y = 44;
+      var r = 41;
+
+      this.makeHex(node, x, y, r);
+    }.bind(this));
   };
 
   return OrganisationsList;
