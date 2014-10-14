@@ -44,7 +44,6 @@
       if (showIntro) {
         initIntroViz(vizContainer);
       }
-
       // FIXME: temporary solution, assets paths should be changed directly in css
       //updateCSSAssetPaths();
     }
