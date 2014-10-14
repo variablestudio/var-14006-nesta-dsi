@@ -1446,7 +1446,7 @@ var Countries = (function() {
 			.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
 			.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
 			.prefix("reach:", "<http://data.digitalsocial.eu/def/ontology/reach/>")
-			.select("?label ?country ?adsi_label ?funds_invested")
+			.select("?label ?country ?adsi_label")
 			.where("?org", "a", "o:Organization")
 			.where("?am", "a", "ds:ActivityMembership")
 			.where("?am", "ds:organization", "?org")
@@ -1457,9 +1457,6 @@ var Countries = (function() {
 			.where("?org", "o:hasPrimarySite", "?org_site")
 			.where("?org_site", "o:siteAddress", "?org_address")
 			.where("?org_address", "vcard:country-name", "?country")
-			.where("?rv", "a", "ds:ReachValue")
-			.where("?rv", "ds:activityForReach", "?activity")
-			.where("?rv", "reach:fundsInvested", "?funds_invested", { optional: true })
 			.execute()
 			.then(function(results) {
 				// easier key acces
@@ -1467,14 +1464,7 @@ var Countries = (function() {
 					var newObject = {};
 					var key;
 					for (key in object) {
-						if (object.hasOwnProperty(key)) {
-							if (key === "lat" || key === "long" || key === "funds_invested") {
-								newObject[key] = +object[key].value;
-							}
-							else {
-								newObject[key] = object[key].value;
-							}
-						}
+						if (object.hasOwnProperty(key)) { newObject[key] = object[key].value; }
 					}
 
 					return newObject;
@@ -1687,16 +1677,6 @@ var Countries = (function() {
 		div.append("div")
 			.attr("class", "count")
 			.text(data.projects_count);
-	};
-
-	Countries.prototype.drawFunds = function(div, data) {
-		div.append("div")
-			.attr("class", "title")
-			.text("GRANTS");
-
-		div.append("div")
-			.attr("class", "count")
-			.text("\u00A3"+ (data.funds_invested / 1000000) + "m");
 	};
 
 	Countries.prototype.drawCountryName = function(div, data) {
@@ -6174,7 +6154,6 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
       if (showIntro) {
         initIntroViz(vizContainer);
       }
-
       // FIXME: temporary solution, assets paths should be changed directly in css
       //updateCSSAssetPaths();
     }
