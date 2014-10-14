@@ -1,5 +1,5 @@
 <?php get_header(); ?>
-<?php $slug = $wp_query->queried_object->slug ?>
+<?php $slug = $wp_query->queried_object->slug; ?>
 
 <div id="page" class="<?php echo $slug ?>">
 	<?php if ($slug != "research") { ?>
@@ -57,7 +57,10 @@
 		</div>
 
 	<?php } else if ($slug == "research") { ?>
-		<?php
+	<?php
+			global $query_string;
+			query_posts($query_string . "&posts_per_page=-1");
+
 			if (have_posts()) {
 				$categories = array(
 					"research-results" => "Research Results",
