@@ -17,9 +17,9 @@
 
 			if (have_posts()) {
 				$categories = array(
-					"other-opportunities" => "Other opportunities",
+					"funding-opportunities" => "Funding opportunities",
 					"incubators-and-accelerators" => "Incubators and Accelerators",
-					"funding-opportunities" => "Funding opportunities"
+					"other-opportunities" => "Other opportunities"
 				);
 
 				foreach ($categories as $category => $name) {
