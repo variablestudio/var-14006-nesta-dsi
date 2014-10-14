@@ -10,14 +10,29 @@
 		<?php echo term_description() ?>
 	</div>
 
-	<?php if ($slug == "funding-and-support") { ?>
-		<div class="items">
-			<?php if (have_posts()) { ?>
-				<h1>Opportunities</h1>
+	<?php
+		if ($slug == "funding-and-support") {
+			global $query_string;
+			query_posts($query_string . "&posts_per_page=-1");
 
-				<?php
+			if (have_posts()) {
+				$categories = array(
+					"funding-opportunities" => "Funding opportunities",
+					"incubators-and-accelerators" => "Incubators and Accelerators",
+					"other-opportunities" => "Other opportunities"
+				);
+
+				foreach ($categories as $category => $name) {
+					echo "<div class=\"items\">";
+					echo "<h1>" . $name . "</h1>";
+
 					while (have_posts()) {
 						the_post();
+
+						$custom_fields = get_post_custom();
+						$resource_type = $custom_fields['resource-type'];
+
+						if ($resource_type[0] == $category) {
 				?>
 
 					<div class="item">
@@ -50,13 +65,17 @@
 						<div style="clear: both"></div>
 					</div>
 
-			<?php
+		<?php
+						}
 					}
+
+					echo "</div>";
 				}
-			?>
-		</div>
+			}
+		?>
 
 	<?php } else if ($slug == "research") { ?>
+
 	<?php
 			global $query_string;
 			query_posts($query_string . "&posts_per_page=-1");
