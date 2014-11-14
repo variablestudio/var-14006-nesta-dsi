@@ -34,7 +34,188 @@ var Countries = (function() {
 			.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
 			.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
 			.prefix("reach:", "<http://data.digitalsocial.eu/def/ontology/reach/>")
-			.select("?label ?country ?adsi_label")
+			.select("DISTINCT ?country")
+			.where("?org", "a", "o:Organization")
+			.where("?org", "o:hasPrimarySite", "?org_site")
+			.where("?org_site", "o:siteAddress", "?org_address")
+			.where("?org_address", "vcard:country-name", "?country")
+			.execute()
+			.then(function(results) {
+				var countries = results.map(function(result) {
+					return result.country.value;
+				});
+
+				var countriesWithData = countries.reduce(function(memo, country) {
+					memo[country] = {
+						data: null,
+						loaded: false
+					};
+					return memo;
+				}, {});
+
+				var checkIfLoaded = function() {
+					var loaded = true;
+					var key;
+
+					for (key in countriesWithData) {
+						if (countriesWithData.hasOwnProperty(key)) {
+							loaded = loaded && countriesWithData[key].loaded;
+						}
+					}
+
+					if (loaded) {
+						var data = [];
+
+						for (key in countriesWithData) {
+							if (countriesWithData.hasOwnProperty(key)) {
+								if (countriesWithData[key].data) {
+									data.push(countriesWithData[key].data);
+								}
+							}
+						}
+
+						// gather all possible labels
+						this.ADSILabels = data.reduce(function(memo, data) {
+							var label;
+							for (label in data.adsi_labels) {
+								if (data.adsi_labels.hasOwnProperty(label)) {
+									if (memo.indexOf(label) < 0) { memo.push(label); }
+								}
+							}
+
+							return memo;
+						}, []);
+
+						data.sort(function(a, b) {
+							return -(a.projects_count - b.projects_count);
+						});
+
+						// add empty labels
+						data = data.map(function(object) {
+							this.ADSILabels.forEach(function(adsiLabel) {
+								if (object.adsi_labels.hasOwnProperty(adsiLabel)) {
+									// find max count for bar chart scaling
+									if (object.adsi_labels[adsiLabel] > this.ADSIMaxCount) {
+										this.ADSIMaxCount = object.adsi_labels[adsiLabel];
+									}
+								}
+								else {
+									// insert 0 for empty labels in object
+									object.adsi_labels[adsiLabel] = 0;
+								}
+							}.bind(this));
+
+							return object;
+						}.bind(this));
+
+						// add geography to data, and callback when finished
+						if (this.GEO_ASSET.indexOf("all_countries.json") > -1) {
+							$.getJSON(this.GEO_ASSET, function(countries) {
+								data = data
+									.map(function(object) {
+										var index = indexOfProp(countries, "name", object.country);
+
+										if (index > 0) {
+											object.country_code = countries[index]["alpha-3"];
+											object.geo = JSON.parse(countries[index].geo);
+										}
+										else {
+											// remove countries that are not all_countries.json file
+											object = null;
+										}
+
+										return object;
+									})
+									.filter(function(object) {
+										return (object !== null);
+									});
+
+								// save data
+								this.data = data;
+
+								// draw when done
+								this.draw();
+							}.bind(this));
+						}
+
+						else if (this.GEO_ASSET.indexOf("eu.geo.json") > -1 || this.GEO_ASSET.indexOf("world-countries-hires.geo.json") > -1) {
+							$.getJSON(this.GEO_ASSET, function(countries) {
+								countries.features.forEach(function(country) {
+									var name = country.properties.NAME;
+									var index = indexOfProp(data, "country", name);
+
+									if (index >= 0) {
+										data[index].geo = country;
+									}
+								});
+
+								// remove countries not in geojson
+								data = data.filter(function(data) {
+									return data.geo;
+								});
+
+								// save data
+								this.data = data;
+
+								// draw when done
+								this.draw();
+							}.bind(this));
+						}
+
+						else {
+							console.error("no transform for asset: " + this.GEO_ASSET);
+						}
+					}
+				}.bind(this);
+
+				countries.forEach(function(country) {
+					this.getCountryData(country, function(data) {
+						countriesWithData[country] = {
+							data: data,
+							country: country,
+							loaded: true
+						};
+
+						checkIfLoaded();
+					});
+				}.bind(this));
+			}.bind(this));
+	};
+
+	Countries.prototype.draw = function() {
+		var numCountries = this.isDesktopBrowser ? 8 : 6;
+
+		this.data.forEach(function(data, dataIndex) {
+			var div = this.DOM.div.append("div").attr("class", "map " + data.country_code);
+
+			var barChartDiv = div.append("div").attr("class", "area-chart");
+			this.drawBarChart(barChartDiv, data);
+
+			var projectCountDiv = div.append("div").attr("class", "project-count");
+			this.drawProjectCount(projectCountDiv, data);
+
+			var countryNameDiv = div.append("div").attr("class", "country-name");
+			this.drawCountryName(countryNameDiv, data);
+
+			var mapDiv = div.append("div").attr("class", "country");
+			this.drawMap(mapDiv, data);
+
+			if (dataIndex >= numCountries) { $(div[0]).hide(); }
+		}.bind(this));
+	};
+
+	Countries.prototype.getCountryData = function(country, callback) {
+		var url = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
+		var ds = new SPARQLDataSource(url);
+
+		ds.query()
+			.prefix("o:", "<http://www.w3.org/ns/org#>")
+			.prefix("rdfs:", "<http://www.w3.org/2000/01/rdf-schema#>")
+			.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
+			.prefix("vcard:", "<http://www.w3.org/2006/vcard/ns#>")
+			.prefix("ds:", "<http://data.digitalsocial.eu/def/ontology/>")
+			.prefix("reach:", "<http://data.digitalsocial.eu/def/ontology/reach/>")
+			.select("?label ?adsi_label ?country")
 			.where("?org", "a", "o:Organization")
 			.where("?am", "a", "ds:ActivityMembership")
 			.where("?am", "ds:organization", "?org")
@@ -45,6 +226,7 @@ var Countries = (function() {
 			.where("?org", "o:hasPrimarySite", "?org_site")
 			.where("?org_site", "o:siteAddress", "?org_address")
 			.where("?org_address", "vcard:country-name", "?country")
+			.where("FILTER regex(str(?country), \"" + country + "\")", "", "")
 			.execute()
 			.then(function(results) {
 				// easier key acces
@@ -57,15 +239,6 @@ var Countries = (function() {
 
 					return newObject;
 				});
-
-				// gather all possible labels
-				this.ADSILabels = data.reduce(function(memo, object) {
-					if (memo.indexOf(object.adsi_label) < 0) {
-						memo.push(object.adsi_label);
-					}
-
-					return memo;
-				}, []);
 
 				// prepare data
 				data = data.reduce(function(memo, object) {
@@ -96,113 +269,8 @@ var Countries = (function() {
 					return memo;
 				}, []);
 
-
-				data.sort(function(a, b) {
-					return -(a.projects_count - b.projects_count);
-				});
-
-				// add empty labels
-				data = data.map(function(object) {
-					this.ADSILabels.forEach(function(adsiLabel) {
-						if (object.adsi_labels.hasOwnProperty(adsiLabel)) {
-							// find max count for bar chart scaling
-							if (object.adsi_labels[adsiLabel] > this.ADSIMaxCount) {
-								this.ADSIMaxCount = object.adsi_labels[adsiLabel];
-							}
-						}
-						else {
-							// insert 0 for empty labels in object
-							object.adsi_labels[adsiLabel] = 0;
-						}
-					}.bind(this));
-
-					return object;
-				}.bind(this));
-
-				// add geography to data, and callback when finished
-				if (this.GEO_ASSET.indexOf("all_countries.json") > -1) {
-					$.getJSON(this.GEO_ASSET, function(countries) {
-						data = data
-							.map(function(object) {
-								var index = indexOfProp(countries, "name", object.country);
-
-								if (index > 0) {
-									object.country_code = countries[index]["alpha-3"];
-									object.geo = JSON.parse(countries[index].geo);
-								}
-								else {
-									// remove countries that are not all_countries.json file
-									object = null;
-								}
-
-								return object;
-							})
-							.filter(function(object) {
-								return (object !== null);
-							});
-
-						// save data
-						this.data = data;
-
-						// draw when done
-						this.draw();
-					}.bind(this));
-				}
-
-				else if (this.GEO_ASSET.indexOf("eu.geo.json") > -1 || this.GEO_ASSET.indexOf("world-countries-hires.geo.json") > -1) {
-					$.getJSON(this.GEO_ASSET, function(countries) {
-						countries.features.forEach(function(country) {
-							var name = country.properties.NAME;
-							var index = indexOfProp(data, "country", name);
-
-							if (index >= 0) {
-								data[index].geo = country;
-							}
-							// else {
-							// 	console.log("no data for",  name);
-							// }
-						});
-
-						// remove countries not in geojson
-						data = data.filter(function(data) {
-							return data.geo;
-						});
-
-						// save data
-						this.data = data;
-
-						// draw when done
-						this.draw();
-					}.bind(this));
-				}
-
-				else {
-					console.error("no transform for asset: " + this.GEO_ASSET);
-				}
-
-			}.bind(this));
-	};
-
-	Countries.prototype.draw = function() {
-		var numCountries = this.isDesktopBrowser ? 8 : 6;
-
-		this.data.forEach(function(data, dataIndex) {
-			var div = this.DOM.div.append("div").attr("class", "map " + data.country_code);
-
-			var barChartDiv = div.append("div").attr("class", "area-chart");
-			this.drawBarChart(barChartDiv, data);
-
-			var projectCountDiv = div.append("div").attr("class", "project-count");
-			this.drawProjectCount(projectCountDiv, data);
-
-			var countryNameDiv = div.append("div").attr("class", "country-name");
-			this.drawCountryName(countryNameDiv, data);
-
-			var mapDiv = div.append("div").attr("class", "country");
-			this.drawMap(mapDiv, data);
-
-			if (dataIndex >= numCountries) { $(div[0]).hide(); }
-		}.bind(this));
+				callback(data[0]);
+			});
 	};
 
 	Countries.prototype.drawBarChart = function(div, data) {
