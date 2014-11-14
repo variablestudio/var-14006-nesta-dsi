@@ -4,5 +4,3 @@ tests
 
 grunt_example/dist.js
 grunt_example/dist.min.js
-
-beta/viz.dist.min.js
