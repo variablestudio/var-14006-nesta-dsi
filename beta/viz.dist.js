@@ -1595,6 +1595,8 @@ var Countries = (function() {
 	};
 
 	Countries.prototype.draw = function() {
+		VizConfig.events.fire("countries");
+
 		var numCountries = this.isDesktopBrowser ? 8 : 6;
 
 		this.data.forEach(function(data, dataIndex) {
@@ -6235,8 +6237,10 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
         initCaseStudies(vizContainer);
         VizConfig.events.addEventListener('casestudies', function() {
           initEUCountries(vizContainer);
-          initChoropleth(vizContainer);
-          initMainStats(vizContainer, { timeout: 0 });
+          VizConfig.events.addEventListener('countries', function() {
+            initChoropleth(vizContainer);
+            initMainStats(vizContainer, { timeout: 0 });
+          });
         });
       });
     }

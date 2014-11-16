@@ -183,6 +183,8 @@ var Countries = (function() {
 	};
 
 	Countries.prototype.draw = function() {
+		VizConfig.events.fire("countries");
+
 		var numCountries = this.isDesktopBrowser ? 8 : 6;
 
 		this.data.forEach(function(data, dataIndex) {

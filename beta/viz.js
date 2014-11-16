@@ -65,8 +65,10 @@
         initCaseStudies(vizContainer);
         VizConfig.events.addEventListener('casestudies', function() {
           initEUCountries(vizContainer);
-          initChoropleth(vizContainer);
-          initMainStats(vizContainer, { timeout: 0 });
+          VizConfig.events.addEventListener('countries', function() {
+            initChoropleth(vizContainer);
+            initMainStats(vizContainer, { timeout: 0 });
+          });
         });
       });
     }
