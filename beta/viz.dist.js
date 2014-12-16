@@ -3743,30 +3743,58 @@ var MainMap = (function() {
   MainMap.prototype.getCollaborations = function() {
     if (!this.collaorationsPromise) {
       var deferred = Q.defer();
+
       var collaborations = {
         byProject: {},
         byOrganisation: {}
       };
-      var self = this;
-      this.runCollaboratorsQuery().then(function(results) {
-        results.forEach(function(c) {
-          var org = c.org.value;
-          var projects = c.activity_values.value.split(',');
-          projects.forEach(function(project) {
-            if (!collaborations.byProject[project]) {
-              collaborations.byProject[project] = [];
-            }
-            collaborations.byProject[project].push(org);
 
-            if (!collaborations.byOrganisation[org]) {
-              collaborations.byOrganisation[org] = [];
-            }
-            collaborations.byOrganisation[org].push(project);
+      var self = this;
+
+      this.runOrganisationsQueryForCollaborations().then(function(results) {
+        var data = results.map(function() {
+          return { loaded: false, data: [] };
+        });
+
+        var checkIfLoaded = function() {
+          var allLoaded = data.reduce(function(memo, data) {
+            return memo && data.loaded;
+          }, true);
+
+          if (allLoaded) {
+            results.forEach(function(result, index) {
+              var org = result.org.value;
+              var projects = data[index].data.map(function(d) { return d.activity.value });
+
+              projects.forEach(function(project) {
+                if (!collaborations.byProject[project]) {
+                  collaborations.byProject[project] = [];
+                }
+                collaborations.byProject[project].push(org);
+
+                if (!collaborations.byOrganisation[org]) {
+                  collaborations.byOrganisation[org] = [];
+                }
+                collaborations.byOrganisation[org].push(project);
+              });
+            });
+
+            self.collaborations = collaborations;
+            deferred.resolve(collaborations);
+          }
+        };
+
+        results.forEach(function(result, index) {
+          var org = result.org.value;
+
+          self.runActivityQueryForOrganisation(org).then(function(result) {
+            data[index].loaded = true;
+            data[index].data = result;
+            checkIfLoaded();
           });
-          self.collaborations = collaborations;
-          deferred.resolve(collaborations);
         });
       });
+
       this.collaorationsPromise = deferred.promise;
     }
 
@@ -3850,7 +3878,7 @@ var MainMap = (function() {
       .execute();
   };
 
-  MainMap.prototype.runCollaboratorsQuery = function() {
+  MainMap.prototype.runOrganisationsQueryForCollaborations = function() {
     var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
     var ds = new SPARQLDataSource(SPARQL_URL);
 
@@ -3860,12 +3888,28 @@ var MainMap = (function() {
       .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
       .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
       .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
-      .select('?org (group_concat(distinct ?activity ; separator = ",") AS ?activity_values)')
+      .select('DISTINCT ?org')
+      .where('?org', 'a', 'o:Organization')
+      .groupBy("?org")
+      .execute();
+  };
+
+  MainMap.prototype.runActivityQueryForOrganisation = function(org) {
+    var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
+    var ds = new SPARQLDataSource(SPARQL_URL);
+
+    return ds.query()
+      .prefix('o:', '<http://www.w3.org/ns/org#>')
+      .prefix('rdfs:', '<http://www.w3.org/2000/01/rdf-schema#>')
+      .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
+      .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
+      .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
+      .select('DISTINCT ?activity')
       .where('?org', 'a', 'o:Organization')
       .where("?am", "a", "ds:ActivityMembership")
       .where("?am", "ds:organization", "?org")
       .where("?am", "ds:activity", "?activity")
-      .groupBy("?org")
+      .where("FILTER regex(str(?org), \"" + org + "\")", "", "")
       .execute();
   };
 
