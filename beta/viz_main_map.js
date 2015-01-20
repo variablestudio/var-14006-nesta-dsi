@@ -475,15 +475,17 @@ var MainMap = (function() {
     var allResults = [];
     var self = this;
     var page = 0;
-    var resultsPerPage = 1000;
+    //var resultsPerPage = 100;
+    //var letters = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+    var letters = ['[A-D]','[E-G]','[H-J]','[K-O]','[P-T]','[U]', '[V-Z]'];
     function getNextPage() {
-      console.log('runOrganisationsQueryInBatches', 'page:', page);
-      self.runOrganisationsQuery(page * resultsPerPage, resultsPerPage).then(function(results) {
+      console.log('runCollaboratorsQueryInBatches', 'page:', page, letters[page]);
+      self.runOrganisationsQuery(0, 0, letters[page]).then(function(results) {
         allResults = allResults.concat(results);
-        console.log('runOrganisationsQueryInBatches', 'results:', results.length, 'total:', allResults.length);
-        if (results.length == resultsPerPage) {
+        console.log('runCollaboratorsQueryInBatches', 'results:', results.length, 'total:', allResults.length);
+        if (page < letters.length - 1) {
           page++;
-          getNextPage();
+          setTimeout(getNextPage, 1);
         }
         else {
           deferred.resolve(allResults);
@@ -495,7 +497,7 @@ var MainMap = (function() {
     return deferred.promise;
   }
 
-  MainMap.prototype.runOrganisationsQuery = function(offset, limit) {
+  MainMap.prototype.runOrganisationsQuery = function(offset, limit, letter) {
     var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
     var ds = new SPARQLDataSource(SPARQL_URL);
 
@@ -509,7 +511,6 @@ var MainMap = (function() {
       .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
       .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
       .select('?org ?label ?lon ?lat ?country ?city ?street ?tf ?activity ?activity_label ?org_type ?area_of_society')
-      //.select('?org ?org_site')
       .where('?org', 'a', 'o:Organization')
       .where('?org', 'ds:organizationType', '?org_type')
       .where('?org_type', 'rdfs:label', '?org_type_label')
@@ -526,6 +527,7 @@ var MainMap = (function() {
       .where("?am", "ds:activity", "?activity")
       .where("?activity", "rdfs:label", "?activity_label")
       .where("?activity", "ds:areaOfSociety", "?area_of_society", { optional: true })
+      .filter(letter ? ('FILTER regex(?label, "^' + letter + '", "i")') : '')
       .limit(limit)
       .offset(offset)
       .execute(false);
@@ -537,7 +539,8 @@ var MainMap = (function() {
     var self = this;
     var page = 0;
     //var resultsPerPage = 100;
-    var letters = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+    //var letters = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+    var letters = ['[A-D]','[E-G]','[H-J]','[K-O]','[P-T]','[U]', '[V-Z]'];
     function getNextPage() {
       console.log('runCollaboratorsQueryInBatches', 'page:', page, letters[page]);
       self.runCollaboratorsQuery(0, 0, letters[page]).then(function(results) {
