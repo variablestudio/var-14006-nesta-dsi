@@ -72,6 +72,7 @@ var MainMap = (function() {
         this.getProjectsInfo(collaborations).then(function() {
           this.showOrganisations(this.map.leaflet.getZoom());
           this.showClusterNetwork(this.map.leaflet.getZoom());
+          VizConfig.events.fire('projectsInfo');
 
           // hide preloader once everything is loaded
           this.preloader.fadeOut('slow');
@@ -475,17 +476,15 @@ var MainMap = (function() {
     var allResults = [];
     var self = this;
     var page = 0;
-    //var resultsPerPage = 100;
-    //var letters = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
-    var letters = ['[A-D]','[E-G]','[H-J]','[K-O]','[P-T]','[U]', '[V-Z]'];
+    var resultsPerPage = 500;
     function getNextPage() {
-      console.log('runCollaboratorsQueryInBatches', 'page:', page, letters[page]);
-      self.runOrganisationsQuery(0, 0, letters[page]).then(function(results) {
+      console.log('runOrganisationsQueryInBatches', 'page:', page);
+      self.runOrganisationsQuery(page*resultsPerPage, resultsPerPage).then(function(results) {
         allResults = allResults.concat(results);
-        console.log('runCollaboratorsQueryInBatches', 'results:', results.length, 'total:', allResults.length);
-        if (page < letters.length - 1) {
+        console.log('runOrganisationsQueryInBatches', 'results:', results.length, 'total:', allResults.length);
+        if (results.length == resultsPerPage) {
           page++;
-          setTimeout(getNextPage, 1);
+          setTimeout(getNextPage, 100);
         }
         else {
           deferred.resolve(allResults);
@@ -527,7 +526,7 @@ var MainMap = (function() {
       .where("?am", "ds:activity", "?activity")
       .where("?activity", "rdfs:label", "?activity_label")
       .where("?activity", "ds:areaOfSociety", "?area_of_society", { optional: true })
-      .filter(letter ? ('FILTER regex(?label, "^' + letter + '", "i")') : '')
+      //.filter(letter ? ('FILTER regex(?label, "^' + letter + '", "i")') : '')
       .limit(limit)
       .offset(offset)
       .execute(false);
