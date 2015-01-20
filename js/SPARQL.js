@@ -103,7 +103,10 @@ function SPARQLQuery(dataSource) {
     select: [],
     describe: [],
     where: [],
-    groupBy: []
+    filter: [],
+    groupBy: [],
+    offset: 0,
+    limit: 0
   };
 }
 
@@ -113,10 +116,11 @@ SPARQLQuery.prototype.prefix = function(prefix, uri) {
 }
 
 SPARQLQuery.prototype.where = function(subject, predicate, object, options) {
-  var q = ' ' + subject + ' ' + predicate + ' ' + object + '.';
+  var q = ' ' + subject + ' ' + predicate + ' ' + object;
   if (options && options.optional) {
     q = 'OPTIONAL { ' + q + ' } ';
   }
+  q += '.';
   this.lines.where.push(q);
   return this;
 }
@@ -132,6 +136,21 @@ SPARQLQuery.prototype.select = function(subject) {
   return this;
 }
 
+SPARQLQuery.prototype.limit = function(count) {
+  this.lines.limit = count;
+  return this;
+}
+
+SPARQLQuery.prototype.offset = function(count) {
+  this.lines.offset = count;
+  return this;
+}
+
+SPARQLQuery.prototype.filter = function(filter) {
+  this.lines.filter.push(filter);
+  return this;
+}
+
 SPARQLQuery.prototype.describe = function(subject) {
   this.lines.describe.push(subject);
   return this;
@@ -144,8 +163,11 @@ SPARQLQuery.prototype.compile = function() {
   if (this.lines.select.length > 0) str += '\nSELECT ' + this.lines.select.join(' ');
   str += '\n' + 'WHERE {\n';
   str += this.lines.where.join('\n');
+  str += '\n' + this.lines.filter.join('\n');
   str += '\n}\n';
   str += this.lines.groupBy.join('\n');
+  if (this.lines.offset) str += '\nOFFSET ' + this.lines.offset;
+  if (this.lines.limit) str += '\nLIMIT ' + this.lines.limit;
   return str;
 }
 
