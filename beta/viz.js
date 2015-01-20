@@ -61,7 +61,7 @@
     }
 
     if (browser !== "phone") {
-      VizConfig.events.addEventListener('organisations', function() {
+      VizConfig.events.addEventListener('projectsInfo', function() {
         initCaseStudies(vizContainer);
         VizConfig.events.addEventListener('casestudies', function() {
           initEUCountries(vizContainer);
