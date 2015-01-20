@@ -22,12 +22,14 @@ var Countries = (function() {
 		// this.GEO_ASSET = VizConfig.assetsPath + "/all_countries.json";
 	}
 
-	// runs query, calls this.draw() when finished
-	Countries.prototype.init = function() {
+	Countries.prototype.runQuery = function(offset, limit, letter) {
 		var url = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
 		var ds = new SPARQLDataSource(url);
 
-		ds.query()
+		offset = offset || 0;
+    limit = limit || 0;
+
+		return ds.query()
 			.prefix("o:", "<http://www.w3.org/ns/org#>")
 			.prefix("rdfs:", "<http://www.w3.org/2000/01/rdf-schema#>")
 			.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
@@ -45,8 +47,41 @@ var Countries = (function() {
 			.where("?org", "o:hasPrimarySite", "?org_site")
 			.where("?org_site", "o:siteAddress", "?org_address")
 			.where("?org_address", "vcard:country-name", "?country")
-			.execute()
-			.then(function(results) {
+			.filter(letter ? ('FILTER regex(?country, "^' + letter + '", "i")') : '')
+			.limit(limit)
+      .offset(offset)
+			.execute(false)
+	}
+
+	Countries.prototype.runQueryInBatches = function() {
+    var deferred = Q.defer();
+    var allResults = [];
+    var self = this;
+    var page = 0;
+    //var resultsPerPage = 100;
+    var letters = ['[A-D]','[E-G]','[H-J]','[K-O]','[P-T]','[U]', '[V-Z]'];
+    function getNextPage() {
+      console.log('runQueryInBatches', 'page:', page, letters[page]);
+      self.runQuery(0, 0, letters[page]).then(function(results) {
+        allResults = allResults.concat(results);
+        console.log('runQueryInBatches', 'results:', results.length, 'total:', allResults.length);
+        if (page < letters.length - 1) {
+          page++;
+          setTimeout(getNextPage, 1);
+        }
+        else {
+          deferred.resolve(allResults);
+        }
+      })
+    }
+
+    getNextPage();
+    return deferred.promise;
+  }
+
+	// runs query, calls this.draw() when finished
+	Countries.prototype.init = function() {
+		this.runQueryInBatches().then(function(results) {
 				// easier key acces
 				var data = results.map(function(object) {
 					var newObject = {};
