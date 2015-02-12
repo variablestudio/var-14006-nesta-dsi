@@ -115,7 +115,10 @@ function SPARQLQuery(dataSource) {
     select: [],
     describe: [],
     where: [],
-    groupBy: []
+    filter: [],
+    groupBy: [],
+    offset: 0,
+    limit: 0
   };
 }
 
@@ -125,10 +128,11 @@ SPARQLQuery.prototype.prefix = function(prefix, uri) {
 }
 
 SPARQLQuery.prototype.where = function(subject, predicate, object, options) {
-  var q = ' ' + subject + ' ' + predicate + ' ' + object + '.';
+  var q = ' ' + subject + ' ' + predicate + ' ' + object;
   if (options && options.optional) {
     q = 'OPTIONAL { ' + q + ' } ';
   }
+  q += '.';
   this.lines.where.push(q);
   return this;
 }
@@ -144,6 +148,21 @@ SPARQLQuery.prototype.select = function(subject) {
   return this;
 }
 
+SPARQLQuery.prototype.limit = function(count) {
+  this.lines.limit = count;
+  return this;
+}
+
+SPARQLQuery.prototype.offset = function(count) {
+  this.lines.offset = count;
+  return this;
+}
+
+SPARQLQuery.prototype.filter = function(filter) {
+  this.lines.filter.push(filter);
+  return this;
+}
+
 SPARQLQuery.prototype.describe = function(subject) {
   this.lines.describe.push(subject);
   return this;
@@ -156,8 +175,11 @@ SPARQLQuery.prototype.compile = function() {
   if (this.lines.select.length > 0) str += '\nSELECT ' + this.lines.select.join(' ');
   str += '\n' + 'WHERE {\n';
   str += this.lines.where.join('\n');
+  str += '\n' + this.lines.filter.join('\n');
   str += '\n}\n';
   str += this.lines.groupBy.join('\n');
+  if (this.lines.offset) str += '\nOFFSET ' + this.lines.offset;
+  if (this.lines.limit) str += '\nLIMIT ' + this.lines.limit;
   return str;
 }
 
@@ -1434,12 +1456,14 @@ var Countries = (function() {
 		// this.GEO_ASSET = VizConfig.assetsPath + "/all_countries.json";
 	}
 
-	// runs query, calls this.draw() when finished
-	Countries.prototype.init = function() {
+	Countries.prototype.runQuery = function(offset, limit, letter) {
 		var url = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
 		var ds = new SPARQLDataSource(url);
 
-		ds.query()
+		offset = offset || 0;
+    limit = limit || 0;
+
+		return ds.query()
 			.prefix("o:", "<http://www.w3.org/ns/org#>")
 			.prefix("rdfs:", "<http://www.w3.org/2000/01/rdf-schema#>")
 			.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
@@ -1457,8 +1481,41 @@ var Countries = (function() {
 			.where("?org", "o:hasPrimarySite", "?org_site")
 			.where("?org_site", "o:siteAddress", "?org_address")
 			.where("?org_address", "vcard:country-name", "?country")
-			.execute()
-			.then(function(results) {
+			.filter(letter ? ('FILTER regex(?country, "^' + letter + '", "i")') : '')
+			.limit(limit)
+      .offset(offset)
+			.execute(false)
+	}
+
+	Countries.prototype.runQueryInBatches = function() {
+    var deferred = Q.defer();
+    var allResults = [];
+    var self = this;
+    var page = 0;
+    //var resultsPerPage = 100;
+    var letters = ['[A-D]','[E-G]','[H-J]','[K-O]','[P-T]','[U]', '[V-Z]'];
+    function getNextPage() {
+      console.log('runQueryInBatches', 'page:', page, letters[page]);
+      self.runQuery(0, 0, letters[page]).then(function(results) {
+        allResults = allResults.concat(results);
+        console.log('runQueryInBatches', 'results:', results.length, 'total:', allResults.length);
+        if (page < letters.length - 1) {
+          page++;
+          setTimeout(getNextPage, 1);
+        }
+        else {
+          deferred.resolve(allResults);
+        }
+      })
+    }
+
+    getNextPage();
+    return deferred.promise;
+  }
+
+	// runs query, calls this.draw() when finished
+	Countries.prototype.init = function() {
+		this.runQueryInBatches().then(function(results) {
 				// easier key acces
 				var data = results.map(function(object) {
 					var newObject = {};
@@ -2107,11 +2164,14 @@ var Choropleth = (function() {
 		this.DOM = { "div": d3.select(dom) };
 	}
 
-	Choropleth.prototype.init = function() {
+	Choropleth.prototype.runQuery = function(offset, limit, letter) {
 		var url = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
 		var ds = new SPARQLDataSource(url);
 
-		ds.query()
+		offset = offset || 0;
+    limit = limit || 0;
+
+		return ds.query()
 			.prefix("o:", "<http://www.w3.org/ns/org#>")
 			.prefix("rdfs:", "<http://www.w3.org/2000/01/rdf-schema#>")
 			.prefix("geo:", "<http://www.w3.org/2003/01/geo/wgs84_pos#>")
@@ -2130,8 +2190,43 @@ var Choropleth = (function() {
 			.where("?org", "o:hasPrimarySite", "?org_site")
 			.where("?org_site", "o:siteAddress", "?org_address")
 			.where("?org_address", "vcard:country-name", "?country")
-			.execute()
-			.then(function(results) {
+			.filter(letter ? ('FILTER regex(?label, "^' + letter + '", "i")') : '')
+			.limit(limit)
+      .offset(offset)
+			.execute(false)
+	}
+
+	Choropleth.prototype.runQueryInBatches = function() {
+    var deferred = Q.defer();
+    var allResults = [];
+    var self = this;
+    var page = 0;
+    //var resultsPerPage = 100;
+    var letters = ['[A-D]','[E-G]','[H-J]','[K-O]','[P-T]','[U]', '[V-Z]'];
+    function getNextPage() {
+      console.log('runQueryInBatches', 'page:', page, letters[page]);
+      self.runQuery(0, 0, letters[page]).then(function(results) {
+        allResults = allResults.concat(results);
+        console.log('runQueryInBatches', 'results:', results.length, 'total:', allResults.length);
+        if (page < letters.length - 1) {
+          page++;
+          setTimeout(getNextPage, 1);
+        }
+        else {
+          deferred.resolve(allResults);
+        }
+      })
+    }
+
+    getNextPage();
+    return deferred.promise;
+  }
+
+	Choropleth.prototype.init = function() {
+		var url = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
+		var ds = new SPARQLDataSource(url);
+
+		this.runQueryInBatches().then(function(results) {
 				this.data = results.reduce(function(memo, result) {
 					var key = result.adsi_label.value + " " + result.tech_label.value;
 					var keyIndex = indexOfProp(memo, "key", key);
@@ -3373,9 +3468,11 @@ var MainMap = (function() {
 
       // cache collaborations and projects
       this.getCollaborations().then(function(collaborations) {
+        console.log('getCollaborations', 'done', collaborations);
         this.getProjectsInfo(collaborations).then(function() {
           this.showOrganisations(this.map.leaflet.getZoom());
           this.showClusterNetwork(this.map.leaflet.getZoom());
+          VizConfig.events.fire('projectsInfo');
 
           // hide preloader once everything is loaded
           this.preloader.fadeOut('slow');
@@ -3633,8 +3730,15 @@ var MainMap = (function() {
 
   MainMap.prototype.getOrganisations = function() {
     var deferred = Q.defer();
-    this.runOrganisationsQuery().then(function(results) {
+    this.runOrganisationsQueryInBatches().then(function(results) {
       var organisations = results.map(resultValuesToObj);
+
+      var uniqueOrgs = [];
+      organisations.forEach(function(org) {
+        if (uniqueOrgs.indexOf(org.org) == -1) {
+          uniqueOrgs.push(org.org);
+        }
+      });
 
       var reduceOrgByProp = function(data, prop, newPropName) {
         return data.reduce(function(memo, org) {
@@ -3665,6 +3769,8 @@ var MainMap = (function() {
       organisations = reduceOrgByProp(organisations, "org_type", "organisationType");
       organisations = reduceOrgByProp(organisations, "area_of_society", "areaOfSociety");
 
+      console.log('MainMap.getOrganisations', organisations.length, 'uniqueOrgs', uniqueOrgs.length);
+
       deferred.resolve(organisations);
     });
     return deferred.promise;
@@ -3678,7 +3784,7 @@ var MainMap = (function() {
         byOrganisation: {}
       };
       var self = this;
-      this.runCollaboratorsQuery().then(function(results) {
+      this.runCollaboratorsQueryInBatches().then(function(results) {
         results.forEach(function(c) {
           var org = c.org.value;
           var projects = c.activity_values.value.split(',');
@@ -3696,6 +3802,8 @@ var MainMap = (function() {
           self.collaborations = collaborations;
           deferred.resolve(collaborations);
         });
+      }).fail(function(e) {
+        console.log('getCollaborations fail', e);
       });
       this.collaorationsPromise = deferred.promise;
     }
@@ -3704,55 +3812,94 @@ var MainMap = (function() {
   };
 
   MainMap.prototype.getProjectsInfo = function(collaborations) {
+    console.log('getProjectsInfo');
     var deferred = Q.defer();
     this.runProjectsInfoQuery().then(function(results) {
-      var projects = results.map(function(p) {
-        return {
-          p: p.p.value,
-          label: p.label_values.value,
-          technologyFocus: p.tf_values.value.split(',').map(function(f) { return f.substr(f.lastIndexOf('/')+1); }),
-          areaOfDigitalSocialInnovation: p.adsi_values.value.split(',').map(function(f) { return f.substr(f.lastIndexOf('/')+1); })
-        };
-      });
+      console.log('runProjectsInfoQuery done', results.length);
+      try {
+        var projects = results.map(function(p) {
+          return {
+            p: p.p.value,
+            label: p.label_values.value,
+            technologyFocus: p.tf_values.value.split(',').map(function(f) { return f.substr(f.lastIndexOf('/')+1); }),
+            areaOfDigitalSocialInnovation: p.adsi_values.value.split(',').map(function(f) { return f.substr(f.lastIndexOf('/')+1); })
+          };
+        });
 
-      projects.forEach(function(project) {
-        var orgs = collaborations.byProject[project.p] || [];
-        orgs.forEach(function(orgId) {
-          var org = this.organisationsById[orgId];
-          if (!org) {
-            return;
-          }
-          if (!org.projects) {
-            org.projects = [];
-          }
-          if (!org.technologyFocus) {
-            org.technologyFocus = [];
-          }
-          if (!org.areaOfDigitalSocialInnovation) {
-            org.areaOfDigitalSocialInnovation = [];
-          }
-          org.projects.push(project);
-          project.technologyFocus.forEach(function(technologyFocus) {
-            if (org.technologyFocus.indexOf(technologyFocus) === -1) {
-              org.technologyFocus.push(technologyFocus);
+        console.log('mapped projects');
+
+        projects.forEach(function(project) {
+          var orgs = collaborations.byProject[project.p] || [];
+          orgs.forEach(function(orgId) {
+            var org = this.organisationsById[orgId];
+            if (!org) {
+              return;
             }
-          });
-          project.areaOfDigitalSocialInnovation.forEach(function(areaOfDigitalSocialInnovation) {
-            if (org.areaOfDigitalSocialInnovation.indexOf(areaOfDigitalSocialInnovation) === -1) {
-              org.areaOfDigitalSocialInnovation.push(areaOfDigitalSocialInnovation);
+            if (!org.projects) {
+              org.projects = [];
             }
-          });
+            if (!org.technologyFocus) {
+              org.technologyFocus = [];
+            }
+            if (!org.areaOfDigitalSocialInnovation) {
+              org.areaOfDigitalSocialInnovation = [];
+            }
+            org.projects.push(project);
+            project.technologyFocus.forEach(function(technologyFocus) {
+              if (org.technologyFocus.indexOf(technologyFocus) === -1) {
+                org.technologyFocus.push(technologyFocus);
+              }
+            });
+            project.areaOfDigitalSocialInnovation.forEach(function(areaOfDigitalSocialInnovation) {
+              if (org.areaOfDigitalSocialInnovation.indexOf(areaOfDigitalSocialInnovation) === -1) {
+                org.areaOfDigitalSocialInnovation.push(areaOfDigitalSocialInnovation);
+              }
+            });
+          }.bind(this));
         }.bind(this));
-      }.bind(this));
+      }
+      catch(e) {
+        console.log(e)
+      }
 
       deferred.resolve(projects);
-    }.bind(this));
+    }.bind(this)).fail(function(e) {
+      console.log('getProjectsInfo fail', e);
+    });
     return deferred.promise;
   };
 
-  MainMap.prototype.runOrganisationsQuery = function() {
+  MainMap.prototype.runOrganisationsQueryInBatches = function() {
+    var deferred = Q.defer();
+    var allResults = [];
+    var self = this;
+    var page = 0;
+    var resultsPerPage = 500;
+    function getNextPage() {
+      console.log('runOrganisationsQueryInBatches', 'page:', page);
+      self.runOrganisationsQuery(page*resultsPerPage, resultsPerPage).then(function(results) {
+        allResults = allResults.concat(results);
+        console.log('runOrganisationsQueryInBatches', 'results:', results.length, 'total:', allResults.length);
+        if (results.length == resultsPerPage) {
+          page++;
+          setTimeout(getNextPage, 100);
+        }
+        else {
+          deferred.resolve(allResults);
+        }
+      })
+    }
+
+    getNextPage();
+    return deferred.promise;
+  }
+
+  MainMap.prototype.runOrganisationsQuery = function(offset, limit, letter) {
     var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
     var ds = new SPARQLDataSource(SPARQL_URL);
+
+    offset = offset || 0;
+    limit = limit || 0;
 
     return ds.query()
       .prefix('o:', '<http://www.w3.org/ns/org#>')
@@ -3777,12 +3924,45 @@ var MainMap = (function() {
       .where("?am", "ds:activity", "?activity")
       .where("?activity", "rdfs:label", "?activity_label")
       .where("?activity", "ds:areaOfSociety", "?area_of_society", { optional: true })
-      .execute();
+      //.filter(letter ? ('FILTER regex(?label, "^' + letter + '", "i")') : '')
+      .limit(limit)
+      .offset(offset)
+      .execute(false);
   };
 
-  MainMap.prototype.runCollaboratorsQuery = function() {
+  MainMap.prototype.runCollaboratorsQueryInBatches = function() {
+    var deferred = Q.defer();
+    var allResults = [];
+    var self = this;
+    var page = 0;
+    //var resultsPerPage = 100;
+    //var letters = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+    var letters = ['[A-D]','[E-G]','[H-J]','[K-O]','[P-T]','[U]', '[V-Z]'];
+    function getNextPage() {
+      console.log('runCollaboratorsQueryInBatches', 'page:', page, letters[page]);
+      self.runCollaboratorsQuery(0, 0, letters[page]).then(function(results) {
+        allResults = allResults.concat(results);
+        console.log('runCollaboratorsQueryInBatches', 'results:', results.length, 'total:', allResults.length);
+        if (page < letters.length - 1) {
+          page++;
+          setTimeout(getNextPage, 1);
+        }
+        else {
+          deferred.resolve(allResults);
+        }
+      })
+    }
+
+    getNextPage();
+    return deferred.promise;
+  }
+
+  MainMap.prototype.runCollaboratorsQuery = function(offset, limit, letter) {
     var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
     var ds = new SPARQLDataSource(SPARQL_URL);
+
+    offset = offset || 0;
+    limit = limit || 0;
 
     return ds.query()
       .prefix('o:', '<http://www.w3.org/ns/org#>')
@@ -3792,11 +3972,15 @@ var MainMap = (function() {
       .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
       .select('?org (group_concat(distinct ?activity ; separator = ",") AS ?activity_values)')
       .where('?org', 'a', 'o:Organization')
+      .where('?org', 'rdfs:label', '?label')
       .where("?am", "a", "ds:ActivityMembership")
       .where("?am", "ds:organization", "?org")
       .where("?am", "ds:activity", "?activity")
-      .groupBy("?org")
-      .execute();
+      .filter(letter ? ('FILTER regex(?label, "^' + letter + '", "i")') : '')
+      .groupBy('?org')
+      .limit(limit)
+      .offset(offset)
+      .execute(false);
   };
 
   MainMap.prototype.runProjectsInfoQuery = function() {
@@ -3815,7 +3999,7 @@ var MainMap = (function() {
       .where("?p", "rdfs:label", "?label")
       .where("?p", "ds:areaOfDigitalSocialInnovation", "?adsi")
       .groupBy("?p")
-      .execute(false);
+      .execute(true);
   };
 
   MainMap.prototype.updateCaseStudiesData = function() {
@@ -6163,7 +6347,7 @@ VizConfig.technologyFocusesById['open-data'].info = 'Innovative ways to capture,
     }
 
     if (browser !== "phone") {
-      VizConfig.events.addEventListener('organisations', function() {
+      VizConfig.events.addEventListener('projectsInfo', function() {
         initCaseStudies(vizContainer);
         VizConfig.events.addEventListener('casestudies', function() {
           initEUCountries(vizContainer);

@@ -428,7 +428,7 @@ var MainMap = (function() {
 
         console.log('mapped projects');
 
-        projects.forEach(function(project, i) {
+        projects.forEach(function(project) {
           var orgs = collaborations.byProject[project.p] || [];
           orgs.forEach(function(orgId) {
             var org = this.organisationsById[orgId];
@@ -457,13 +457,11 @@ var MainMap = (function() {
             });
           }.bind(this));
         }.bind(this));
-        console.log('done', i);
       }
       catch(e) {
         console.log(e)
       }
 
-      console.log('resolving', i);
       deferred.resolve(projects);
     }.bind(this)).fail(function(e) {
       console.log('getProjectsInfo fail', e);
