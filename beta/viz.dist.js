@@ -3702,41 +3702,58 @@ var MainMap = (function() {
   };
 
   MainMap.prototype.getOrganisations = function() {
-    var deferred = Q.defer();
-    this.runOrganisationsQuery().then(function(results) {
-      var organisations = results.map(resultValuesToObj);
+    var reduceOrgByProp = function(data, prop, newPropName) {
+      return data.reduce(function(memo, org) {
+        if (org[prop]) {
+          org[prop] = org[prop].substr(org[prop].lastIndexOf('/') + 1);
+        }
 
-      var reduceOrgByProp = function(data, prop, newPropName) {
-        return data.reduce(function(memo, org) {
+        var index = indexOfProp(memo, "org", org.org);
+
+        if (index >= 0 && org[prop]) {
+          if (memo[index][newPropName].indexOf(org[prop]) < 0) {
+            memo[index][newPropName].push(org[prop]);
+          }
+        }
+        else {
           if (org[prop]) {
-            org[prop] = org[prop].substr(org[prop].lastIndexOf('/') + 1);
+            org[newPropName] = [ org[prop] ];
+            delete org[prop];
           }
 
-          var index = indexOfProp(memo, "org", org.org);
+          memo.push(org);
+        }
 
-          if (index >= 0 && org[prop]) {
-            if (memo[index][newPropName].indexOf(org[prop]) < 0) {
-              memo[index][newPropName].push(org[prop]);
-            }
+        return memo;
+      }, []);
+    };
+
+    var deferred = Q.defer();
+
+    this.runOrganisationsQuery().then(function(organisationsWithPosition) {
+      this.runOrganisationQueryForOrgType().then(function(organisationsWithData) {
+        organisationsWithPosition = organisationsWithPosition.map(resultValuesToObj);
+        organisationsWithData = organisationsWithData.map(resultValuesToObj);
+
+        organisationsWithData = reduceOrgByProp(organisationsWithData, "org_type", "organisationType");
+        organisationsWithData = reduceOrgByProp(organisationsWithData, "area_of_society", "areaOfSociety");
+
+        organisationsWithData = organisationsWithData.map(function(org) {
+          var index = indexOfProp(organisationsWithPosition, "org", org.org);
+
+          if (index >= 0) {
+            org.lat = +organisationsWithPosition[index].lat;
+            org.lon = +organisationsWithPosition[index].lon;
+            org.country = organisationsWithPosition[index].country;
           }
-          else {
-            if (org[prop]) {
-              org[newPropName] = [ org[prop] ];
-              delete org[prop];
-            }
 
-            memo.push(org);
-          }
+          return org;
+        });
 
-          return memo;
-        }, []);
-      };
+        deferred.resolve(organisationsWithData);
+      });
+    }.bind(this));
 
-      organisations = reduceOrgByProp(organisations, "org_type", "organisationType");
-      organisations = reduceOrgByProp(organisations, "area_of_society", "areaOfSociety");
-
-      deferred.resolve(organisations);
-    });
     return deferred.promise;
   };
 
@@ -3858,18 +3875,31 @@ var MainMap = (function() {
       .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
       .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
       .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
-      .select('?org ?label ?lon ?lat ?country ?city ?street ?tf ?activity ?activity_label ?org_type ?area_of_society')
+      .select('?org ?lon ?lat ?country')
       .where('?org', 'a', 'o:Organization')
-      .where('?org', 'ds:organizationType', '?org_type')
-      .where('?org_type', 'rdfs:label', '?org_type_label')
-      .where('?org', 'rdfs:label', '?label')
       .where('?org', 'o:hasPrimarySite', '?org_site')
       .where('?org_site', 'geo:long', '?lon')
       .where('?org_site', 'geo:lat', '?lat')
       .where('?org_site', 'o:siteAddress', '?org_address')
       .where('?org_address', 'vcard:country-name', '?country')
-      .where('?org_address', 'vcard:street-address', '?street')
-      .where('?org_address', 'vcard:locality', '?city')
+      .execute();
+  };
+
+  MainMap.prototype.runOrganisationQueryForOrgType = function() {
+    var SPARQL_URL = 'http://data.digitalsocial.eu/sparql.json?utf8=✓&query=';
+    var ds = new SPARQLDataSource(SPARQL_URL);
+
+    return ds.query()
+      .prefix('o:', '<http://www.w3.org/ns/org#>')
+      .prefix('rdfs:', '<http://www.w3.org/2000/01/rdf-schema#>')
+      .prefix('geo:', '<http://www.w3.org/2003/01/geo/wgs84_pos#>')
+      .prefix('vcard:', '<http://www.w3.org/2006/vcard/ns#>')
+      .prefix('ds:', '<http://data.digitalsocial.eu/def/ontology/>')
+      .select('?org ?label ?tf ?activity ?activity_label ?org_type ?area_of_society')
+      .where('?org', 'a', 'o:Organization')
+      .where('?org', 'ds:organizationType', '?org_type')
+      .where('?org_type', 'rdfs:label', '?org_type_label')
+      .where('?org', 'rdfs:label', '?label')
       .where("?am", "a", "ds:ActivityMembership")
       .where("?am", "ds:organization", "?org")
       .where("?am", "ds:activity", "?activity")

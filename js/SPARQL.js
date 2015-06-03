@@ -1,4 +1,5 @@
-function SPARQLDataSource(endpoint) {
+function SPARQLDataSource(endpoint, dataType) {
+  this.dataType = dataType || 'json';
   this.endpoint = endpoint;
 }
 
@@ -18,6 +19,7 @@ SPARQLDataSource.prototype.createCORSRequest = function(method, url) {
 SPARQLDataSource.prototype.executeQuery = function(query) {
   var deferred = Q.defer();
   var url = this.endpoint + encodeURIComponent(query);
+  var dataType = this.dataType;
 
   var xhr = this.createCORSRequest('GET', url);
   if (!xhr) {
@@ -27,7 +29,13 @@ SPARQLDataSource.prototype.executeQuery = function(query) {
   }
 
   xhr.onload = function() {
-    deferred.resolve(JSON.parse(xhr.responseText).results.bindings);
+    console.log('SPARQLDataSource.loaded', dataType, xhr.responseText.length);
+    if (dataType == 'json') {
+      deferred.resolve(JSON.parse(xhr.responseText).results.bindings);
+    }
+    else {
+      deferred.resolve(xhr.responseText);
+    }
   };
 
   xhr.onerror = function() {
